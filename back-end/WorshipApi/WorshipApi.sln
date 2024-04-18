@@ -7,12 +7,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorshipApi", "WorshipApi.cs
 	ProjectSection(ProjectDependencies) = postProject
 		{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38} = {203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}
 		{47235D69-57E3-4BE9-A3DB-B9741C1DC20A} = {47235D69-57E3-4BE9-A3DB-B9741C1DC20A}
+		{A0867311-061E-4E13-8102-BBE6F05A522A} = {A0867311-061E-4E13-8102-BBE6F05A522A}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorshipDomain", "..\WorshipDomain\WorshipDomain.csproj", "{47235D69-57E3-4BE9-A3DB-B9741C1DC20A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorshipDomain", "..\WorshipDomain\WorshipDomain.csproj", "{47235D69-57E3-4BE9-A3DB-B9741C1DC20A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorshipInfra", "..\WorshipInfra\WorshipInfra.csproj", "{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorshipInfra", "..\WorshipInfra\WorshipInfra.csproj", "{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}"
 	ProjectSection(ProjectDependencies) = postProject
+		{47235D69-57E3-4BE9-A3DB-B9741C1DC20A} = {47235D69-57E3-4BE9-A3DB-B9741C1DC20A}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorshipApplication", "..\WorshipApplication\WorshipApplication.csproj", "{A0867311-061E-4E13-8102-BBE6F05A522A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38} = {203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}
 		{47235D69-57E3-4BE9-A3DB-B9741C1DC20A} = {47235D69-57E3-4BE9-A3DB-B9741C1DC20A}
 	EndProjectSection
 EndProject
@@ -34,6 +41,10 @@ Global
 		{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{203F5E3A-E3B4-4327-98BE-9F71FD1ACD38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0867311-061E-4E13-8102-BBE6F05A522A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0867311-061E-4E13-8102-BBE6F05A522A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0867311-061E-4E13-8102-BBE6F05A522A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0867311-061E-4E13-8102-BBE6F05A522A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
