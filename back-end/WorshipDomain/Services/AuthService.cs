@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,10 +13,16 @@ namespace WorshipDomain.Services
 {
     public class AuthService : IAuthService
     {
+        private readonly string _authKey;
+        public AuthService(IConfiguration configuration)
+        {
+            _authKey = configuration["AuthKey"];
+        }
+
         public string GetAuthToken()
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("ChaveSuperSecretaDaAPIDoLucasPatrick");
+            var key = Encoding.ASCII.GetBytes(_authKey);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]

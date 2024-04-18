@@ -10,7 +10,7 @@ namespace WorshipDomain.DTO
     public class UsuarioLoginDTO
     {
         [Required]
-        public string? Usuario {  get; set; }
+        public string? Email {  get; set; }
 
         [Required]
         [MinLength(4)]

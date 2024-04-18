@@ -4,6 +4,8 @@ using System.Text;
 using WorshipDomain.Repository;
 using WorshipDomain.Services;
 using WorshipDomain.Services.Interfaces;
+using WorshipInfra.Database;
+using WorshipInfra.Database.Interfaces;
 using WorshipInfra.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,9 +20,9 @@ builder.Services.AddSwaggerGen();
 // Injeção de dependência
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IDbContext, DbContext>();
 
-
-var key = Encoding.ASCII.GetBytes("ChaveSuperSecretaDaAPIDoLucasPatrick");
+var key = Encoding.ASCII.GetBytes(builder.Configuration["AuthKey"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

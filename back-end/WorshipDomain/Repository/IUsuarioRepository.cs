@@ -10,6 +10,6 @@ namespace WorshipDomain.Repository
     public interface IUsuarioRepository
     {
         Guid CadastrarUsuario(Usuario usuario);
-        bool AutenticarUsuario(string usuario, string senha);
+        bool AutenticarUsuario(string email, string senha);
     }
 }

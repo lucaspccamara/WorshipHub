@@ -1,20 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Dapper;
 using WorshipDomain.Entities;
 using WorshipDomain.Repository;
+using WorshipInfra.Database;
+using WorshipInfra.Database.Interfaces;
 
 namespace WorshipInfra.Repository
 {
-    public class UsuarioRepository : IUsuarioRepository
+    public class UsuarioRepository : GenericRepository, IUsuarioRepository
     {
-        public bool AutenticarUsuario(string usuario, string senha)
+        public UsuarioRepository(IDbContext dbContext) : base(dbContext) { }
+
+        public bool AutenticarUsuario(string email, string senha)
         {
-            if (usuario == "usuario" && senha == "senha")
-                return true;
-            return false;
+            var sql = @"
+                SELECT COUNT(*) 
+                FROM whdatabase.usuario
+                WHERE Email = @Email
+                AND Senha = @Senha;";
+
+            return _dbConnection.QuerySingle<bool>(sql, new { Email = email, Senha = senha});
         }
 
         public Guid CadastrarUsuario(Usuario usuario)

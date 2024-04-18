@@ -24,7 +24,7 @@ namespace WorshipApi.Controllers
                 return BadRequest(ModelState);
             }
 
-            var result = _usuarioRepository.AutenticarUsuario(usuarioLogin.Usuario, usuarioLogin.Senha);
+            var result = _usuarioRepository.AutenticarUsuario(usuarioLogin.Email, usuarioLogin.Senha);
 
             if (result)
             {
