@@ -6,24 +6,19 @@ using WorshipInfra.Database.Interfaces;
 
 namespace WorshipInfra.Repository
 {
-    public class UsuarioRepository : GenericRepository, IUsuarioRepository
+    public class UsuarioRepository : GenericRepository<int, Usuario>, IUsuarioRepository
     {
-        public UsuarioRepository(IDbContext dbContext) : base(dbContext) { }
+        public UsuarioRepository(IContextRepository dbContext) : base(dbContext) { }
 
         public bool AutenticarUsuario(string email, string senha)
         {
             var sql = @"
                 SELECT COUNT(*) 
-                FROM whdatabase.usuario
+                FROM Usuario
                 WHERE Email = @Email
                 AND Senha = @Senha;";
 
             return _dbConnection.QuerySingle<bool>(sql, new { Email = email, Senha = senha});
-        }
-
-        public Guid CadastrarUsuario(Usuario usuario)
-        {
-            throw new NotImplementedException();
         }
     }
 }

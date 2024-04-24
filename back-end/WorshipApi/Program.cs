@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using WorshipApplication.Utils;
+using WorshipApplication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +13,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Injeção de dependência
-DependencyInjectionUtils.Load(builder.Services);
+ServiceCollectionExtentions.Load(builder.Services);
+
+Dapper.SimpleCRUD.SetDialect(Dapper.SimpleCRUD.Dialect.MySQL);
 
 var key = Encoding.ASCII.GetBytes(builder.Configuration["AuthKey"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

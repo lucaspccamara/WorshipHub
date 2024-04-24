@@ -1,10 +1,10 @@
-﻿using WorshipDomain.Entities;
+﻿using WorshipDomain.Core.Interfaces;
+using WorshipDomain.Entities;
 
 namespace WorshipDomain.Repository
 {
-    public interface IUsuarioRepository
+    public interface IUsuarioRepository : IGenericRepository<int, Usuario>
     {
-        Guid CadastrarUsuario(Usuario usuario);
         bool AutenticarUsuario(string email, string senha);
     }
 }

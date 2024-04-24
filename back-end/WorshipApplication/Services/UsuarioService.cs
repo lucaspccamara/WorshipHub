@@ -1,22 +1,21 @@
-﻿using WorshipDomain.Repository;
+﻿using WorshipDomain.Core.Entities;
+using WorshipDomain.Entities;
+using WorshipDomain.Repository;
 
 namespace WorshipApplication.Services
 {
-    public class UsuarioService
+    public class UsuarioService : ServiceBase<int, Usuario>
     {
-        private readonly IUsuarioRepository _usuarioRepository;
         private readonly AuthService _authService;
 
-        public UsuarioService(IUsuarioRepository usuarioRepository, AuthService authService)
+        public UsuarioService(IUsuarioRepository repository, AuthService authService) : base(repository)
         {
-            _usuarioRepository = usuarioRepository;
             _authService = authService;
         }
 
         public string AutenticarUsuario(string email, string senha)
         {
-            var result = _usuarioRepository.AutenticarUsuario(email, senha);
-            
+            var result = ((IUsuarioRepository)_repository).AutenticarUsuario(email, senha);
             if (result)
                 return _authService.GetAuthToken();
 

@@ -5,18 +5,18 @@ using WorshipInfra.Database.Interfaces;
 using WorshipInfra.Database;
 using WorshipInfra.Repository;
 
-namespace WorshipApplication.Utils
+namespace WorshipApplication
 {
-    public static class DependencyInjectionUtils
+    public static class ServiceCollectionExtentions
     {
         public static void Load(IServiceCollection services)
         {
             // Context
-            services.AddScoped<IDbContext, DbContext>();
+            services.AddScoped<IContextRepository, ContextRepository>();
 
             // Repositories
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-            
+
             // Services
             services.AddScoped<AuthService>();
             services.AddScoped<UsuarioService>();
