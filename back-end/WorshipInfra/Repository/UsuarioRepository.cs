@@ -10,15 +10,14 @@ namespace WorshipInfra.Repository
     {
         public UsuarioRepository(IContextRepository dbContext) : base(dbContext) { }
 
-        public bool AutenticarUsuario(string email, string senha)
+        public string GetSenhaHashPorEmail(string email)
         {
-            var sql = @"
-                SELECT COUNT(*) 
+            const string Sql = @"
+                SELECT Senha
                 FROM Usuario
-                WHERE Email = @Email
-                AND Senha = @Senha;";
+                WHERE Email = @Email;";
 
-            return _dbConnection.QuerySingle<bool>(sql, new { Email = email, Senha = senha});
+            return _dbConnection.QuerySingle<string>(Sql, new { Email = email});
         }
     }
 }
