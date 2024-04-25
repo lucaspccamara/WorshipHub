@@ -13,9 +13,9 @@ namespace WorshipInfra.Repository
         public string GetSenhaHashPorEmail(string email)
         {
             const string Sql = @"
-                SELECT Senha
-                FROM Usuario
-                WHERE Email = @Email;";
+                SELECT senha
+                FROM usuario
+                WHERE email = @Email;";
 
             return _dbConnection.QuerySingle<string>(Sql, new { Email = email});
         }

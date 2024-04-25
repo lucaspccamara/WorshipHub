@@ -8,14 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WorshipApplication\WorshipApplication.csproj" />
-    <ProjectReference Include="..\WorshipDomain\WorshipDomain.csproj" />
+	<ProjectReference Include="..\WorshipInfra\WorshipInfra.csproj" />
   </ItemGroup>
 
 </Project>

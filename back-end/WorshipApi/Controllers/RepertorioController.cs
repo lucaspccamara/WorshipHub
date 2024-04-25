@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace WorshipApi.Controllers
 {
-    [Route("api/[Controller]")]
-    [Authorize]
+    [Route("api/repertorios")]
     public class RepertorioController : ControllerBase
     {
         [HttpGet()]

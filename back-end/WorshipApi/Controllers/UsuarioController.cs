@@ -1,17 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using WorshipApplication.DTO;
 using WorshipApplication.Services;
-using WorshipDomain.DTO;
 
 namespace WorshipApi.Controllers
 {
+    [Route("api/usuarios")]
     public class UsuarioController : ControllerBase
     {
-        public UsuarioController()
-        {
-        }
-
-        [HttpPost("/login")]
+        [HttpPost("login")]
+        [AllowAnonymous]
         public ActionResult AutenticarUsuario(
             [FromServices] UsuarioService _usuarioService,
             [FromBody] UsuarioLoginDTO usuarioLogin)

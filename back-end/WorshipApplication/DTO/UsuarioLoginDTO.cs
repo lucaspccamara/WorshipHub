@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace WorshipDomain.DTO
+namespace WorshipApplication.DTO
 {
     public class UsuarioLoginDTO
     {
