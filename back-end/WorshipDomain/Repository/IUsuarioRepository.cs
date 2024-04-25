@@ -5,6 +5,5 @@ namespace WorshipDomain.Repository
 {
     public interface IUsuarioRepository : IGenericRepository<int, Usuario>
     {
-        string GetSenhaHashPorEmail(string email);
     }
 }

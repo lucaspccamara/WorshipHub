@@ -1,4 +1,4 @@
-﻿namespace WorshipDomain.Entities.Enums
+﻿namespace WorshipDomain.Enums
 {
     public enum Cargo
     {
