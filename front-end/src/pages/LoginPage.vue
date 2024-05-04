@@ -7,7 +7,7 @@
             <div class="text-h6">Login</div>
             <q-input v-model="email" label="Email" />
             <q-input v-model="password" label="Password" type="password" />
-            <q-btn color="primary" label="Login" @click="login" />
+            <q-btn color="primary" label="Login" @click="login()" />
           </q-card-section>
         </q-card>
       </q-page>
@@ -16,23 +16,24 @@
 </template>
 
 <script>
-import { ref } from 'vue';
-import api from '../api';
-import { Notify } from 'quasar';
+import { ref } from 'vue'
+import api from '../api'
+import { Cookies } from 'quasar'
+import { useRouter } from 'vue-router'
 
 export default {
   setup() {
+    const router = useRouter();
     const email = ref('');
     const password = ref('');
 
-    const login = () => {
+    function login() {
       api.getPost('auths/login', {email: email.value, senha: password.value}).then((response) => {
-        console.log(response);
+        if (response.status === 200) {
+          Cookies.set('user_token', response.data.token, { expires: '6h' })
+          router.push({ path: '/' })
+        }
       })
-      Notify.create({
-        message: 'Login successful',
-        color: 'positive'
-      });
     };
 
     return {
@@ -44,7 +45,7 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss">
 .login-card {
   max-width: 400px;
   width: 90%;

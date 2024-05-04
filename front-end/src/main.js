@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { Quasar, Notify } from 'quasar'
+import { Quasar, Cookies, Notify } from 'quasar'
 import router from './router'
 import quasarLang from 'quasar/lang/pt-BR'
 import quasarIconSet from 'quasar/icon-set/fontawesome-v6'
@@ -17,7 +17,7 @@ import App from './App.vue'
 const myApp = createApp(App)
 
 myApp.use(Quasar, {
-  plugins: { Notify }, // import Quasar plugins and add here
+  plugins: { Cookies, Notify }, // import Quasar plugins and add here
   lang: quasarLang,
   iconSet: quasarIconSet,
 })
