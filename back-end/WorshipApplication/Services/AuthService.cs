@@ -19,15 +19,15 @@ namespace WorshipApplication.Services
 
         public string AutenticarUsuario(string email, string senha)
         {
-            var usuarioExiste = _repository.GetList(new { Email = email }).Any();
+            var usuario = _repository.GetList(new { Email = email }).FirstOrDefault();
 
-            if (!usuarioExiste)
+            if (usuario == null)
                 return string.Empty;
 
             var senhaVerificada = VerificaSenha(email, senha);
 
             if (senhaVerificada)
-                return GetAuthToken();
+                return GetAuthToken(usuario);
 
             return string.Empty;
         }
@@ -41,7 +41,7 @@ namespace WorshipApplication.Services
 
         private static string GerarSenhaHash(string senha) => BCrypt.Net.BCrypt.HashPassword(senha);
 
-        private string GetAuthToken()
+        private string GetAuthToken(Usuario usuario)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_authKey);
@@ -49,7 +49,8 @@ namespace WorshipApplication.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    
+                    new Claim(ClaimTypes.Name, usuario.Nome),
+                    new Claim(ClaimTypes.Role, usuario.Perfil.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddHours(6), // Tempo de expiração do token
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using WorshipDomain.Enums;
 
 namespace WorshipDomain.Entities
 {
@@ -18,7 +19,7 @@ namespace WorshipDomain.Entities
         public string Senha { get; set; }
 
         [Column("perfil")]
-        public int Perfil { get; set; }
+        public Perfil Perfil { get; set; }
 
         [Column("cargo")]
         public string Cargo { get; set;}

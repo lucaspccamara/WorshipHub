@@ -2,6 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { Cookies } from 'quasar'
 import { jwtDecode } from 'jwt-decode'
 
+function hasRequiredRole(token, roles) {
+  if (!token)
+    return false; // Se não houver token, o usuário não tem a função necessária
+  
+  const decodedToken = jwtDecode(token);
+
+  return roles.some((role) => decodedToken.role.includes(role));
+};
+
 const routes = [
   { 
     path: '/login',
@@ -12,7 +21,8 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('./pages/Home.vue'),
-    meta: { requiresAuth: true } }
+    meta: { requiresAuth: true, roles: ['Admin'] } // Adição de role temporária para testes. REMOVER
+  }
 ];
 
 const router = createRouter({
@@ -33,6 +43,9 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     // Se a rota requer autenticação e o usuário não está autenticado, redirecione para a página de login
+    next('/login');
+  } else if (to.meta.roles && !hasRequiredRole(token, to.meta.roles)) {
+    // Redireciona para uma página de acesso negado se não tiver a função necessária
     next('/login');
   } else {
     // Caso contrário, permita o acesso à rota
