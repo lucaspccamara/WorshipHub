@@ -6,7 +6,7 @@
         Baterista,
         Guitarrista,
         Tecladista,
-        Vocalista,
-        Violonista
+        Violonista,
+        Vocalista
     }
 }

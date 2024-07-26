@@ -3,7 +3,7 @@ using WorshipDomain.Enums;
 
 namespace WorshipDomain.Entities
 {
-    [Table("usuario")]
+    [Table("usuarios")]
     public class Usuario
     {
         [Column("id")]

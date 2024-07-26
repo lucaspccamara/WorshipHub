@@ -14,7 +14,7 @@ namespace WorshipInfra.Repository
         {
             const string Sql = @"
                 SELECT senha
-                FROM usuario
+                FROM usuarios
                 WHERE email = @Email;";
 
             return _dbConnection.QuerySingle<string>(Sql, new { Email = email});

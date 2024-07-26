@@ -1,10 +1,11 @@
 <template>
-  <div class="q-pa-md" v-cloak style="background-color: #f1f2f3;">
-    <router-view></router-view>
+  <div v-cloak style="background-color: #f1f2f3;">
+    <AppTemplate />
   </div>
 </template>
  
 <script setup>
+import AppTemplate from './pages/AppTemplate.vue';
 </script>
 
 <style scoped>

@@ -20,7 +20,13 @@ const routes = [
   { 
     path: '/',
     name: 'Home',
-    component: () => import('./pages/Home.vue'),
+    component: () => import('./components/HomePage.vue'),
+    meta: { requiresAuth: true, roles: ['Admin'] } // Adição de role temporária para testes. REMOVER
+  },
+  { 
+    path: '/schedule',
+    name: 'Schedule',
+    component: () => import('./pages/Schedule.vue'),
     meta: { requiresAuth: true, roles: ['Admin'] } // Adição de role temporária para testes. REMOVER
   }
 ];
