@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="q-pa-md">
     <q-input v-model="date" filled type="date" hint="Native date" />
     <q-input v-model="date" filled type="date" hint="Native date" />
     <q-select v-model="eventType" :options="eventTypes" label="Tipo de Evento" />

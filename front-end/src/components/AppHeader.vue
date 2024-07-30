@@ -2,12 +2,14 @@
   <q-header elevated class="bg-primary text-white">
     <q-toolbar>
       <q-btn dense flat round icon="fa fa-bars" @click="toggleLeftDrawer" />
-      <q-toolbar-title>
+      <q-btn no-caps unelevated :ripple="false" to="/">
+        <q-toolbar-title>
         <q-avatar>
-          <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" alt="Logo" />
-        </q-avatar>
-        WorshipHub
-      </q-toolbar-title>
+            <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" alt="Logo" />
+          </q-avatar>
+          WorshipHub
+        </q-toolbar-title>
+      </q-btn>
     </q-toolbar>
   </q-header>
 

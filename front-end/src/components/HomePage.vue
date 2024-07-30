@@ -2,6 +2,7 @@
   <q-splitter
     v-model="splitterModel"
     horizontal
+    style="flex: 1;"
   >
 
     <template v-slot:before>
@@ -32,7 +33,7 @@
             </div>
           </q-card>
           <div class="text-h6 q-mt-md">Músicas</div>
-          <q-card style="height: 350px;">
+          <q-card>
             <q-list class="scroll">
               <q-item clickable v-for="song in panel.songs" :key="song.title" class="q-pa-md bg-blue-3 card-music">
                 <q-item-section>
@@ -88,10 +89,6 @@ const showSchedule = (date) => {
 </script>
 
 <style lang="scss">
-.main-card{
-  height: 100vh !important;
-}
-
 .card-music {
   flex: 1 1 calc(100% - 1rem);
   display: flex;

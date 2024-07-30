@@ -8,3 +8,32 @@ $positive  : #21BA45;
 $negative  : #C10015;
 $info      : #31CCEC;
 $warning   : #F2C037;
+
+
+// Scrollbar style
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track{
+  background: #E2E2E2;
+  border-radius: 8px;
+  -webkit-border-radius: 8px;
+  -moz-border-radius: 8px;
+  -ms-border-radius: 8px;
+  -o-border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #404D61;
+  border-radius: 8px;
+  -webkit-border-radius: 8px;
+  -moz-border-radius: 8px;
+  -ms-border-radius: 8px;
+  -o-border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2c3644;
+}
