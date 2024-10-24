@@ -2,13 +2,13 @@
 
 namespace WorshipDomain.Core.Entities
 {
-    public abstract class ServiceBase<TKey, TEntity> : IServiceBase<TKey, TEntity>
+    public abstract class ServiceBase<TKey, TEntity, TRepository> where TRepository: IGenericRepository<TKey, TEntity>
     {
-        protected readonly IGenericRepository<TKey, TEntity> _repository;
+        protected readonly TRepository _repository;
 
-        public ServiceBase(IGenericRepository<TKey, TEntity> tEntityRepository)
+        public ServiceBase(TRepository repository)
         {
-            _repository = tEntityRepository;
+            _repository = repository;
         }
 
         public TEntity Get(TKey key)

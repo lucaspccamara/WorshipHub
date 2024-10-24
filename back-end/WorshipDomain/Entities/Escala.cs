@@ -12,6 +12,9 @@ namespace WorshipDomain.Entities
         [Column("data")]
         public DateTime Data { get; set; }
 
+        [Column("evento")]
+        public Evento Evento { get; set; }
+
         [Column("liberada")]
         public bool Liberada { get; set; }
     }

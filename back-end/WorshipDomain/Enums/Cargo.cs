@@ -2,11 +2,19 @@
 {
     public enum Cargo
     {
+        // Louvor
         Baixista,
         Baterista,
         Guitarrista,
         Tecladista,
         Violonista,
-        Vocalista
+        Vocalista,
+
+        // Produção
+        Camera,
+        Live,
+        AudioIgreja,
+        AudioLive,
+        Letra
     }
 }

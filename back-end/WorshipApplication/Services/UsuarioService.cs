@@ -4,7 +4,7 @@ using WorshipDomain.Repository;
 
 namespace WorshipApplication.Services
 {
-    public class UsuarioService : ServiceBase<int, Usuario>
+    public class UsuarioService : ServiceBase<int, Usuario, IUsuarioRepository>
     {
         public UsuarioService(IUsuarioRepository repository) : base(repository)
         {

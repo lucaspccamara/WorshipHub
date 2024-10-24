@@ -7,8 +7,10 @@
             <div class="text-h6">Login</div>
             <q-input v-model="email" label="Email" />
             <q-input v-model="password" label="Password" type="password" />
-            <q-btn color="primary" label="Login" @click="login()" />
           </q-card-section>
+          <q-card-actions>
+            <q-btn color="primary" label="Login" @click="login()" />
+          </q-card-actions>
         </q-card>
       </q-page>
     </q-page-container>
@@ -16,10 +18,10 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import api from '../api'
-import { Cookies } from 'quasar'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue';
+import api from '../api';
+import { Cookies } from 'quasar';
+import { useRouter } from 'vue-router';
 
 export default {
   setup() {

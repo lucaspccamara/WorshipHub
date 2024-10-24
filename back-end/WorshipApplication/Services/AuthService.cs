@@ -9,17 +9,20 @@ using WorshipDomain.Repository;
 
 namespace WorshipApplication.Services
 {
-    public class AuthService : ServiceBase<int, Usuario>
+    public class AuthService : ServiceBase<int, Usuario, IAuthRepository>
     {
         private readonly string _authKey;
-        public AuthService(IAuthRepository repository, IConfiguration configuration) : base(repository)
+        private readonly IUsuarioRepository _usuarioRepository;
+
+        public AuthService(IAuthRepository repository, IConfiguration configuration, IUsuarioRepository usuarioRepository) : base(repository)
         {
             _authKey = configuration["AuthKey"];
+            _usuarioRepository = usuarioRepository;
         }
 
         public string AutenticarUsuario(string email, string senha)
         {
-            var usuario = _repository.GetList(new { Email = email }).FirstOrDefault();
+            var usuario = _usuarioRepository.GetList(new { Email = email }).FirstOrDefault();
 
             if (usuario == null)
                 return string.Empty;
@@ -34,7 +37,7 @@ namespace WorshipApplication.Services
 
         private bool VerificaSenha(string email, string senha)
         {
-            string senhaHash = ((IAuthRepository)_repository).GetSenhaHashPorEmail(email);
+            string senhaHash = _repository.GetSenhaHashPorEmail(email);
 
             return BCrypt.Net.BCrypt.Verify(senha, senhaHash);
         }
