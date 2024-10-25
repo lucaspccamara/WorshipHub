@@ -34,7 +34,7 @@ FROM escala
 
             var selector = builder.AddTemplate($@"
 SELECT SQL_CALC_FOUND_ROWS
-    data, evento
+    data, evento, liberada
 FROM escala
 /**WHERE**/
 /**ORDERBY**/
@@ -57,11 +57,12 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
             using (var multiReader = _dbConnection.QueryMultiple(selector.RawSql, selector.Parameters))
             {
-                var escalaList = multiReader.Read<(DateTime Data, int Evento)>();
+                var escalaList = multiReader.Read<(DateTime Data, int Evento, bool Liberada)>();
                 escalaOverviewDTO = escalaList.Select(escala => new EscalaOverviewDTO
                 {
                     Data = escala.Data.ToString("dd/MM/yy"),
-                    Evento = escala.Evento
+                    Evento = escala.Evento,
+                    Liberada = escala.Liberada
                 });
 
                 count = multiReader.ReadSingle<int>();

@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.Entities;
@@ -11,12 +12,12 @@ namespace WorshipApplication.Services
 {
     public class AuthService : ServiceBase<int, Usuario, IAuthRepository>
     {
-        private readonly string _authKey;
+        private readonly string _jwtPrivateKey;
         private readonly IUsuarioRepository _usuarioRepository;
 
         public AuthService(IAuthRepository repository, IConfiguration configuration, IUsuarioRepository usuarioRepository) : base(repository)
         {
-            _authKey = configuration["AuthKey"];
+            _jwtPrivateKey = configuration["JWT_PRIVATE_KEY"];
             _usuarioRepository = usuarioRepository;
         }
 
@@ -47,16 +48,22 @@ namespace WorshipApplication.Services
         private string GetAuthToken(Usuario usuario)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_authKey);
+
+            var privateKeyBytes = Convert.FromBase64String(_jwtPrivateKey);
+            var privateKeyPem = Encoding.UTF8.GetString(privateKeyBytes);
+
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(privateKeyPem.ToCharArray());
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
+                Subject = new ClaimsIdentity(
+                [
                     new Claim(ClaimTypes.Name, usuario.Nome),
                     new Claim(ClaimTypes.Role, usuario.Perfil.ToString())
-                }),
+                ]),
                 Expires = DateTime.UtcNow.AddHours(6), // Tempo de expiração do token
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);

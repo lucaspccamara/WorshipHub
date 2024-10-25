@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 using System.Text;
 using WorshipApplication;
 using WorshipInfra;
@@ -22,12 +24,18 @@ builder.Services.AddInfrastructureServices();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var key = Encoding.ASCII.GetBytes(builder.Configuration["AuthKey"]);
+        var privateKeyBase64 = builder.Configuration["JWT_PUBLIC_KEY"];
+        var privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+        var privateKeyPem = Encoding.UTF8.GetString(privateKeyBytes);
+
+        using var rsa = RSA.Create();
+        rsa.ImportFromPem(privateKeyPem.ToCharArray());
+        var rsaSecurityKey = new RsaSecurityKey(rsa);
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
+            IssuerSigningKey = rsaSecurityKey,
             ValidateIssuer = false,
             ValidateAudience = false,
             ValidateLifetime = true

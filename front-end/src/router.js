@@ -1,15 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { Cookies } from 'quasar'
 import { jwtDecode } from 'jwt-decode'
+import { Perfil } from './enums/Perfil';
 
-function hasRequiredRole(token, roles) {
-  if (!token)
-    return false; // Se não houver token, o usuário não tem a função necessária
-  
-  const decodedToken = jwtDecode(token);
-
-  return roles.some((role) => decodedToken.role.includes(role));
-};
+function hasRequiredRole(decoded, requiredRoles) {
+  if (!decoded || !decoded.role) return false;
+  return requiredRoles.some(role => decoded.role.includes(role));
+}
 
 const routes = [
   { 
@@ -21,13 +18,13 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('./components/HomePage.vue'),
-    meta: { requiresAuth: true, roles: ['Admin'] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true, roles: [Perfil.Admin] } // Adição de role temporária para testes. REMOVER
   },
   { 
     path: '/schedule',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
-    meta: { requiresAuth: true, roles: ['Admin'] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true, roles: [Perfil.Admin] } // Adição de role temporária para testes. REMOVER
   }
 ];
 
@@ -40,19 +37,26 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = Cookies.get('user_token')
   let isAuthenticated = false
+  let decodedToken = null;
 
   if (token) {
-    const decoded = jwtDecode(token);
-    if (decoded.exp * 1000 > Date.now())
-      isAuthenticated = true
+    try {
+      // Verifique o token usando a chave pública
+      decodedToken = jwtDecode(token);
+      
+      // Verifica se o token ainda está válido
+      isAuthenticated = decodedToken && decodedToken.exp * 1000 > Date.now();
+    } catch (error) {
+      console.error('Token verification failed:', error);
+    }
   }
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     // Se a rota requer autenticação e o usuário não está autenticado, redirecione para a página de login
     next('/login');
-  } else if (to.meta.roles && !hasRequiredRole(token, to.meta.roles)) {
-    // Redireciona para uma página de acesso negado se não tiver a função necessária
-    next('/login');
+  } else if (to.meta.roles && !hasRequiredRole(decodedToken, to.meta.roles)) {
+    // Redireciona para a página home se não tiver a função necessária
+    next('/');
   } else {
     // Caso contrário, permita o acesso à rota
     next();
