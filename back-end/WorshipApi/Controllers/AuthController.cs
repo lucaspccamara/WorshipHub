@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using WorshipApplication.DTO;
 using WorshipApplication.Services;
+using WorshipDomain.DTO;
 
 namespace WorshipApi.Controllers
 {

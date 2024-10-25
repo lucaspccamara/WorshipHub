@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WorshipApplication.DTO.Escala;
 using WorshipApplication.Services;
+using WorshipDomain.Core.Entities;
+using WorshipDomain.DTO.Escala;
 
 namespace WorshipApi.Controllers
 {
@@ -8,7 +9,9 @@ namespace WorshipApi.Controllers
     public class EscalaController : ControllerBase
     {
         [HttpGet()]
-        public ActionResult<List<string>> GetEscala()
+        public ActionResult<ResultFilter<EscalaOverviewDTO>> GetEscala(
+            [FromServices] EscalaService escalaService,
+            ApiRequest<EscalaFilterDTO> request)
         {
             var repertorio = new List<string>()
             {
@@ -19,7 +22,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost()]
-        public ActionResult PostEscala(
+        public ActionResult CreateEscala(
             [FromServices] EscalaService _escalaService,
             [FromBody] IEnumerable<EscalaCreationDTO> escalasCreationDTO)
         {

@@ -1,6 +1,6 @@
 ﻿using FluentResults;
-using WorshipApplication.DTO.Escala;
 using WorshipDomain.Core.Entities;
+using WorshipDomain.DTO.Escala;
 using WorshipDomain.Entities;
 using WorshipDomain.Repository;
 
@@ -60,6 +60,11 @@ namespace WorshipApplication.Services
             }
 
             return Result.Ok(resultadoMensagem);
+        }
+
+        public ResultFilter<EscalaOverviewDTO> GetListPaged(ApiRequest<EscalaFilterDTO> request)
+        {
+            return _repository.GetListPaged(request);
         }
     }
 }
