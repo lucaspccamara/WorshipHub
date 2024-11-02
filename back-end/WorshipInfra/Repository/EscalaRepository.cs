@@ -18,7 +18,7 @@ namespace WorshipInfra.Repository
             var builder = new SqlBuilder();
             var selector = builder.AddTemplate(@"
 SELECT 1
-FROM escala
+FROM escalas
 /**WHERE**/
 ;");
             
@@ -35,7 +35,7 @@ FROM escala
             var selector = builder.AddTemplate($@"
 SELECT SQL_CALC_FOUND_ROWS
     data, evento, liberada
-FROM escala
+FROM escalas
 /**WHERE**/
 /**ORDERBY**/
 LIMIT {(request.Page - 1) * request.Length}, {request.Length};

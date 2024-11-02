@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WorshipApi.Core;
 using WorshipApplication.Services;
 using WorshipDomain.Core.Entities;
@@ -10,7 +11,7 @@ namespace WorshipApi.Controllers
     [Route("api/escalas")]
     public class EscalaController : ControllerBase
     {
-        [HttpGet()]
+        [HttpPost("list")]
         public ActionResult<ResultFilter<EscalaOverviewDTO>> GetEscala(
             [FromServices] EscalaService _escalaService,
             ApiRequest<EscalaFilterDTO> request)

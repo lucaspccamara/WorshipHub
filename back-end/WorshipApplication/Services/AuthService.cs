@@ -47,13 +47,8 @@ namespace WorshipApplication.Services
 
         private string GetAuthToken(Usuario usuario)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            var privateKeyBytes = Convert.FromBase64String(_jwtPrivateKey);
-            var privateKeyPem = Encoding.UTF8.GetString(privateKeyBytes);
-
             using var rsa = RSA.Create();
-            rsa.ImportFromPem(privateKeyPem.ToCharArray());
+            rsa.ImportFromPem(_jwtPrivateKey.ToCharArray()); // Importar chave privada
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -65,10 +60,10 @@ namespace WorshipApplication.Services
                 Expires = DateTime.UtcNow.AddHours(6), // Tempo de expiração do token
                 SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
             };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
 
-            return tokenString;
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }

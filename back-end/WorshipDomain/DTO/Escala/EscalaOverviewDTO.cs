@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace WorshipDomain.DTO.Escala
+﻿namespace WorshipDomain.DTO.Escala
 {
     public class EscalaOverviewDTO
     {

@@ -1,7 +1,7 @@
 <template>
   <q-header elevated class="bg-primary text-white">
     <q-toolbar>
-      <q-btn dense flat round icon="fa fa-bars" @click="toggleLeftDrawer" />
+      <q-btn v-if="showMenu" dense flat round icon="fa fa-bars" @click="toggleLeftDrawer" />
       <q-btn no-caps unelevated :ripple="false" to="/">
         <q-toolbar-title>
         <q-avatar>
@@ -30,11 +30,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const drawer = ref(false);
 const router = useRouter();
+const route = useRoute();
+const showMenu = computed(() => route.path !== '/login');
 const menuItems = [
   { label: 'Escalas', route: '/schedule' },
   { label: 'Perfil', route: '/profile' },

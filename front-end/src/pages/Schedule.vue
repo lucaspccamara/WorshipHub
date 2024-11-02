@@ -56,7 +56,7 @@ function openDialog() {
 };
 
 function getSchedule() {
-  api.getAll(`escalas?initialDate=${initialDate.value}&finalDate=${finalDate.value}${eventType.value ? `&eventType=${eventType.value}` : ''}`).then((response) => {
+  api.getPost('escalas/list').then((response) => {
     console.log(response.data)
   })
 };
@@ -72,5 +72,6 @@ function setDefaultDates() {
 
 onMounted(() => {
   setDefaultDates();
+  //getSchedule();
 });
 </script>
