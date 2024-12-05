@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "WorshipHub API", Version = "v1" });
 
-    // Configuração de segurança para o JWT no Swagger
+    // Security configuration for JWT in Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -49,14 +49,14 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Injeção de dependência
+// Dependency Injection
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 
-// Instanciar RSA uma vez e reutilizá-lo
+// Instantiate RSA once and keep it alive
 var rsa = RSA.Create();
 var publicKey = builder.Configuration["JWT_PUBLIC_KEY"];
-rsa.ImportFromPem(publicKey.ToCharArray()); // Importar chave pública
+rsa.ImportFromPem(publicKey.ToCharArray()); // Import public key
 
 builder.Services.AddAuthentication(options =>
 {
@@ -74,7 +74,7 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true
     };
 
-    // Eventos de log para diagnosticar problemas de autenticação
+    // Log events to diagnose authentication issues
     options.Events = new JwtBearerEvents
     {
         OnAuthenticationFailed = context =>
@@ -132,6 +132,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-AppDomain.CurrentDomain.ProcessExit += (s, e) => rsa.Dispose(); // Libera o RSA quando a aplicação é encerrada
+AppDomain.CurrentDomain.ProcessExit += (s, e) => rsa.Dispose(); // Releases RSA when application is terminated
 
 app.Run();

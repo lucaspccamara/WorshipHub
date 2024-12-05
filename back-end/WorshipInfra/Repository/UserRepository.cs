@@ -5,8 +5,8 @@ using WorshipInfra.Database.Interfaces;
 
 namespace WorshipInfra.Repository
 {
-    public class UsuarioRepository : GenericRepository<int, Usuario>, IUsuarioRepository
+    public class UserRepository : GenericRepository<int, User>, IUserRepository
     {
-        public UsuarioRepository(IContextRepository dbContext) : base(dbContext) { }
+        public UserRepository(IContextRepository dbContext) : base(dbContext) { }
     }
 }

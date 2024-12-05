@@ -9,8 +9,8 @@ namespace WorshipApplication
         {
             // Services
             services.AddScoped<AuthService>();
-            services.AddScoped<EscalaService>();
-            services.AddScoped<UsuarioService>();
+            services.AddScoped<ScheduleService>();
+            services.AddScoped<UserService>();
 
             return services;
         }

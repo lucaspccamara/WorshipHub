@@ -6,7 +6,7 @@ namespace WorshipApi.Core
 {
     public class AuthorizeRolesAttribute : AuthorizeAttribute
     {
-        public AuthorizeRolesAttribute(params Perfil[] roles)
+        public AuthorizeRolesAttribute(params Role[] roles)
         {
             Roles = string.Join(",", roles.Select(r => r.ToString()));
         }

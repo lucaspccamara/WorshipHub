@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { Cookies } from 'quasar'
 import { jwtDecode } from 'jwt-decode'
-import { Perfil } from './enums/Perfil';
+import { Role } from './constants/Role';
 
 function hasRequiredRole(decoded, requiredRoles) {
   if (!decoded || !decoded.role) return false;
@@ -18,13 +18,13 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('./components/HomePage.vue'),
-    meta: { requiresAuth: true, roles: [Perfil.Admin] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true, roles: [Role.Admin] } // Adição de role temporária para testes. REMOVER
   },
   { 
     path: '/schedule',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
-    meta: { requiresAuth: true, roles: [Perfil.Admin] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true, roles: [Role.Admin] } // Adição de role temporária para testes. REMOVER
   }
 ];
 

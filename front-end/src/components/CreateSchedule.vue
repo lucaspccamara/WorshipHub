@@ -60,14 +60,11 @@
 import api from '../api';
 import { ref } from 'vue';
 import { Notify } from 'quasar';
+import { EventTypes } from '../constants/EventTypes';
 
 const selectedDate = ref(null);
 const eventType = ref(null);
-const eventTypes = [
-  {label: 'Culto Vespertino', value: 0, color: 'blue'},
-  {label: 'Escola Dominical', value: 1, color: 'green'},
-  {label: 'Evento Especial', value: 2, color: 'orange'}
-];
+const eventTypes = EventTypes;
 let events = ref([]);
 
 function addEvent() {
@@ -126,11 +123,11 @@ function getEventColor(date) {
 
 function createEvents() {
   const mappedEvents = events.value.map(event => ({
-    data: event.date,
-    evento: event.type
+    date: event.date,
+    eventType: event.type
   }));
 
-  api.create('escalas', mappedEvents);
+  api.create('schedules', mappedEvents);
 }
 </script>
 

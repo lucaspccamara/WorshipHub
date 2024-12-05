@@ -3,61 +3,60 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.Entities;
 using WorshipDomain.Repository;
 
 namespace WorshipApplication.Services
 {
-    public class AuthService : ServiceBase<int, Usuario, IAuthRepository>
+    public class AuthService : ServiceBase<int, User, IAuthRepository>
     {
         private readonly string _jwtPrivateKey;
-        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IUserRepository _userRepository;
 
-        public AuthService(IAuthRepository repository, IConfiguration configuration, IUsuarioRepository usuarioRepository) : base(repository)
+        public AuthService(IAuthRepository repository, IConfiguration configuration, IUserRepository userRepository) : base(repository)
         {
             _jwtPrivateKey = configuration["JWT_PRIVATE_KEY"];
-            _usuarioRepository = usuarioRepository;
+            _userRepository = userRepository;
         }
 
-        public string AutenticarUsuario(string email, string senha)
+        public string AuthenticateUser(string email, string password)
         {
-            var usuario = _usuarioRepository.GetList(new { Email = email }).FirstOrDefault();
+            var user = _userRepository.GetList(new { Email = email }).FirstOrDefault();
 
-            if (usuario == null)
+            if (user == null)
                 return string.Empty;
 
-            var senhaVerificada = VerificaSenha(email, senha);
+            var passwordVerified = CheckPassword(email, password);
 
-            if (senhaVerificada)
-                return GetAuthToken(usuario);
+            if (passwordVerified)
+                return GetAuthToken(user);
 
             return string.Empty;
         }
 
-        private bool VerificaSenha(string email, string senha)
+        private bool CheckPassword(string email, string password)
         {
-            string senhaHash = _repository.GetSenhaHashPorEmail(email);
+            string hashPassword = _repository.GetHashPasswordByEmail(email);
 
-            return BCrypt.Net.BCrypt.Verify(senha, senhaHash);
+            return BCrypt.Net.BCrypt.Verify(password, hashPassword);
         }
 
-        private static string GerarSenhaHash(string senha) => BCrypt.Net.BCrypt.HashPassword(senha);
+        private static string GenerateHashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
 
-        private string GetAuthToken(Usuario usuario)
+        private string GetAuthToken(User user)
         {
             using var rsa = RSA.Create();
-            rsa.ImportFromPem(_jwtPrivateKey.ToCharArray()); // Importar chave privada
+            rsa.ImportFromPem(_jwtPrivateKey.ToCharArray()); // Import private key
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(
                 [
-                    new Claim(ClaimTypes.Name, usuario.Nome),
-                    new Claim(ClaimTypes.Role, usuario.Perfil.ToString())
+                    new Claim(ClaimTypes.Name, user.Name),
+                    new Claim(ClaimTypes.Role, user.Role.ToString())
                 ]),
-                Expires = DateTime.UtcNow.AddHours(6), // Tempo de expiração do token
+                Expires = DateTime.UtcNow.AddHours(6), // Token expiration time
                 SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
             };
 

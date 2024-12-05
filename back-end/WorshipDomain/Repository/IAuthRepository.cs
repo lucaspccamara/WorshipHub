@@ -3,8 +3,8 @@ using WorshipDomain.Entities;
 
 namespace WorshipDomain.Repository
 {
-    public interface IAuthRepository : IGenericRepository<int, Usuario>
+    public interface IAuthRepository : IGenericRepository<int, User>
     {
-        string GetSenhaHashPorEmail(string email);
+        string GetHashPasswordByEmail(string email);
     }
 }

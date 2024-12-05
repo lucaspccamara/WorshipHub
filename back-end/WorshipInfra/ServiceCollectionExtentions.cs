@@ -10,7 +10,7 @@ namespace WorshipInfra
     {
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
         {
-            // Selecionando o dialeto do Dapper SimpleCRUD para o MySQL
+            // Selecting the Dapper SimpleCRUD Dialect for MySQL
             Dapper.SimpleCRUD.SetDialect(Dapper.SimpleCRUD.Dialect.MySQL);
 
             // Context
@@ -18,8 +18,8 @@ namespace WorshipInfra
 
             // Repositories
             services.AddScoped<IAuthRepository, AuthRepository>();
-            services.AddScoped<IEscalaRepository, EscalaRepository>();
-            services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+            services.AddScoped<IScheduleRepository, ScheduleRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
 
             return services;
         }

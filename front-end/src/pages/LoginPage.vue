@@ -30,7 +30,7 @@ export default {
     const password = ref('');
 
     function login() {
-      api.getPost('auths/login', {email: email.value, senha: password.value}).then((response) => {
+      api.getPost('auths/login', {email: email.value, password: password.value}).then((response) => {
         if (response.status === 200) {
           Cookies.set('user_token', response.data.token, { expires: '6h' })
           router.push({ path: '/' })

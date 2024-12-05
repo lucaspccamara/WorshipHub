@@ -2,8 +2,8 @@
 
 namespace WorshipApi.Controllers
 {
-    [Route("api/usuarios")]
-    public class UsuarioController : ControllerBase
+    [Route("api/users")]
+    public class UserController : ControllerBase
     {
     }
 }

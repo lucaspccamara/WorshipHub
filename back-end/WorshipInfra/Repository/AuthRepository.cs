@@ -6,15 +6,15 @@ using WorshipInfra.Database.Interfaces;
 
 namespace WorshipInfra.Repository
 {
-    public class AuthRepository : GenericRepository<int, Usuario>, IAuthRepository
+    public class AuthRepository : GenericRepository<int, User>, IAuthRepository
     {
         public AuthRepository(IContextRepository dbContext) : base(dbContext) { }
 
-        public string GetSenhaHashPorEmail(string email)
+        public string GetHashPasswordByEmail(string email)
         {
             const string Sql = @"
-                SELECT senha
-                FROM usuarios
+                SELECT password
+                FROM users
                 WHERE email = @Email;";
 
             return _dbConnection.QuerySingle<string>(Sql, new { Email = email});
