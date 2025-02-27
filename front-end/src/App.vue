@@ -1,14 +1,15 @@
 <template>
-  <div v-cloak style="background-color: #f1f2f3;">
-    <AppTemplate />
+  <div class="app-container">
+    <AppTemplate/>
   </div>
 </template>
- 
+
 <script setup>
-import AppTemplate from './pages/AppTemplate.vue';
+import AppTemplate from "./pages/AppTemplate.vue";
 </script>
 
 <style scoped>
-[v-cloak] > * { display: none }
-[v-cloak]::before { content: "Loading..." }
+.app-container {
+  background-color: #f1f2f3;
+}
 </style>

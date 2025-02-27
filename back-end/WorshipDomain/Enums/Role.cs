@@ -4,7 +4,7 @@
     {
         Admin,
         Leader,
-        Minister,
-        Member
+        Member,
+        Minister
     }
 }

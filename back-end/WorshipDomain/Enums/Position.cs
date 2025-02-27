@@ -3,18 +3,19 @@
     public enum Position
     {
         // Praise
+        AcusticGuitarist,
         Bassist,
         Drummer,
-        AcusticGuitarist,
         EletricGuitarist,
         Keyboardist,
+        Minister,
         Vocalist,
 
         // Production
-        Camera,
-        Live,
         AudioChurch,
         AudioLive,
+        Camera,
+        Live,
         Lyrics
     }
 }

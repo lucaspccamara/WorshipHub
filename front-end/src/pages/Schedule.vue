@@ -1,7 +1,7 @@
 <template>
   <q-card-section class="card-header">
     <span class="text-h6 header-label">Lista de Escalas</span>
-    <q-btn class="float-right left-icon" color="primary" no-caps icon="fa fa-square-plus" @click="openDialog">Cadastrar Escala</q-btn>
+    <q-btn class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="openDialogCreateSchedule">Cadastrar Escala</q-btn>
   </q-card-section>
 
   <q-card-section>
@@ -21,7 +21,7 @@
           class="col-2"
         />
         <div class="col">
-          <q-btn color="primary" no-caps @click="getSchedule" label="Pesquisar" class="float-right" />
+          <q-btn class="float-right" color="primary" label="Pesquisar" no-caps @click="getSchedule" />
         </div>
       </div>
     </q-form>
@@ -43,6 +43,7 @@
       :Loading="loading"
       separetor="cell"
       :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]"
+      @request="onRequest"
     >
       <template v-slot:body-cell-eventType="props">
         <q-td :props="props">
@@ -55,11 +56,26 @@
           <span>{{ ScheduleStatus.find(status => status.value == props.row.status).label }}</span>
         </q-td>
       </template>
+
+      <template v-slot:body-cell-id="props">
+        <q-td :props="props">
+          <q-btn size="sm" color="primary" icon="fa fa-pen-to-square" @click="openDialogManageSchedule(props.row.id)" round>
+            <q-tooltip anchor="bottom middle" self="top middle" :offset="[10, 10]" transition-show="scale" transition-hide="scale">Editar / Visualizar</q-tooltip>
+          </q-btn>
+          <q-btn class="q-ml-sm" size="sm" color="red" icon="fa fa-trash" @click="() => {console.log(props.row.id)}" round>
+            <q-tooltip anchor="bottom middle" self="top middle" :offset="[10, 10]" transition-show="scale" transition-hide="scale">Excluir</q-tooltip>
+          </q-btn>
+        </q-td>
+      </template>
     </q-table>
   </div>
 
-  <q-dialog v-model="dialogRegister" persistent class="lg-dialog">
+  <q-dialog v-model="dialogCreateSchedule" persistent class="lg-dialog">
     <CreateSchedule></CreateSchedule>
+  </q-dialog>
+
+  <q-dialog v-model="dialogManageSchedule" persistent class="lg-dialog">
+    <ManageSchedule></ManageSchedule>
   </q-dialog>
 </template>
 
@@ -67,11 +83,14 @@
 import { ref, onMounted } from 'vue';
 import api from '../api';
 import CreateSchedule from '../components/CreateSchedule.vue';
+import ManageSchedule from '../components/ManageSchedule.vue';
 import { ApiFilter, ApiPagination } from '../entities/ApiUtils';
 import { EventTypes } from '../constants/EventTypes';
 import { ScheduleStatus } from '../constants/ScheduleStatus';
 
-const dialogRegister = ref(false);
+const dialogCreateSchedule = ref(false);
+const dialogManageSchedule = ref(false);
+const selectedSchedule = ref(0);
 let startDate = ref('');
 let endDate = ref('');
 let eventType = ref(null);
@@ -85,11 +104,16 @@ const columns = [
   {name: 'date', label: 'Data', field: 'date', align: 'left', sortable: false},
   {name: 'eventType', label: 'Tipo de Evento', field: 'eventType', align: 'left', sortable: false},
   {name: 'released', label: 'Status', field: 'released', align: 'center', sortable: false},
-  {name: 'id', label: '', field: 'id', align: 'center', sortable: false, width: '100px'}
+  {name: 'id', label: 'Ações', field: 'id', align: 'center', sortable: false, width: '100px'}
 ];
 
-function openDialog() {
-  dialogRegister.value = true;
+function openDialogCreateSchedule() {
+  dialogCreateSchedule.value = true;
+};
+
+function openDialogManageSchedule(idSchedule) {
+  selectedSchedule.value = idSchedule;
+  dialogManageSchedule.value = true;
 };
 
 function getSchedule() {
@@ -101,8 +125,20 @@ function getSchedule() {
 
   api.getPost('schedules/list', filter).then((response) => {
     rows.value.splice(0, rows.value.length, ...response.data.data);
+    pagination.rowsNumber = response.data.totalRecords;
+    console.log(response.data)
   })
 };
+
+function onRequest(props) {
+  const { page, rowsPerPage, sortBy, descending } = props.pagination;
+
+  filter.page = page
+  filter.length = rowsPerPage
+  
+  pagination.page = page
+  pagination.rowsPerPage = rowsPerPage
+}
 
 function setDefaultDates() {
   const today = new Date();

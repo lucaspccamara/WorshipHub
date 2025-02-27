@@ -1,24 +1,30 @@
 <template>
-  <q-layout>
+  <q-layout
+    view="hHh lpR fFf"
+  >
+    <!-- Cabeçalho fixo -->
+    <AppHeader />
+
+    <!-- Conteúdo principal -->
     <q-page-container>
-      <app-header></app-header>
-      <q-page class="q-pa-md">
-        <q-layout style="max-width: 1250px; width: 90%; margin: 0 auto;">
-          <q-card class="main-card">
-            <router-view></router-view>
-          </q-card>
-        </q-layout>
+      <q-page class="flex justify-center">
+        <q-card class="main-card flex items-start justify-center">
+          <router-view></router-view>
+        </q-card>
       </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup>
-import AppHeader from '../components/AppHeader.vue';
+import AppHeader from "../components/AppHeader.vue";
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .main-card {
-  height: 90vh !important;
+  width: 100%;
+  max-width: 600px; /* Melhor adaptação para mobile-first */
+  // height: auto;
+  // min-height: 83vh;
 }
 </style>

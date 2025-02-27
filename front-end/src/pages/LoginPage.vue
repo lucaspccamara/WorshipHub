@@ -1,55 +1,77 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page class="flex flex-center">
-        <q-card class="login-card">
-          <q-card-section>
-            <div class="text-h6">Login</div>
-            <q-input v-model="email" label="Email" />
-            <q-input v-model="password" label="Password" type="password" />
-          </q-card-section>
-          <q-card-actions>
-            <q-btn color="primary" label="Login" @click="login()" />
-          </q-card-actions>
-        </q-card>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+  <q-card class="login-card">
+    <q-card-section>
+      <div class="text-h6 text-center">Login</div>
+
+      <q-input
+        v-model="email"
+        label="Email"
+        type="email"
+        dense
+        outlined
+        class="q-mt-md"
+      />
+
+      <q-input
+        v-model="password"
+        label="Senha"
+        :type="isPwd ? 'password' : 'text'"
+        dense
+        outlined
+        class="q-mt-md"
+      >
+        <template v-slot:append>
+          <q-icon
+            :name="isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+            class="cursor-pointer"
+            @click="isPwd = !isPwd"
+            size="xs"
+          />
+        </template>
+      </q-input>
+    </q-card-section>
+
+    <q-card-actions>
+      <q-btn color="primary" label="Entrar" @click="login()" class="full-width q-mt-md" />
+    </q-card-actions>
+  </q-card>
 </template>
 
-<script>
-import { ref } from 'vue';
-import api from '../api';
-import { Cookies } from 'quasar';
-import { useRouter } from 'vue-router';
+<script setup>
+import { ref } from "vue";
+import api from "../api";
+import { Cookies } from "quasar";
+import { useRouter } from "vue-router";
 
-export default {
-  setup() {
-    const router = useRouter();
-    const email = ref('');
-    const password = ref('');
+const router = useRouter();
+const email = ref("");
+const password = ref("");
+const isPwd = ref(true);
 
-    function login() {
-      api.getPost('auths/login', {email: email.value, password: password.value}).then((response) => {
-        if (response.status === 200) {
-          Cookies.set('user_token', response.data.token, { expires: '6h' })
-          router.push({ path: '/' })
-        }
-      })
-    };
+const login = async () => {
+  try {
+    const response = await api.getPost("auths/login", {
+      email: email.value,
+      password: password.value
+    });
 
-    return {
-      email,
-      password,
-      login
-    };
+    if (response.status === 200) {
+      Cookies.set("user_token", response.data.token, { expires: "6h" });
+      router.push({ path: "/" });
+    }
+  } catch (error) {
+    console.error("Erro ao fazer login:", error);
   }
 };
 </script>
 
 <style lang="scss">
 .login-card {
-  max-width: 400px;
+  align-self: center;
   width: 90%;
+  max-width: 400px;
+  padding: 16px;
+  max-height: 90vh;
+  margin-bottom: 20px;
 }
 </style>

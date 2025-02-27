@@ -12,7 +12,7 @@ namespace WorshipDomain.Entities
         [Column("date")]
         public DateTime Date { get; set; }
 
-        [Column("event")]
+        [Column("eventType")]
         public EventType EventType { get; set; }
 
         [Column("status")]
