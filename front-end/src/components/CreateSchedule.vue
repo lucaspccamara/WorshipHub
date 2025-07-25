@@ -10,7 +10,6 @@
       </q-bar>
 
       <div class="row">
-        
         <q-card-section :class="['col-12', 'col-md-5', 'column-left']">
           <q-date
             v-model="selectedDate"
@@ -30,19 +29,34 @@
             class="q-my-md"
           />
           <q-btn color="primary" label="Adicionar Evento" @click="addEvent()" />
+          <q-btn
+            v-if="isMobile && events.length > 0"
+            class="q-mt-md"
+            color="secondary"
+            label="Eventos Selecionados"
+            @click="showMobileEventsDialog = true"
+          />
         </q-card-section>
   
-        <div :class="['col-12', 'col-md-7']">
+        <div :class="['col-12', 'col-md-7']" v-if="!isMobile">
           <q-card-section class="column-right">
             <div v-if="events.length > 0">
               <q-card v-for="(event, index) in events" :key="index" class="q-mb-md">
-                <q-card-section>
-                  <p><strong>Data:</strong> {{ formatDate(event.date) }}</p>
-                  <p><strong>Tipo de Evento:</strong> {{ event.label }}</p>
+                <q-card-section class="row items-center justify-between">
+                  <div>
+                    <p><strong>Data:</strong> {{ formatDate(event.date) }}</p>
+                    <p><strong>Tipo de Evento:</strong> {{ event.label }}</p>
+                  </div>
+
+                  <q-btn
+                    align="right"
+                    color="negative"
+                    flat
+                    dense
+                    icon="fa fa-trash"
+                    @click="removeEvent(index)"
+                  />
                 </q-card-section>
-                <q-card-actions>
-                  <q-btn align="right" color="negative" label="Remover" @click="removeEvent(index)" />
-                </q-card-actions>
               </q-card>
             </div>
           </q-card-section>
@@ -54,13 +68,66 @@
       </div>
     </form>
   </q-card>
+
+  <q-dialog v-model="showMobileEventsDialog" full-width>
+    <q-card class="scrolling-dialog">
+      <q-bar class="card-header">
+        <div class="text-h6">Eventos Selecionados</div>
+        <q-space />
+        <q-btn dense flat icon="fa fa-close" v-close-popup>
+          <q-tooltip>Fechar</q-tooltip>
+        </q-btn>
+      </q-bar>
+
+      <q-separator />
+
+      <q-card-section class="events-scroll">
+        <q-card
+          v-for="(event, index) in events"
+          :key="index"
+          class="q-mb-md"
+        >
+          <q-card-section class="row items-center justify-between">
+            <div>
+              <p><strong>Data:</strong> {{ formatDate(event.date) }}</p>
+              <p><strong>Tipo de Evento:</strong> {{ event.label }}</p>
+            </div>
+            
+            <q-btn
+              align="right"
+              color="negative"
+              flat
+              dense
+              icon="fa fa-trash"
+              @click="removeEvent(index)"
+            />
+          </q-card-section>
+        </q-card>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn
+          v-if="isMobile"
+          class="full-width q-mt-md"
+          color="primary"
+          type="submit"
+          label="Cadastrar Escala"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
 import api from '../api';
 import { ref } from 'vue';
-import { Notify } from 'quasar';
+import { Notify, useQuasar } from 'quasar';
 import { EventTypes } from '../constants/EventTypes';
+
+const $q = useQuasar();
+
+const isMobile = $q.screen.lt.md;
+const showMobileEventsDialog = ref(false);
 
 const selectedDate = ref(null);
 const eventType = ref(null);
@@ -104,11 +171,20 @@ function addEvent() {
       message: 'Evento adicionado com sucesso!',
       color: 'positive'
     });
+  } else {
+    Notify.create({
+      message: 'Por favor, selecione uma data e um tipo de evento.',
+      color: 'negative'
+    });
   }
 }
 
 function removeEvent(index) {
   events.value.splice(index, 1);
+
+  if (events.value.length === 0) {
+    showMobileEventsDialog.value = false;
+  }
 }
 
 function formatDate(date) {
@@ -158,5 +234,28 @@ function createEvents() {
   position: absolute;
   bottom: 0;
   right: 0;
+}
+
+.scrolling-dialog {
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.events-scroll {
+  overflow-y: auto;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .position-absolute,
+  .align-right-bottom {
+    position: static !important;
+    width: 100% !important;
+  }
+
+  .column-left {
+    border: none !important;
+  }
 }
 </style>

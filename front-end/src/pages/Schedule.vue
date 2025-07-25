@@ -95,7 +95,7 @@
         :props="props"
         :class="{'bg-blue-2': isSelected(props.row)}"
         style="cursor: pointer;"
-        @dblclick="openDialogManageSchedule(props.row.id)"
+        @dblclick="openDialogScheduleByStatus(props.row.id, props.row.status)"
         @mousedown="startHold(props.row)"
         @mouseup="clearHold"
         @mouseleave="clearHold"
@@ -103,7 +103,7 @@
         @touchend="clearHold"
       >
         <q-td key="id" class="text-center">
-          <q-checkbox v-model="selectedRows" :val="props.row" />
+          <q-checkbox v-model="selectedRows" :val="props.row" :disable="props.row.status != 0" />
         </q-td>
         <q-td key="date">{{ props.row.date }}</q-td>
         <q-td key="eventType">
@@ -159,7 +159,7 @@ const columns = [
 
 function startHold(row) {
   holdTimer.value = setTimeout(() => {
-    openDialogManageSchedule(row.id);
+    openDialogScheduleByStatus(row.id, row.status);
   }, 500);
 }
 
@@ -227,6 +227,14 @@ function releaseSelectedSchedules() {
   // Limpa seleção após liberação
   selectedRows.value = [];
 }
+
+function openDialogScheduleByStatus(idSchedule, status) {
+  if (status == 1) {
+    openDialogManageSchedule(idSchedule)
+  } else {
+    openDialogCreateSchedule();
+  }
+};
 
 function openDialogCreateSchedule() {
   dialogCreateSchedule.value = true;
