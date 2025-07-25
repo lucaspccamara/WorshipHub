@@ -10,6 +10,6 @@ import AppTemplate from "./pages/AppTemplate.vue";
 
 <style scoped>
 .app-container {
-  background-color: #f1f2f3;
+  background-color: #e7e7e7;
 }
 </style>

@@ -20,9 +20,13 @@ $warning   : #F2C037;
   .header-label {
     display: block;
     float: left;
-    margin: 5px 0 0 10px;
+    margin: 5px 0 0 0;
     font-weight: bold;
   }
+}
+
+.card-content {
+  width: 100%;
 }
 
 .card-footer {

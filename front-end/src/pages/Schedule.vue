@@ -1,36 +1,79 @@
 <template>
-  <q-card-section class="card-header">
-    <span class="text-h6 header-label">Lista de Escalas</span>
-    <q-btn class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="openDialogCreateSchedule">Cadastrar Escala</q-btn>
-  </q-card-section>
+  <div class="card-header">
+    <span class="text-h6 header-label">Escalas</span>
+    <q-btn
+      class="float-right left-icon"
+      color="primary"
+      icon="fa fa-square-plus"
+      no-caps
+      @click="openDialogCreateSchedule"
+    >
+      Cadastrar
+    </q-btn>
+  </div>
 
-  <q-card-section>
-    <q-form>
-      <div class="row q-gutter-md">
-        <q-input v-model="startDate" outlined dense type="date" label="Escala de:" class="col-2" />
-        <q-input v-model="endDate" outlined dense type="date" label="Escala até:" class="col-2" />
-        <q-select
-          v-model="eventType"
-          @update:model-value="val => eventType = val ? val.value : null"
-          :options="eventTypes"
-          map-options
-          outlined
-          dense
-          clearable
-          label="Tipo de Evento"
-          class="col-2"
-        />
-        <div class="col">
-          <q-btn class="float-right" color="primary" label="Pesquisar" no-caps @click="getSchedule" />
+  <q-card class="card-content q-ma-md">
+    <q-card-section>
+      <q-form>
+        <div class="row q-col-gutter-md">
+          <div class="col-xs-6 col-sm-6 col-md-3">
+            <q-input
+              v-model="startDate"
+              outlined
+              dense
+              type="date"
+              label="Escala de:"
+            />
+          </div>
+          <div class="col-xs-6 col-sm-6 col-md-3">
+            <q-input
+              v-model="endDate"
+              outlined
+              dense
+              type="date"
+              label="Escala até:"
+            />
+          </div> 
+          <div class="col-xs-8 col-sm-6 col-md-3">
+            <q-select
+              v-model="eventType"
+              @update:model-value="val => eventType = val ? val.value : null"
+              :options="eventTypes"
+              map-options
+              outlined
+              dense
+              clearable
+              label="Tipo de Evento"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              class="float-right"
+              color="primary"
+              label="Pesquisar"
+              no-caps
+              @click="getSchedule"
+            />
+          </div>
         </div>
-      </div>
-    </q-form>
-  </q-card-section>
+      </q-form>
+    </q-card-section>
+  </q-card>
 
-  <q-separator></q-separator>
-
+  <!-- Ações em Massa -->
   <div class="q-pa-md">
+    <q-btn 
+      color="orange" 
+      label="Liberar Selecionados" 
+      icon="fa fa-play"
+      :disable="selectedRows.length === 0" 
+      @click="releaseSelectedSchedules"
+    />
+  </div>
+
+  <div class="row full-width q-pa-md">
     <q-table
+      class="no-select full-width"
       flat
       bordered
       row-key="id"
@@ -38,6 +81,8 @@
       rows-pr-page-label="Registros por página"
       v-model:pagination="pagination"
       virtual-scroll
+      selection="multiple"
+      v-model:selected="selectedRows"
       :rows="rows"
       :columns="columns"
       :Loading="loading"
@@ -45,28 +90,31 @@
       :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]"
       @request="onRequest"
     >
-      <template v-slot:body-cell-eventType="props">
-        <q-td :props="props">
-          <span>{{ EventTypes.find(event => event.value == props.row.eventType).label }}</span>
+    <template v-slot:body="props">
+      <q-tr 
+        :props="props"
+        :class="{'bg-blue-2': isSelected(props.row)}"
+        style="cursor: pointer;"
+        @dblclick="openDialogManageSchedule(props.row.id)"
+        @mousedown="startHold(props.row)"
+        @mouseup="clearHold"
+        @mouseleave="clearHold"
+        @touchstart="startHold(props.row)"
+        @touchend="clearHold"
+      >
+        <q-td key="id" class="text-center">
+          <q-checkbox v-model="selectedRows" :val="props.row" />
         </q-td>
-      </template>
-
-      <template v-slot:body-cell-released="props">
-        <q-td :props="props">
-          <span>{{ ScheduleStatus.find(status => status.value == props.row.status).label }}</span>
+        <q-td key="date">{{ props.row.date }}</q-td>
+        <q-td key="eventType">
+          {{ eventTypes.find(event => event.value == props.row.eventType)?.label }}
         </q-td>
-      </template>
-
-      <template v-slot:body-cell-id="props">
-        <q-td :props="props">
-          <q-btn size="sm" color="primary" icon="fa fa-pen-to-square" @click="openDialogManageSchedule(props.row.id)" round>
-            <q-tooltip anchor="bottom middle" self="top middle" :offset="[10, 10]" transition-show="scale" transition-hide="scale">Editar / Visualizar</q-tooltip>
-          </q-btn>
-          <q-btn class="q-ml-sm" size="sm" color="red" icon="fa fa-trash" @click="() => {console.log(props.row.id)}" round>
-            <q-tooltip anchor="bottom middle" self="top middle" :offset="[10, 10]" transition-show="scale" transition-hide="scale">Excluir</q-tooltip>
-          </q-btn>
+        <q-td key="status" class="text-center">
+          <q-badge :color="getStatusColor(props.row.status)"
+            :label="ScheduleStatus.find(status => status.value == props.row.status)?.label" />
         </q-td>
-      </template>
+      </q-tr>
+    </template>
     </q-table>
   </div>
 
@@ -91,6 +139,9 @@ import { ScheduleStatus } from '../constants/ScheduleStatus';
 const dialogCreateSchedule = ref(false);
 const dialogManageSchedule = ref(false);
 const selectedSchedule = ref(0);
+const selectedRows = ref([]);
+const holdTimer = ref(null);
+const isSelected = (row) => selectedRows.value.some(item => item.id === row.id);
 let startDate = ref('');
 let endDate = ref('');
 let eventType = ref(null);
@@ -103,18 +154,26 @@ const rows = ref([]);
 const columns = [
   {name: 'date', label: 'Data', field: 'date', align: 'left', sortable: false},
   {name: 'eventType', label: 'Tipo de Evento', field: 'eventType', align: 'left', sortable: false},
-  {name: 'released', label: 'Status', field: 'released', align: 'center', sortable: false},
-  {name: 'id', label: 'Ações', field: 'id', align: 'center', sortable: false, width: '100px'}
+  {name: 'status', label: 'Status', field: 'released', align: 'center', sortable: false}
 ];
 
-function openDialogCreateSchedule() {
-  dialogCreateSchedule.value = true;
-};
+function startHold(row) {
+  holdTimer.value = setTimeout(() => {
+    openDialogManageSchedule(row.id);
+  }, 500);
+}
 
-function openDialogManageSchedule(idSchedule) {
-  selectedSchedule.value = idSchedule;
-  dialogManageSchedule.value = true;
-};
+function clearHold() {
+  if (holdTimer.value) {
+    clearTimeout(holdTimer.value);
+    holdTimer.value = null;
+  }
+}
+
+function getStatusColor(status) {
+  const foundStatus = ScheduleStatus.find(s => s.value === status);
+  return foundStatus ? foundStatus.color : "grey";
+}
 
 function getSchedule() {
   filter.filters = {
@@ -126,16 +185,15 @@ function getSchedule() {
   api.getPost('schedules/list', filter).then((response) => {
     rows.value.splice(0, rows.value.length, ...response.data.data);
     pagination.rowsNumber = response.data.totalRecords;
-    console.log(response.data)
   })
 };
 
 function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination;
+  const { page, rowsPerPage } = props.pagination;
 
   filter.page = page
   filter.length = rowsPerPage
-  
+
   pagination.page = page
   pagination.rowsPerPage = rowsPerPage
 }
@@ -144,9 +202,39 @@ function setDefaultDates() {
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-  
+
   startDate.value = firstDay;
   endDate.value = lastDay;
+};
+
+function releaseSelectedSchedules() {
+  if (selectedRows.value.length === 0) return;
+
+  const schedulesToRelease = selectedRows.value.filter(row => !row.released);
+
+  if (schedulesToRelease.length === 0) {
+    alert("Nenhuma escala selecionada pode ser liberada!");
+    return;
+  }
+
+  // Simulação da chamada para API
+  schedulesToRelease.forEach(schedule => {
+    schedule.released = true; // Atualiza localmente o status
+  });
+
+  alert("Escalas liberadas com sucesso!");
+  
+  // Limpa seleção após liberação
+  selectedRows.value = [];
+}
+
+function openDialogCreateSchedule() {
+  dialogCreateSchedule.value = true;
+};
+
+function openDialogManageSchedule(idSchedule) {
+  selectedSchedule.value = idSchedule;
+  dialogManageSchedule.value = true;
 };
 
 onMounted(() => {
@@ -154,3 +242,12 @@ onMounted(() => {
   getSchedule();
 });
 </script>
+
+<style scoped>
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+</style>

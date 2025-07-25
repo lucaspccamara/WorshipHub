@@ -1,72 +1,65 @@
 <template>
-  <q-splitter
-    v-model="splitterModel"
-    horizontal
-  >
+  <div class="q-pa-md">
+    <q-date
+      v-model="date"
+      :events="events"
+      event-color="orange"
+      style="width: 100%;"
+      class="q-mb-md"
+    />
 
-    <template v-slot:before>
-      <div class="q-pa-md">
-        <q-date
-          v-model="date"
-          :events="events"
-          event-color="orange"
-          style="width: 100%;"
-        />
-      </div>
-    </template>
+    <q-tab-panels v-model="date" animated transition-prev="fade" transition-next="fade" style="background: none;">
+      <q-tab-panel class="q-pa-none" :name="date">
+        <template v-if="currentPanel">
+          <!-- ESCALA -->
+          <q-card class="row bg-grey-5">
+            <q-item v-for="position in currentPanel.positions" :key="position.name"
+              :class="position.highlight ? 'role-highlight col-xs-6 col-md-3 q-pa-md' : 'col-xs-6 col-md-3 q-pa-md'"
+            >
+              <q-item-section avatar>
+                <q-avatar color="primary" icon="fa-solid fa-user" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ position.name }}</q-item-label>
+                <q-item-label caption>{{ position.person }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-card>
 
-    <template v-slot:after>
-      <q-tab-panels v-model="date" animated transition-prev="jump-up" transition-next="jump-up">
-        <q-tab-panel :name="date">
-          <template v-if="currentPanel">
-            <!-- ESCALA -->
-            <q-card class="row q-pa-md bg-grey-5">
-              <q-item v-for="role in currentPanel.roles" :key="role.name" :class="role.highlight ? 'role-highlight col-xs-6 col-md-4' : 'col-xs-6 col-md-4'">
-                <q-item-section avatar>
-                  <q-avatar color="primary" icon="fa-solid fa-user" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ role.name }}</q-item-label>
-                  <q-item-label caption>{{ role.person }}</q-item-label>
+          <!-- MÚSICAS -->
+          <div class="text-h6 q-mt-md">Músicas</div>
+          <q-card class="card-container">
+            <q-list>
+              <q-item
+                clickable
+                v-for="song in currentPanel.songs"
+                :key="song.title"
+                class="q-pa-md q-mt-sm bg-grey-5 card-music"
+              >
+                <q-img class="music-bg" :src="song.image" fit="cover" />
+                <div class="overlay"></div>
+                <q-item-section class="music-content">
+                  <q-item-label class="music-title">{{ song.title }}</q-item-label>
+                  <q-item-label class="music-author">{{ song.author }}</q-item-label>
+                  <q-item-label class="music-details">{{ song.details }}</q-item-label>
                 </q-item-section>
               </q-item>
-            </q-card>
-  
-            <!-- MÚSICAS -->
-            <div class="text-h6 q-mt-md">Músicas</div>
-            <q-card>
-              <q-list>
-                <q-item
-                  clickable
-                  v-for="song in currentPanel.songs"
-                  :key="song.title"
-                  class="q-pa-md q-mt-sm bg-grey-5 card-music"
-                >
-                  <q-img class="music-bg" :src="song.image" fit="cover" />
-                  <div class="overlay"></div>
-                  <q-item-section class="music-content">
-                    <q-item-label class="music-title">{{ song.title }}</q-item-label>
-                    <q-item-label class="music-author">{{ song.author }}</q-item-label>
-                    <q-item-label class="music-details">{{ song.details }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card>
-          </template>
-          <template v-else>
-            <div class="no-events-container">
-              <div class="ghost-container">
-                <q-icon name="fa-solid fa-ghost" class="ghost" size="50px" color="grey-7" />
-              </div>
-              <div class="text-center q-pa-md text-grey-7">
-                Nenhum evento programado para esta data
-              </div>
+            </q-list>
+          </q-card>
+        </template>
+        <template v-else>
+          <div class="no-events-container">
+            <div class="ghost-container">
+              <q-icon name="fa-solid fa-ghost" class="ghost" size="50px" color="grey-7" />
             </div>
-          </template>
-        </q-tab-panel>
-      </q-tab-panels>
-    </template>
-  </q-splitter>
+            <div class="text-center q-pa-md text-grey-7">
+              Nenhum evento programado para esta data
+            </div>
+          </div>
+        </template>
+      </q-tab-panel>
+    </q-tab-panels>
+  </div>
 </template>
 
 <script setup>
@@ -74,12 +67,11 @@ import { computed, ref, onMounted } from 'vue';
 import { date as QuasarDate } from 'quasar';
 
 const date = ref('');
-const splitterModel = ref(50);
 
 const panels = ref([
   {
     date: '2025/03/02',
-    roles: [
+    positions: [
       { name: 'Ministro', person: 'Fulano', highlight: true },
       { name: 'Baixista', person: 'Ciclano', highlight: false },
       { name: 'Baterista', person: 'Beltrano', highlight: false },
@@ -126,7 +118,7 @@ const panels = ref([
   },
   {
     date: '2025/03/09',
-    roles: [
+    positions: [
       { name: 'Ministro', person: 'Fulano', highlight: false },
       { name: 'Baixista', person: 'Ciclano', highlight: true },
       { name: 'Baterista', person: 'Beltrano', highlight: false },
@@ -231,6 +223,11 @@ onMounted(() => {
   .q-item__label {
     font-weight: bold;
   }
+}
+
+.card-container {
+  border-radius: 8px;
+  background: none;
 }
 
 .card-music {
