@@ -27,7 +27,7 @@
   <q-drawer v-model="drawer" side="left" behavior="mobile" elevated show-if-above>
     <q-list>
       <q-item
-        v-for="(item, index) in menuItems"
+        v-for="(item, index) in visibleMenuItems"
         :key="index"
         clickable
         v-ripple
@@ -45,19 +45,49 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { Cookies } from "quasar";
+import { jwtDecode } from "jwt-decode";
+import { Role } from "../constants/Role";
 
 const drawer = ref(false);
 const router = useRouter();
 const route = useRoute();
 const showMenu = computed(() => route.path !== "/login");
 
+const userRoles = ref([]);
+
+const loadUserRoles = () => {
+  const token = Cookies.get("user_token");
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      userRoles.value = Array.isArray(decoded.role)
+        ? decoded.role
+        : [decoded.role];
+    } catch (error) {
+      console.error("Erro ao decodificar o token:", error);
+      userRoles.value = [];
+    }
+  } else {
+    userRoles.value = [];
+  }
+};
+
 const menuItems = [
-  { label: "Escalas", route: "/schedule", icon: "fa-solid fa-calendar" },
-  { label: "Perfil", route: "/profile", icon: "fa-solid fa-user" },
-  { label: "Configurações", route: "/settings", icon: "fa-solid fa-cog" }
+  { label: "Escalas", route: "/schedule", icon: "fa-solid fa-calendar", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
+  { label: "Músicas", route: "/songs", icon: "fa-solid fa-music", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
+  { label: "Perfil", route: "/profile", icon: "fa-solid fa-user", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
+  { label: "Usuários", route: "/users", icon: "fa-solid fa-users", roles: [Role.Admin, Role.Leader] },
+  { label: "Configurações", route: "/settings", icon: "fa-solid fa-cog", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] }
 ];
+
+const visibleMenuItems = computed(() =>
+  menuItems.filter(item =>
+    item.roles.some(role => userRoles.value.includes(role))
+  )
+);
 
 const toggleLeftDrawer = () => {
   drawer.value = !drawer.value;
@@ -69,4 +99,13 @@ const goTo = (path) => {
   }
   drawer.value = false; // Fecha o menu ao navegar
 };
+
+onMounted(() => {
+  loadUserRoles();
+  window.addEventListener('user-logged-in', loadUserRoles);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('user-logged-in', loadUserRoles);
+});
 </script>

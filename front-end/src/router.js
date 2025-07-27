@@ -18,13 +18,19 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('./components/HomePage.vue'),
-    meta: { requiresAuth: true, roles: [Role.Admin] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true }
   },
   { 
     path: '/schedule',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
-    meta: { requiresAuth: true, roles: [Role.Admin] } // Adição de role temporária para testes. REMOVER
+    meta: { requiresAuth: true,  }
+  },
+  {
+    path: '/users',
+    name: 'Users',
+    component: () => import('./pages/Users.vue'),
+    meta: { requiresAuth: true, roles: [Role.Admin, Role.Leader] }
   }
 ];
 
@@ -49,6 +55,12 @@ router.beforeEach((to, from, next) => {
     } catch (error) {
       console.error('Token verification failed:', error);
     }
+  }
+
+  // Impede usuário autenticado de acessar /login
+  if (to.path === '/login' && isAuthenticated) {
+    next('/');
+    return;
   }
 
   if (to.meta.requiresAuth && !isAuthenticated) {

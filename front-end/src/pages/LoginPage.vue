@@ -52,15 +52,21 @@ const isPwd = ref(true);
 
 const login = async () => {
   try {
-    const response = await api.getPost("auths/login", {
+    await api.getPost("auths/login", {
       email: email.value,
       password: password.value
+    }).then(response => {
+      if (response.status === 200 && response.data.token) {
+        Cookies.set("user_token", response.data.token, { expires: "6h" });
+        window.dispatchEvent(new Event("user-logged-in"));
+        setTimeout(() => {
+          router.push({ path: "/" });
+        }, 200);
+      } else {
+        console.error("Token inválido ou não recebido.");
+      }
     });
 
-    if (response.status === 200) {
-      Cookies.set("user_token", response.data.token, { expires: "6h" });
-      router.push({ path: "/" });
-    }
   } catch (error) {
     console.error("Erro ao fazer login:", error);
   }

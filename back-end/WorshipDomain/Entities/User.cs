@@ -23,5 +23,11 @@ namespace WorshipDomain.Entities
 
         [Column("position")]
         public string Position { get; set;}
+
+        [Column("status")]
+        public bool Status { get; set; }
+
+        [Column("avatar_url")]
+        public string AvatarUrl { get; set; }
     }
 }

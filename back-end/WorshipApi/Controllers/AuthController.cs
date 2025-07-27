@@ -23,7 +23,7 @@ namespace WorshipApi.Controllers
             string token = _authService.AuthenticateUser(userLoginDTO.Email, userLoginDTO.Password);
 
             if (!token.IsNullOrEmpty())
-                return Ok(new { Token = token });
+                return Ok(new { token = token });
 
             return Unauthorized("Login inválido");
         }

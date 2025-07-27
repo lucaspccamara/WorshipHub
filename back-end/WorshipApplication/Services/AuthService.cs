@@ -11,13 +11,13 @@ namespace WorshipApplication.Services
 {
     public class AuthService : ServiceBase<int, User, IAuthRepository>
     {
-        private readonly string _jwtPrivateKey;
         private readonly IUserRepository _userRepository;
+        private readonly RsaSecurityKey _rsaSecurityKey;
 
-        public AuthService(IAuthRepository repository, IConfiguration configuration, IUserRepository userRepository) : base(repository)
+        public AuthService(IAuthRepository repository, IUserRepository userRepository, RsaSecurityKey rsaSecurityKey) : base(repository)
         {
-            _jwtPrivateKey = configuration["JWT_PRIVATE_KEY"];
             _userRepository = userRepository;
+            _rsaSecurityKey = rsaSecurityKey;
         }
 
         public string AuthenticateUser(string email, string password)
@@ -42,13 +42,10 @@ namespace WorshipApplication.Services
             return BCrypt.Net.BCrypt.Verify(password, hashPassword);
         }
 
-        private static string GenerateHashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
+        public string GenerateHashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
 
         private string GetAuthToken(User user)
         {
-            using var rsa = RSA.Create();
-            rsa.ImportFromPem(_jwtPrivateKey.ToCharArray()); // Import private key
-
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(
@@ -57,7 +54,7 @@ namespace WorshipApplication.Services
                     new Claim(ClaimTypes.Role, user.Role.ToString())
                 ]),
                 Expires = DateTime.UtcNow.AddHours(6), // Token expiration time
-                SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
+                SigningCredentials = new SigningCredentials(_rsaSecurityKey, SecurityAlgorithms.RsaSha256)
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

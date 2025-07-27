@@ -55,8 +55,10 @@ builder.Services.AddInfrastructureServices();
 
 // Instantiate RSA once and keep it alive
 var rsa = RSA.Create();
-var publicKey = builder.Configuration["JWT_PUBLIC_KEY"];
-rsa.ImportFromPem(publicKey.ToCharArray()); // Import public key
+var privateKey = builder.Configuration["JWT_PRIVATE_KEY"];
+rsa.ImportFromPem(privateKey.ToCharArray());
+var rsaSecurityKey = new RsaSecurityKey(rsa);
+builder.Services.AddSingleton<RsaSecurityKey>(rsaSecurityKey);
 
 builder.Services.AddAuthentication(options =>
 {
