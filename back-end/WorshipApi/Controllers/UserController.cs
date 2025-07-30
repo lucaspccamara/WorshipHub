@@ -22,6 +22,14 @@ namespace WorshipApi.Controllers
             return Ok(result);
         }
 
+        [HttpGet("profile/{id}")]
+        public ActionResult<UserProfileDTO> GetUserProfile(
+            [FromServices] UserService _userService,
+            [FromRoute] int id)
+        {
+            return _userService.GetUserProfile(id);
+        }
+
         [HttpPost]
         [AuthorizeRoles(Role.Admin, Role.Leader)]
         public ActionResult CreateUser(
@@ -29,6 +37,19 @@ namespace WorshipApi.Controllers
             [FromBody] UserCreationDTO userCreationDTO)
         {
             return _userService.Create(userCreationDTO);
+        }
+
+        [HttpPut("profile/{id}")]
+        public ActionResult UpdateUser(
+            [FromServices] UserService _userService,
+            [FromRoute] int id,
+            [FromBody] UserProfileDTO userProfileDTO)
+        {
+            if (id != userProfileDTO.Id)
+                return BadRequest("Id da requisição não corresponde ao Id da entidade.");
+
+            _userService.UpdateProfile(userProfileDTO);
+            return NoContent();
         }
     }
 }

@@ -24,14 +24,20 @@ const routes = [
     path: '/schedule',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
-    meta: { requiresAuth: true,  }
+    meta: { requiresAuth: true }
   },
   {
     path: '/users',
     name: 'Users',
     component: () => import('./pages/Users.vue'),
     meta: { requiresAuth: true, roles: [Role.Admin, Role.Leader] }
-  }
+  },
+  { 
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('./components/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({

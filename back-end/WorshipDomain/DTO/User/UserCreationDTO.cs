@@ -10,6 +10,9 @@ namespace WorshipDomain.DTO.User
         [Required]
         public string Email { get; set; }
 
+        [Required]
+        public List<int> Position { get; set; }
+
         public string Password { get; set; }
     }
 }

@@ -1,13 +1,7 @@
 <template>
   <div class="card-header">
     <span class="text-h6 header-label">Usuários</span>
-    <q-btn
-      class="float-right left-icon"
-      color="primary"
-      icon="fa fa-square-plus"
-      no-caps
-      @click="opendialogCreateUser"
-    >
+    <q-btn class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="opendialogCreateUser">
       Cadastrar
     </q-btn>
   </div>
@@ -78,7 +72,7 @@
       <q-tr 
         :props="props"
         style="cursor: pointer;"
-        @dblclick="openDialogManageSchedule(props.row.id)"
+        @click="openDialogProfile(props.row.id)"
         @mousedown="startHold(props.row)"
         @mouseup="clearHold"
         @mouseleave="clearHold"
@@ -104,7 +98,13 @@
   </q-dialog>
 
   <q-dialog v-model="dialogEditUser" persistent class="lg-dialog">
-    <ManageSchedule></ManageSchedule>
+    <q-card>
+      <Profile
+        :userIdProp="selectedUser"
+        @updateUsersList="getUsers"
+        @closeDialog="dialogEditUser = false"
+      />
+    </q-card>
   </q-dialog>
 </template>
 
@@ -112,13 +112,13 @@
 import { ref, onMounted } from 'vue';
 import api from '../api';
 import CreateUser from '../components/CreateUser.vue';
-import ManageSchedule from '../components/ManageSchedule.vue';
+import Profile from '../components/Profile.vue';
 import { ApiFilter, ApiPagination } from '../entities/ApiUtils';
 import { StatusBooleanOptions } from '../constants/StatusBooleanOptions';
 
 const dialogCreateUser = ref(false);
 const dialogEditUser = ref(false);
-const selectedSchedule = ref(0);
+const selectedUser = ref(0);
 const holdTimer = ref(null);
 let nome = ref('');
 let email = ref('');
@@ -136,7 +136,7 @@ const columns = [
 
 function startHold(row) {
   holdTimer.value = setTimeout(() => {
-    openDialogManageSchedule(row.id);
+    openDialogProfile(row.id);
   }, 500);
 }
 
@@ -179,9 +179,9 @@ function opendialogCreateUser() {
   dialogCreateUser.value = true;
 };
 
-function openDialogManageSchedule(idSchedule) {
-  selectedSchedule.value = idSchedule;
-  dialogManageSchedule.value = true;
+function openDialogProfile(userId) {
+  selectedUser.value = userId;
+  dialogEditUser.value = true;
 };
 
 onMounted(() => {

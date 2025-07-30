@@ -42,9 +42,10 @@
 <script setup>
 import { ref } from "vue";
 import api from "../api";
-import { Cookies } from "quasar";
 import { useRouter } from "vue-router";
+import { useAuth } from "../composables/useAuth";
 
+const { setToken } = useAuth();
 const router = useRouter();
 const email = ref("");
 const password = ref("");
@@ -57,8 +58,7 @@ const login = async () => {
       password: password.value
     }).then(response => {
       if (response.status === 200 && response.data.token) {
-        Cookies.set("user_token", response.data.token, { expires: "6h" });
-        window.dispatchEvent(new Event("user-logged-in"));
+        setToken(response.data.token);
         setTimeout(() => {
           router.push({ path: "/" });
         }, 200);

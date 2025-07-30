@@ -68,11 +68,12 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
         public void Create(UserCreationDTO userCreationDTO)
         {
-            var sql = @"INSERT INTO users (name, email, password) VALUES (@Name, @Email, @Password);";
+            var sql = @"INSERT INTO users (name, email, position, password) VALUES (@Name, @Email, @Position, @Password);";
             _dbConnection.Execute(sql, new
             {
                 userCreationDTO.Name,
                 userCreationDTO.Email,
+                Position = string.Join(",", userCreationDTO.Position),
                 userCreationDTO.Password
             });
         }

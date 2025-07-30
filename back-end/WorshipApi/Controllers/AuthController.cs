@@ -16,9 +16,7 @@ namespace WorshipApi.Controllers
             [FromBody] UserLoginDTO userLoginDTO)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             string token = _authService.AuthenticateUser(userLoginDTO.Email, userLoginDTO.Password);
 
@@ -26,6 +24,18 @@ namespace WorshipApi.Controllers
                 return Ok(new { token = token });
 
             return Unauthorized("Login inválido");
+        }
+
+        [HttpPost("change-password")]
+        public ActionResult ChangePassword(
+            [FromServices] AuthService _authService,
+            [FromBody] ChangePasswordDTO changePasswordDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            _authService.ChangePassword(changePasswordDTO);
+            return NoContent();
         }
     }
 }

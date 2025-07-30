@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using WorshipDomain.Core.Entities;
+using WorshipDomain.DTO.User;
 using WorshipDomain.Entities;
 using WorshipDomain.Repository;
 
@@ -35,6 +36,22 @@ namespace WorshipApplication.Services
             return string.Empty;
         }
 
+        public void ChangePassword(ChangePasswordDTO changePasswordDTO)
+        {
+            var user = _userRepository.GetList(new { Email = changePasswordDTO.Email }).FirstOrDefault();
+
+            if (user == null) return;
+
+            var passwordVerified = CheckPassword(changePasswordDTO.Email, changePasswordDTO.CurrentPassword);
+
+            if (passwordVerified)
+            {
+                user.Password = GenerateHashPassword(changePasswordDTO.NewPassword);
+                _userRepository.Update(user);
+                return;
+            }
+        }
+
         private bool CheckPassword(string email, string password)
         {
             string hashPassword = _repository.GetHashPasswordByEmail(email);
@@ -50,8 +67,10 @@ namespace WorshipApplication.Services
             {
                 Subject = new ClaimsIdentity(
                 [
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.Name),
-                    new Claim(ClaimTypes.Role, user.Role.ToString())
+                    new Claim(ClaimTypes.Role, user.Role.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email)
                 ]),
                 Expires = DateTime.UtcNow.AddHours(6), // Token expiration time
                 SigningCredentials = new SigningCredentials(_rsaSecurityKey, SecurityAlgorithms.RsaSha256)

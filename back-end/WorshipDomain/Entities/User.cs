@@ -12,6 +12,9 @@ namespace WorshipDomain.Entities
         [Column("name")]
         public string Name { get; set; }
 
+        [Column("phone_number")]
+        public string PhoneNumber { get; set; }
+
         [Column("email")]
         public string Email { get; set; }
 

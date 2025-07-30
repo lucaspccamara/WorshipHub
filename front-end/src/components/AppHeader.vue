@@ -47,33 +47,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { Cookies } from "quasar";
-import { jwtDecode } from "jwt-decode";
 import { Role } from "../constants/Role";
+import { useAuth } from "../composables/useAuth";
+
+const { userRole, loadUserFromToken, hasAnyRole } = useAuth();
 
 const drawer = ref(false);
 const router = useRouter();
 const route = useRoute();
 const showMenu = computed(() => route.path !== "/login");
-
-const userRoles = ref([]);
-
-const loadUserRoles = () => {
-  const token = Cookies.get("user_token");
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      userRoles.value = Array.isArray(decoded.role)
-        ? decoded.role
-        : [decoded.role];
-    } catch (error) {
-      console.error("Erro ao decodificar o token:", error);
-      userRoles.value = [];
-    }
-  } else {
-    userRoles.value = [];
-  }
-};
 
 const menuItems = [
   { label: "Escalas", route: "/schedule", icon: "fa-solid fa-calendar", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
@@ -84,9 +66,7 @@ const menuItems = [
 ];
 
 const visibleMenuItems = computed(() =>
-  menuItems.filter(item =>
-    item.roles.some(role => userRoles.value.includes(role))
-  )
+  menuItems.filter(item => hasAnyRole(item.roles))
 );
 
 const toggleLeftDrawer = () => {
@@ -101,11 +81,13 @@ const goTo = (path) => {
 };
 
 onMounted(() => {
-  loadUserRoles();
-  window.addEventListener('user-logged-in', loadUserRoles);
+  loadUserFromToken();
+  window.addEventListener('user-logged-in', loadUserFromToken);
+  window.addEventListener('user-logged-out', loadUserFromToken);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('user-logged-in', loadUserRoles);
+  window.removeEventListener('user-logged-in', loadUserFromToken);
+  window.removeEventListener('user-logged-out', loadUserFromToken);
 });
 </script>
