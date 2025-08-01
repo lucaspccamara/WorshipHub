@@ -55,7 +55,7 @@ const { userRole, loadUserFromToken, hasAnyRole } = useAuth();
 const drawer = ref(false);
 const router = useRouter();
 const route = useRoute();
-const showMenu = computed(() => route.path !== "/login");
+const showMenu = computed(() => route.path !== "/login" && route.path !== "/request-password-reset-code" && route.path !== "/verify-reset-code" && route.path !== "/reset-password");
 
 const menuItems = [
   { label: "Escalas", route: "/schedule", icon: "fa-solid fa-calendar", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },

@@ -14,6 +14,21 @@ const routes = [
     name: 'Login',
     component: () => import('./pages/LoginPage.vue')
   },
+  {
+    path: '/request-password-reset-code',
+    name: 'Request_Password_Reset_Code',
+    component: () => import('./pages/RequestPasswordResetCode.vue')
+  },
+  {
+    path: '/verify-reset-code',
+    name: 'Verify_Reset_Code',
+    component: () => import('./pages/VerifyResetCode.vue')
+  },
+  {
+    path: '/reset-password',
+    name: 'Reset_Password',
+    component: () => import('./pages/ResetPassword.vue')
+  },
   { 
     path: '/',
     name: 'Home',

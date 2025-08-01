@@ -9,6 +9,24 @@ $negative  : #C10015;
 $info      : #31CCEC;
 $warning   : #F2C037;
 
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 56px);
+  width: 100%;
+}
+
+.login-card {
+  width: 90%;
+  max-width: 500px;
+  padding: 16px;
+  transition: margin-bottom 0.3s ease;
+}
+
+.login-card.keyboard-open {
+  margin-bottom: 60%;
+}
 
 .card-header {
   background-color: #434d61;

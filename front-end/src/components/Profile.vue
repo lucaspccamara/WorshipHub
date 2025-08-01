@@ -208,7 +208,7 @@ async function submitForm() {
   if (!isValid) return
 
   try {
-    await api.update('users/profile', form.value.id, form.value).then(() => {
+    await api.put('users/profile', form.value.id, form.value).then(() => {
       Notify.create({ type: 'positive', message: 'Perfil atualizado com sucesso!' })
       formRef.value.resetValidation();
     }).finally(() => {

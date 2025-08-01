@@ -127,7 +127,7 @@ function createEvents() {
     eventType: event.type
   }));
 
-  api.create('schedules', mappedEvents);
+  api.post('schedules', mappedEvents);
 }
 </script>
 

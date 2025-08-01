@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace WorshipDomain.DTO.User
+namespace WorshipDomain.DTO.Auth
 {
     public class UserLoginDTO
     {
@@ -8,7 +8,7 @@ namespace WorshipDomain.DTO.User
         public string? Email { get; set; }
 
         [Required]
-        [MinLength(4)]
+        [MinLength(6)]
         public string? Password { get; set; }
     }
 }

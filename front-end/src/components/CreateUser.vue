@@ -62,10 +62,19 @@
               filled
               v-model="form.password"
               label="Senha"
-              type="password"
+              :type="isPwd ? 'password' : 'text'"
               lazy-rules
               :rules="[val => !!val || 'Senha é obrigatória']"
-            />
+            >
+              <template v-slot:append>
+                <q-icon
+                  :name="isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+                  class="cursor-pointer"
+                  @click="isPwd = !isPwd"
+                  size="xs"
+                />
+              </template>
+            </q-input>
           </div>
         </q-card-section>
   
@@ -85,6 +94,7 @@ import { PositionOptions } from '../constants/PositionOptions';
 
 const emit = defineEmits(['updateUsersList', 'closeDialog']);
 
+const isPwd = ref(true);
 const form = ref({
   name: '',
   email: '',
@@ -99,7 +109,7 @@ async function submitForm() {
   if (!isValid) return
 
   try {
-    await api.create('users', form.value).then(() => {
+    await api.post('users', form.value).then(() => {
       Notify.create({ type: 'positive', message: 'Usuário cadastrado com sucesso!' })
       form.value.name = ''
       form.value.email = ''

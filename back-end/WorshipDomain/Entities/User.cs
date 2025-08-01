@@ -32,5 +32,8 @@ namespace WorshipDomain.Entities
 
         [Column("avatar_url")]
         public string AvatarUrl { get; set; }
+
+        [Column("reset_password_token_code")]
+        public string ResetPasswordTokenCode { get; set; }
     }
 }

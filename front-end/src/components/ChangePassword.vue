@@ -12,15 +12,25 @@
         <q-card-section class="q-gutter-md">
           <q-input
             v-model="form.currentPassword"
-            type="password"
+            :type="isPwd ? 'password' : 'text'"
             label="Senha atual"
             filled
             lazy-rules
             :rules="[val => !!val || 'Senha atual é obrigatória']"
-          />
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+                size="xs"
+              />
+            </template>
+          </q-input>
+          
           <q-input
             v-model="form.newPassword"
-            type="password"
+            :type="isPwd ? 'password' : 'text'"
             label="Nova senha"
             filled
             lazy-rules
@@ -28,10 +38,19 @@
               val => !!val || 'Nova senha é obrigatória',
               val => val.length >= 6 || 'Senha deve ter ao menos 6 caracteres'
             ]"
-          />
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+                size="xs"
+              />
+            </template>
+          </q-input>
           <q-input
             v-model="form.confirmPassword"
-            type="password"
+            :type="isPwd ? 'password' : 'text'"
             label="Confirmar nova senha"
             filled
             lazy-rules
@@ -39,7 +58,16 @@
               val => !!val || 'Confirmação obrigatória',
               val => val === form.newPassword || 'As senhas não coincidem'
             ]"
-          />
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+                size="xs"
+              />
+            </template>
+          </q-input>
         </q-card-section>
   
         <q-card-actions align="right">
@@ -64,6 +92,7 @@ const props = defineProps({
   }
 })
 
+const isPwd = ref(true);
 const formRef = ref(null)
 const form = ref({
   email: props.userEmail,
@@ -77,7 +106,7 @@ async function submitPasswordChange() {
   if (!isValid) return
 
   try {
-    await api.create('auths/change-password', form.value).then(() => {
+    await api.post('auths/change-password', form.value).then(() => {
       Notify.create({ type: 'positive', message: 'Senha alterada com sucesso!' })
       form.value.email = ''
       form.value.currentPassword = ''

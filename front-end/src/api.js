@@ -32,7 +32,7 @@ const apiMethods = {
       throw new Error(error.response.data || error.message);
     }
   },
-  create: async (resource, data) => {
+  post: async (resource, data) => {
     try {
       const response = await api.post(`/${resource}`, data);
       return response;
@@ -40,7 +40,7 @@ const apiMethods = {
       throw new Error(error.response.data || error.message);
     }
   },
-  update: async (resource, id, data) => {
+  put: async (resource, id, data) => {
     try {
       const response = await api.put(`/${resource}/${id}`, data);
       return response;
@@ -48,7 +48,7 @@ const apiMethods = {
       throw new Error(error.response.data || error.message);
     }
   },
-  remove: async (resource, id) => {
+  delete: async (resource, id) => {
     try {
       const response = await api.delete(`/${resource}/${id}`);
       return response;

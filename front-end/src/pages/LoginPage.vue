@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <q-card class="login-card">
+    <q-card class="login-card" :class="{ 'keyboard-open': isKeyboardOpen }">
       <q-card-section>
         <div class="text-h6 text-center">Login</div>
   
@@ -34,6 +34,13 @@
   
       <q-card-actions>
         <q-btn color="primary" label="Entrar" @click="login()" class="full-width q-mt-md" />
+        <q-btn
+          flat
+          label="Esqueci minha senha"
+          color="secondary"
+          class="full-width q-mt-sm"
+          @click="$router.push({ path: 'request-password-reset-code' })"
+        />
       </q-card-actions>
     </q-card>
   </div>
@@ -44,6 +51,9 @@ import { ref } from "vue";
 import api from "../api";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
+import { useKeyboardStatus } from '../composables/useKeyboardStatus'
+
+const { isKeyboardOpen } = useKeyboardStatus()
 
 const { setToken } = useAuth();
 const router = useRouter();
@@ -72,19 +82,3 @@ const login = async () => {
   }
 };
 </script>
-
-<style lang="scss">
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: calc(100vh - 56px);
-  width: 100%;
-}
-
-.login-card {
-  width: 90%;
-  max-width: 500px;
-  padding: 16px;
-}
-</style>
