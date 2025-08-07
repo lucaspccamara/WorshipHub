@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using WorshipApplication.Services;
 using WorshipDomain.DTO.Auth;
@@ -12,6 +12,7 @@ namespace WorshipApi.Controllers
     {
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting("BruteForceProtection")]
         public ActionResult AuthenticateUser(
             [FromServices] AuthService _authService,
             [FromBody] UserLoginDTO userLoginDTO)
@@ -38,6 +39,7 @@ namespace WorshipApi.Controllers
 
         [HttpPost("request-password-reset-code")]
         [AllowAnonymous]
+        [EnableRateLimiting("BruteForceProtection")]
         public ActionResult RequestPasswordReset(
             [FromServices] AuthService _authService,
             [FromServices] UserService _userService,
@@ -49,6 +51,7 @@ namespace WorshipApi.Controllers
 
         [HttpPost("verify-reset-code")]
         [AllowAnonymous]
+        [EnableRateLimiting("BruteForceProtection")]
         public ActionResult VerifyResetCode(
             [FromServices] AuthService _authService,
             [FromServices] UserService _userService,
@@ -73,6 +76,7 @@ namespace WorshipApi.Controllers
 
         [HttpPost("reset-password")]
         [AllowAnonymous]
+        [EnableRateLimiting("BruteForceProtection")]
         public ActionResult ResetPassword(
             [FromServices] AuthService _authService,
             [FromBody] ResetPasswordDTO resetPasswordDTO)

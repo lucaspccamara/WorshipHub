@@ -48,6 +48,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { Notify } from 'quasar';
 import api from "../api";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
@@ -73,7 +74,10 @@ const login = async () => {
 
     router.push({ path: '/' });
   } catch (error) {
-    console.error("Erro ao fazer login:", error);
+    Notify.create({
+      message: error.message,
+      color: 'negative'
+    });
   }
 };
 </script>

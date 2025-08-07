@@ -49,10 +49,6 @@ const apiMethods = {
       const response = await api.post(`/${resource}`, data);
       return response;
     } catch (error) {
-      Notify.create({
-        message: error.response.data || error.message,
-        color: 'negative'
-      });
       throw new Error(error.response.data || error.message);
     }
   }
