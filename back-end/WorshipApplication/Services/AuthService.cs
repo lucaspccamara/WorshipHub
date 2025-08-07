@@ -141,7 +141,7 @@ namespace WorshipApplication.Services
             return tokenHandler.WriteToken(token);
         }
 
-        public bool ResetPassword(ResetPasswordDTO resetPasswordDTO)
+        public bool ResetPassword(ResetPasswordDTO resetPasswordDTO, string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var validations = new TokenValidationParameters
@@ -155,7 +155,7 @@ namespace WorshipApplication.Services
 
             try
             {
-                var principal = tokenHandler.ValidateToken(resetPasswordDTO.Token, validations, out var validatedToken);
+                var principal = tokenHandler.ValidateToken(token, validations, out var validatedToken);
 
                 var userEmail = principal.FindFirst(ClaimTypes.Email)?.Value;
                 var tokenPasswordHash = principal.FindFirst("PasswordHash")?.Value;

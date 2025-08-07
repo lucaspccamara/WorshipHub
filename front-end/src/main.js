@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import { Quasar, Cookies, Notify } from 'quasar'
 import router from './router'
 import quasarLang from 'quasar/lang/pt-BR'
@@ -14,6 +15,7 @@ import 'quasar/src/css/index.sass'
 // and placed in same folder as main.js
 import App from './App.vue'
 
+const pinia = createPinia();
 const myApp = createApp(App)
 
 myApp.use(Quasar, {
@@ -22,6 +24,7 @@ myApp.use(Quasar, {
   iconSet: quasarIconSet,
 })
 
+myApp.use(pinia)
 myApp.use(router)
 
 // Assumes you have a <div id="app"></div> in your index.html

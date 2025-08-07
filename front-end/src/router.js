@@ -1,12 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { Cookies } from 'quasar'
-import { jwtDecode } from 'jwt-decode'
+import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from './stores/authStore';
+import api from './api';
 import { Role } from './constants/Role';
-
-function hasRequiredRole(decoded, requiredRoles) {
-  if (!decoded || !decoded.role) return false;
-  return requiredRoles.some(role => decoded.role.includes(role));
-}
 
 const routes = [
   { 
@@ -61,37 +56,26 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to, from, next) => {
-  const token = Cookies.get('user_token')
-  let isAuthenticated = false
-  let decodedToken = null;
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
 
-  if (token) {
+  // Se não carregamos usuário ainda, tentar buscar com /auths/me
+  if (!authStore.isAuthenticated) {
     try {
-      // Verifique o token usando a chave pública
-      decodedToken = jwtDecode(token);
-      
-      // Verifica se o token ainda está válido
-      isAuthenticated = decodedToken && decodedToken.exp * 1000 > Date.now();
-    } catch (error) {
-      console.error('Token verification failed:', error);
+      const userResponse = await api.get('auths/me');
+      authStore.setUser(userResponse.data);
+    } catch {
+      authStore.clearUser();
     }
   }
 
-  // Impede usuário autenticado de acessar /login
-  if (to.path === '/login' && isAuthenticated) {
-    next('/');
-    return;
-  }
-
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    // Se a rota requer autenticação e o usuário não está autenticado, redirecione para a página de login
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login');
-  } else if (to.meta.roles && !hasRequiredRole(decodedToken, to.meta.roles)) {
-    // Redireciona para a página home se não tiver a função necessária
+  } else if (to.meta.roles && !authStore.hasAnyRole(to.meta.roles)) {
+    next('/');
+  } else if (to.path === '/login' && authStore.isAuthenticated) {
     next('/');
   } else {
-    // Caso contrário, permita o acesso à rota
     next();
   }
 });

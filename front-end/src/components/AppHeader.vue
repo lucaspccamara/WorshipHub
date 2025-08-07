@@ -42,17 +42,37 @@
       </q-item>
     </q-list>
   </q-drawer>
+
+  <q-dialog
+    v-model="logoutDialog"
+    persistent
+    backdrop-filter="grayscale(100%)"
+  >
+    <q-card>
+      <q-card-section class="row items-center">
+        <div class="text-h6 header-label col-12">Deseja realmente sair?</div>
+        <div class="text-body">Você será desconectado.</div>
+      </q-card-section>
+      
+      <q-card-actions align="right">
+        <q-btn flat label="Cancelar" v-close-popup />
+        <q-btn label="Ok" color="primary" @click="logout()" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import api from '../api';
 import { Role } from "../constants/Role";
-import { useAuth } from "../composables/useAuth";
+import { useAuthStore } from "../stores/authStore";
 
-const { userRole, loadUserFromToken, hasAnyRole } = useAuth();
+const authStore = useAuthStore();
 
 const drawer = ref(false);
+const logoutDialog = ref(false);
 const router = useRouter();
 const route = useRoute();
 const showMenu = computed(() => route.path !== "/login" && route.path !== "/request-password-reset-code" && route.path !== "/verify-reset-code" && route.path !== "/reset-password");
@@ -62,32 +82,39 @@ const menuItems = [
   { label: "Músicas", route: "/songs", icon: "fa-solid fa-music", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
   { label: "Perfil", route: "/profile", icon: "fa-solid fa-user", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
   { label: "Usuários", route: "/users", icon: "fa-solid fa-users", roles: [Role.Admin, Role.Leader] },
-  { label: "Configurações", route: "/settings", icon: "fa-solid fa-cog", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] }
+  { label: "Configurações", route: "/settings", icon: "fa-solid fa-cog", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
+  { label: "Sair", route: "/logout", icon: "fa-solid fa-sign-out-alt", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] }
 ];
 
 const visibleMenuItems = computed(() =>
-  menuItems.filter(item => hasAnyRole(item.roles))
+  menuItems.filter(item => authStore.hasAnyRole(item.roles))
 );
 
 const toggleLeftDrawer = () => {
   drawer.value = !drawer.value;
 };
 
-const goTo = (path) => {
+const goTo = async (path) => {
+  if (path === '/logout') {
+    logoutDialog.value = true;
+    return;
+  }
+
   if (path !== route.path) {
     router.push(path);
   }
   drawer.value = false; // Fecha o menu ao navegar
 };
 
-onMounted(() => {
-  loadUserFromToken();
-  window.addEventListener('user-logged-in', loadUserFromToken);
-  window.addEventListener('user-logged-out', loadUserFromToken);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('user-logged-in', loadUserFromToken);
-  window.removeEventListener('user-logged-out', loadUserFromToken);
-});
+const logout = async () => {
+  try {
+    await api.post('auths/logout').finally(() => {
+      logoutDialog.value = false;
+      authStore.clearUser();
+      router.push('/login');
+    });
+  } catch (error) {
+    console.error('Erro ao sair:', error);
+  }
+};
 </script>

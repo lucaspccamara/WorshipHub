@@ -1,32 +1,18 @@
 import axios from 'axios';
-import { Cookies, Notify } from 'quasar'
+import { Notify } from 'quasar';
 
 const api = axios.create({
   timeout: 90000,
   baseURL: import.meta.env.VITE_API_URL,
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-});
-
-api.interceptors.request.use((config) => {
-  config.headers['Authorization'] = `Bearer ${Cookies.get('user_token')}`
-  return config
-}, (error) => {
-  return Promise.reject(error)
+  withCredentials: true
 });
 
 const apiMethods = {
   // Métodos REST padrão
-  getAll: async (resource) => {
+  get: async (resource, id) => {
     try {
-      const response = await api.get(`/${resource}`);
-      return response;
-    } catch (error) {
-      throw new Error(error.response.data || error.message);
-    }
-  },
-  getOne: async (resource, id) => {
-    try {
-      const response = await api.get(`/${resource}/${id}`);
+      const response = await api.get(`/${resource}${id != null ? '/' + id : ''}`);
       return response;
     } catch (error) {
       throw new Error(error.response.data || error.message);

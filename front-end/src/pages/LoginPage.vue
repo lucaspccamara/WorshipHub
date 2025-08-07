@@ -50,12 +50,12 @@
 import { ref } from "vue";
 import api from "../api";
 import { useRouter } from "vue-router";
-import { useAuth } from "../composables/useAuth";
-import { useKeyboardStatus } from '../composables/useKeyboardStatus'
+import { useAuthStore } from "../stores/authStore";
+import { useKeyboardStatus } from '../composables/useKeyboardStatus';
 
 const { isKeyboardOpen } = useKeyboardStatus()
 
-const { setToken } = useAuth();
+const authStore = useAuthStore();
 const router = useRouter();
 const email = ref("");
 const password = ref("");
@@ -66,17 +66,12 @@ const login = async () => {
     await api.getPost("auths/login", {
       email: email.value,
       password: password.value
-    }).then(response => {
-      if (response.status === 200 && response.data.token) {
-        setToken(response.data.token);
-        setTimeout(() => {
-          router.push({ path: "/" });
-        }, 200);
-      } else {
-        console.error("Token inválido ou não recebido.");
-      }
     });
 
+    const userResponse = await api.get('auths/me');
+    authStore.setUser(userResponse.data);
+
+    router.push({ path: '/' });
   } catch (error) {
     console.error("Erro ao fazer login:", error);
   }

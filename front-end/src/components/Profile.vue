@@ -129,16 +129,16 @@ import { Role } from '../constants/Role';
 import { RoleOptions } from '../constants/RoleOptions';
 import { PositionOptions } from '../constants/PositionOptions';
 import ChangePassword from './ChangePassword.vue';
-import { useAuth } from '../composables/useAuth';
+import { useAuthStore } from '../stores/authStore';
 
-const { userId, hasAnyRole, isUserEmail } = useAuth();
+const authStore = useAuthStore();
 
 const canEditRole = computed(() => {
-  return hasAnyRole([Role.Admin, Role.Leader]);
+  return authStore.hasAnyRole([Role.Admin, Role.Leader]);
 })
 
 const canChangePassword = computed(() => {
-  return isUserEmail(form.value.email);
+  return authStore.isUserEmail(form.value.email);
 })
 
 const emit = defineEmits(['updateUsersList', 'closeDialog']);
@@ -148,7 +148,7 @@ const props = defineProps({
   }
 })
 
-const userIdToLoad = ref(props.userIdProp || userId.value);
+const userIdToLoad = ref(props.userIdProp || authStore.userId);
 
 const defaultAvatar = '/avatars/default.png';
 const avatarOptions = [
@@ -178,7 +178,7 @@ const dialogChangePassword = ref(false);
 
 async function loadUserProfile() {
   try {
-    const response = await api.getOne('users/profile', userIdToLoad.value);
+    const response = await api.get('users/profile', userIdToLoad.value);
     const user = response.data;
 
     Object.assign(form.value, {

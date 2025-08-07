@@ -51,17 +51,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import api from '../api'
-import { Notify } from 'quasar'
-import { useKeyboardStatus } from '../composables/useKeyboardStatus'
+import { ref} from 'vue';
+import { useRouter } from 'vue-router';
+import api from '../api';
+import { Notify } from 'quasar';
+import { useKeyboardStatus } from '../composables/useKeyboardStatus';
 
 const { isKeyboardOpen } = useKeyboardStatus()
 
-const route = useRoute()
 const router = useRouter()
-const token = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isPwd = ref(true);
@@ -74,7 +72,6 @@ const submit = async () => {
 
   try {
     await api.post('auths/reset-password', {
-      token: token.value,
       newPassword: newPassword.value
     }).then(() => {
       // Redireciona para a página de login após redefinir a senha
@@ -90,8 +87,4 @@ const submit = async () => {
     }, 200)
   }
 }
-
-onMounted(() => {
-  token.value = route.query.token
-})
 </script>

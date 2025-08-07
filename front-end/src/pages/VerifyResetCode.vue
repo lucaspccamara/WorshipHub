@@ -36,7 +36,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import api from '../api';
 import { useRoute, useRouter } from "vue-router";
 import { Notify } from 'quasar';
-import { useKeyboardStatus } from '../composables/useKeyboardStatus'
+import { useKeyboardStatus } from '../composables/useKeyboardStatus';
 
 const { isKeyboardOpen } = useKeyboardStatus()
 
@@ -78,10 +78,10 @@ const submit = async () => {
   try {
     const code = digits.value.join('');
     if (code.length === 6) {
-      await api.post('auths/verify-reset-code', { email: email.value, code: verficationCode.value }).then((response) => {
+      await api.post('auths/verify-reset-code', { email: email.value, code: code }).then((response) => {
         if (response.status === 200) {
           Notify.create({ type: 'positive', message: 'Verificação concluída! Redefina sua senha.' });
-          router.push({ path: 'reset-password', query: { token: response.data } });
+          router.push({ path: 'reset-password' });
         }
       });
     } else {
