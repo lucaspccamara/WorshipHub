@@ -64,7 +64,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 scheduleOverviewDTO = scheduleList.Select(schedule => new ScheduleOverviewDTO
                 {
                     Id = schedule.Id,
-                    Date = schedule.Date.ToString("dd/MM/yy"),
+                    Date = schedule.Date.ToString("dd/MM/yyyy"),
                     EventType = schedule.EventType,
                     Status = schedule.Status
                 });

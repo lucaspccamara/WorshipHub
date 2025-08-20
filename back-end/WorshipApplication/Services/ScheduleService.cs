@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using Microsoft.AspNetCore.Mvc;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Schedule;
 using WorshipDomain.Entities;
@@ -61,6 +62,27 @@ namespace WorshipApplication.Services
             }
 
             return Result.Ok(resultMessage);
+        }
+
+        public ActionResult UpdateSchedule(ScheduleDTO scheduleDTO)
+        {
+            DateTime.TryParse(scheduleDTO.Date, out DateTime date);
+
+            var existSchedule = _repository.GetList().Where(s => s.Id != scheduleDTO.Id && s.Date == date && s.EventType == scheduleDTO.EventType).FirstOrDefault();
+
+            if (existSchedule != null)
+                return new ConflictResult();
+
+            Schedule schedule = new()
+            {
+                Id = scheduleDTO.Id,
+                Date = date,
+                EventType = scheduleDTO.EventType,
+                Status = scheduleDTO.Status
+            };
+
+            _repository.Update(schedule);
+            return new NoContentResult();
         }
 
         public ResultFilter<ScheduleOverviewDTO> GetListPaged(ApiRequest<ScheduleFilterDTO> request)

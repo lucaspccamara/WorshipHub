@@ -5,11 +5,19 @@
       class="float-right left-icon"
       color="primary"
       icon="fa fa-square-plus"
+      label="Cadastrar"
       no-caps
       @click="openDialogCreateSchedule"
-    >
-      Cadastrar
-    </q-btn>
+    />
+    <q-btn
+      v-if="selectedRows.length > 0"
+      class="float-right q-mr-md"
+      color="orange"
+      label="Continuar"
+      icon="fa fa-play"
+      :disable="selectedRows.length === 0"
+      @click="releaseSelectedSchedules"
+    />
   </div>
 
   <q-card class="card-content q-ma-md">
@@ -60,17 +68,6 @@
     </q-card-section>
   </q-card>
 
-  <!-- Ações em Massa -->
-  <div class="q-pa-md">
-    <q-btn 
-      color="orange" 
-      label="Liberar Selecionados" 
-      icon="fa fa-play"
-      :disable="selectedRows.length === 0" 
-      @click="releaseSelectedSchedules"
-    />
-  </div>
-
   <div class="row full-width q-pa-md">
     <q-table
       class="no-select full-width"
@@ -95,12 +92,7 @@
         :props="props"
         :class="{'bg-blue-2': isSelected(props.row)}"
         style="cursor: pointer;"
-        @dblclick="openDialogScheduleByStatus(props.row.id, props.row.status)"
-        @mousedown="startHold(props.row)"
-        @mouseup="clearHold"
-        @mouseleave="clearHold"
-        @touchstart="startHold(props.row)"
-        @touchend="clearHold"
+        @click="openDialogScheduleByStatus(props.row.id, props.row.status, props.row.date, props.row.eventType)"
       >
         <q-td key="id" class="text-center">
           <q-checkbox v-model="selectedRows" :val="props.row" :disable="props.row.status != 0" />
@@ -118,8 +110,15 @@
     </q-table>
   </div>
 
-  <q-dialog v-model="dialogCreateSchedule" persistent class="lg-dialog">
-    <CreateSchedule></CreateSchedule>
+  <q-dialog v-model="dialogCreateSchedule" persistent :class="selectedScheduleId > 0 ? 'sm-dialog' : 'lg-dialog'">
+    <CreateSchedule
+      :schedule-id="selectedScheduleId"
+      :schedule-date="selectedScheduleDate"
+      :schedule-event-type="selectedScheduleEvent"
+      :schedule-status="selectedScheduleStatus"
+      @closeDialog="dialogCreateSchedule = false"
+      @updateScheduleList="getSchedule"
+    ></CreateSchedule>
   </q-dialog>
 
   <q-dialog v-model="dialogManageSchedule" persistent class="lg-dialog">
@@ -138,9 +137,11 @@ import { ScheduleStatus } from '../constants/ScheduleStatus';
 
 const dialogCreateSchedule = ref(false);
 const dialogManageSchedule = ref(false);
-const selectedSchedule = ref(0);
+const selectedScheduleId = ref(0);
+const selectedScheduleDate = ref(null);
+const selectedScheduleEvent = ref(null);
+const selectedScheduleStatus = ref(0);
 const selectedRows = ref([]);
-const holdTimer = ref(null);
 const isSelected = (row) => selectedRows.value.some(item => item.id === row.id);
 let startDate = ref('');
 let endDate = ref('');
@@ -156,19 +157,6 @@ const columns = [
   {name: 'eventType', label: 'Tipo de Evento', field: 'eventType', align: 'left', sortable: false},
   {name: 'status', label: 'Status', field: 'released', align: 'center', sortable: false}
 ];
-
-function startHold(row) {
-  holdTimer.value = setTimeout(() => {
-    openDialogScheduleByStatus(row.id, row.status);
-  }, 500);
-}
-
-function clearHold() {
-  if (holdTimer.value) {
-    clearTimeout(holdTimer.value);
-    holdTimer.value = null;
-  }
-}
 
 function getStatusColor(status) {
   const foundStatus = ScheduleStatus.find(s => s.value === status);
@@ -228,20 +216,33 @@ function releaseSelectedSchedules() {
   selectedRows.value = [];
 }
 
-function openDialogScheduleByStatus(idSchedule, status) {
+function openDialogScheduleByStatus(idSchedule, status, date, eventType) {
   if (status == 1) {
     openDialogManageSchedule(idSchedule)
   } else {
-    openDialogCreateSchedule();
+    openDialogCreateSchedule(idSchedule, date, eventType, status);
   }
 };
 
-function openDialogCreateSchedule() {
+function openDialogCreateSchedule(idSchedule, date, eventType, status) {
+  if (idSchedule && date && eventType !== null) {
+    const [day, month, year] = date.split('/');
+    selectedScheduleId.value = idSchedule;
+    selectedScheduleDate.value = `${year}/${month}/${day}`;
+    selectedScheduleEvent.value = eventType;
+    selectedScheduleStatus.value = status;
+  } else {
+    selectedScheduleId.value = 0;
+    selectedScheduleDate.value = null;
+    selectedScheduleEvent.value = null;
+    selectedScheduleStatus.value = 0;
+  }
+
   dialogCreateSchedule.value = true;
 };
 
 function openDialogManageSchedule(idSchedule) {
-  selectedSchedule.value = idSchedule;
+  selectedScheduleId.value = idSchedule;
   dialogManageSchedule.value = true;
 };
 

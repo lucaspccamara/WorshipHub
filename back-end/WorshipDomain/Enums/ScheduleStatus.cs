@@ -3,8 +3,9 @@
     public enum ScheduleStatus
     {
         Created,
-        Sent,
-        Finished,
+        CollectingAvailability,
+        WaitingRepertoire,
+        Completed,
         Deleted = 10
     }
 }

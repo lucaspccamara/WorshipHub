@@ -1,8 +1,9 @@
 <template>
   <q-card>
-    <form @submit.prevent="createEvents">
+    <form @submit.prevent="save">
       <q-bar class="card-header">
-        <span>Cadastrar Escala</span>
+        <span v-if="scheduleId == 0">Cadastrar Escala</span>
+        <span v-else>Editar Escala</span>
         <q-space />
         <q-btn dense flat icon="fa fa-close" v-close-popup>
           <q-tooltip>Fechar</q-tooltip>
@@ -10,7 +11,7 @@
       </q-bar>
 
       <div class="row">
-        <q-card-section :class="['col-12', 'col-md-5', 'column-left']">
+        <q-card-section :class="['col-12', scheduleId > 0 ? 'col-12' : 'col-md-5 column-left' ]">
           <q-date
             v-model="selectedDate"
             :events="events.map(event => event.date)"
@@ -28,9 +29,20 @@
             label="Tipo de Evento"
             class="q-my-md"
           />
-          <q-btn color="primary" label="Adicionar Evento" @click="addEvent()" />
           <q-btn
-            v-if="isMobile && events.length > 0"
+            v-if="scheduleId == 0"
+            color="primary"
+            label="Adicionar Evento"
+            @click="addEvent()"
+          />
+          <q-btn
+            v-else
+            color="primary"
+            label="Salvar"
+            type="submit"
+          />
+          <q-btn
+            v-if="isMobile && events.length > 0 && scheduleId == 0"
             class="q-mt-md"
             color="secondary"
             label="Eventos Selecionados"
@@ -38,7 +50,7 @@
           />
         </q-card-section>
   
-        <div :class="['col-12', 'col-md-7']" v-if="!isMobile">
+        <div :class="['col-12', 'col-md-7']" v-if="!isMobile && scheduleId == 0">
           <q-card-section class="column-right">
             <div v-if="events.length > 0">
               <q-card v-for="(event, index) in events" :key="index" class="q-mb-md">
@@ -120,9 +132,25 @@
 
 <script setup>
 import api from '../api';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { Notify, useQuasar } from 'quasar';
 import { EventTypes } from '../constants/EventTypes';
+
+const emit = defineEmits(['updateScheduleList', 'closeDialog']);
+const props = defineProps({
+  scheduleId: {
+    type: Number
+  },
+  scheduleDate: {
+    type: String
+  },
+  scheduleEventType: {
+    type: Number
+  },
+  scheduleStatus: {
+    type: Number
+  }
+})
 
 const $q = useQuasar();
 
@@ -167,10 +195,12 @@ function addEvent() {
     selectedDate.value = null;
     eventType.value = null;
 
-    Notify.create({
-      message: 'Evento adicionado com sucesso!',
-      color: 'positive'
-    });
+    if (isMobile) {
+      Notify.create({
+        message: 'Evento adicionado com sucesso!',
+        color: 'positive'
+      });
+    }
   } else {
     Notify.create({
       message: 'Por favor, selecione uma data e um tipo de evento.',
@@ -197,14 +227,79 @@ function getEventColor(date) {
   return eventOnDate.map(event => event.color);
 }
 
-function createEvents() {
+function save() {
+  if (events.value.length === 0) {
+    Notify.create({
+      message: 'Nenhum evento adicionado.',
+      color: 'negative'
+    });
+    return;
+  }
+
+  if (props.scheduleId > 0) {
+    saveSchedule();
+  } else {
+    createSchedule();
+  }
+}
+
+function saveSchedule() {
+  const scheduleData = {
+    id: props.scheduleId,
+    date: selectedDate.value,
+    eventType: eventType.value,
+    status: props.scheduleStatus
+  };
+
+  api.put('schedules', props.scheduleId, scheduleData).then(() => {
+    Notify.create({
+      message: 'Escala salva com sucesso!',
+      color: 'positive'
+    });
+    emit('updateScheduleList');
+    emit('closeDialog');
+  }).catch(err => {
+    Notify.create({
+      message: 'Erro ao salvar escala.',
+      color: 'negative'
+    });
+  });
+}
+
+function createSchedule() {
   const mappedEvents = events.value.map(event => ({
     date: event.date,
     eventType: event.type
   }));
 
-  api.post('schedules', mappedEvents);
+  api.post('schedules', mappedEvents).then(() => {
+    Notify.create({
+      message: 'Escala criada com sucesso!',
+      color: 'positive'
+    });
+    events.value = [];
+    emit('updateScheduleList');
+    emit('closeDialog');
+  }).catch(err => {
+    Notify.create({
+      message: 'Erro ao criar escala.',
+      color: 'negative'
+    });
+  });
 }
+
+onMounted(() => {
+  if (props.scheduleId && props.scheduleDate && props.scheduleEventType !== null) {
+    selectedDate.value = props.scheduleDate;
+    eventType.value = props.scheduleEventType;
+    events.value.push({
+      date: props.scheduleDate,
+      label: eventTypes.find(event => event.value === props.scheduleEventType).label,
+      type: props.scheduleEventType,
+      color: eventTypes.find(event => event.value === props.scheduleEventType).color
+    });
+  }
+});
 </script>
 
 <style lang="scss">

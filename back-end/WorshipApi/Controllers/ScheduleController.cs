@@ -4,6 +4,7 @@ using WorshipApi.Core;
 using WorshipApplication.Services;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Schedule;
+using WorshipDomain.DTO.User;
 using WorshipDomain.Enums;
 
 namespace WorshipApi.Controllers
@@ -32,6 +33,19 @@ namespace WorshipApi.Controllers
                 return BadRequest(result.Errors);
 
             return Ok(result.Value);
+        }
+
+        [HttpPut("{id}")]
+        [AuthorizeRoles(Role.Admin, Role.Leader)]
+        public ActionResult UpdateSchedule(
+            [FromServices] ScheduleService _scheduleService,
+            [FromRoute] int id,
+            [FromBody] ScheduleDTO scheduleDTO)
+        {
+             if (id != scheduleDTO.Id)
+                return BadRequest("Id da requisição não corresponde ao Id da entidade.");
+
+            return _scheduleService.UpdateSchedule(scheduleDTO);
         }
 
         [HttpDelete("{id}")]
