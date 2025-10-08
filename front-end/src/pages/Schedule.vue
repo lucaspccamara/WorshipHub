@@ -251,12 +251,3 @@ onMounted(() => {
   getSchedule();
 });
 </script>
-
-<style scoped>
-.no-select {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-</style>

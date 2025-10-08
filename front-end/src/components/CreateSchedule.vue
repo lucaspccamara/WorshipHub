@@ -2,8 +2,8 @@
   <q-card>
     <form @submit.prevent="save">
       <q-bar class="card-header">
-        <span v-if="scheduleId == 0">Cadastrar Escala</span>
-        <span v-else>Editar Escala</span>
+        <span class="text-h6 header-label" v-if="scheduleId == 0">Cadastrar Escala</span>
+        <span class="text-h6 header-label" v-else>Editar Escala</span>
         <q-space />
         <q-btn dense flat icon="fa fa-close" v-close-popup>
           <q-tooltip>Fechar</q-tooltip>

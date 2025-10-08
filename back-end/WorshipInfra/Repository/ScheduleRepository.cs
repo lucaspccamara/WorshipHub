@@ -34,7 +34,7 @@ FROM schedules
 
             var selector = builder.AddTemplate($@"
 SELECT SQL_CALC_FOUND_ROWS
-    id, date, eventType, status
+    id, date, event_type, status
 FROM schedules
 /**where**/
 /**orderby**/
@@ -49,9 +49,9 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 builder.Where("date <= @endDate", new { endDate });
 
             if (request.Filters.EventType.HasValue)
-                builder.Where("eventType = @eventType", new { eventType = request.Filters.EventType });
+                builder.Where("event_type = @eventType", new { eventType = request.Filters.EventType });
             else
-                builder.Where("eventType < 10");
+                builder.Where("event_type < 10");
 
             builder.OrderBy(request.GetSorting("date"));
 

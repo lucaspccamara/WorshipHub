@@ -63,7 +63,7 @@
       virtual-scroll
       :rows="rows"
       :columns="columns"
-      :Loading="loading"
+      :loading="loading"
       separetor="cell"
       :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]"
       @request="onRequest"
@@ -188,12 +188,3 @@ onMounted(() => {
   getUsers();
 });
 </script>
-
-<style scoped>
-.no-select {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-</style>

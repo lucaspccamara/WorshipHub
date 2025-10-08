@@ -9,6 +9,7 @@ namespace WorshipApplication
         {
             // Services
             services.AddScoped<AuthService>();
+            services.AddScoped<MusicService>();
             services.AddScoped<ScheduleService>();
             services.AddScoped<UserService>();
             services.AddScoped<WhatsAppService>();

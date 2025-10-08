@@ -18,6 +18,7 @@ namespace WorshipInfra
 
             // Repositories
             services.AddScoped<IAuthRepository, AuthRepository>();
+            services.AddScoped<IMusicRepository, MusicRepository>();
             services.AddScoped<IScheduleRepository, ScheduleRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
 

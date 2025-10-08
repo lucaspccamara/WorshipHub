@@ -17,7 +17,22 @@ namespace WorshipDomain.Entities
         [Column("album")]
         public string? Album { get; set; }
 
-        [Column("tone")]
-        public string? Tone { get; set; }
+        [Column("note_base")]
+        public string? NoteBase { get; set; }
+
+        [Column("note_mode")]
+        public string? NoteMode { get; set; }
+
+        [Column("bpm")]
+        public decimal? Bpm { get; set; }
+
+        [Column("time_signature")]
+        public string? TimeSignature { get; set; }
+
+        [Column("duration_seconds")]
+        public int? DurationSeconds { get; set; }
+
+        [Column("video_url")]
+        public string? VideoUrl { get; set; }
     }
 }

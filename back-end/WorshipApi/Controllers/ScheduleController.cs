@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using WorshipApi.Core;
 using WorshipApplication.Services;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Schedule;
-using WorshipDomain.DTO.User;
 using WorshipDomain.Enums;
 
 namespace WorshipApi.Controllers
@@ -13,7 +11,7 @@ namespace WorshipApi.Controllers
     public class ScheduleController : ControllerBase
     {
         [HttpPost("list")]
-        public ActionResult<ResultFilter<ScheduleOverviewDTO>> GetSchedule(
+        public ActionResult<ResultFilter<ScheduleOverviewDTO>> GetSchedules(
             [FromServices] ScheduleService _scheduleService,
             [FromBody] ApiRequest<ScheduleFilterDTO> request)
         {

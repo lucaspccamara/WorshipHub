@@ -2,7 +2,6 @@
 using WorshipApi.Core;
 using WorshipApplication.Services;
 using WorshipDomain.Core.Entities;
-using WorshipDomain.DTO.Schedule;
 using WorshipDomain.DTO.User;
 using WorshipDomain.Enums;
 
