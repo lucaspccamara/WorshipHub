@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WorshipDomain.Core.Entities;
-using WorshipDomain.DTO.Schedule;
 using WorshipDomain.DTO.User;
 using WorshipDomain.Entities;
 using WorshipDomain.Repository;

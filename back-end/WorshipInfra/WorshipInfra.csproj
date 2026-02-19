@@ -11,11 +11,13 @@
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="Dapper.SimpleCRUD" Version="2.3.0" />
     <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
     <PackageReference Include="MySql.Data" Version="8.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-	  <ProjectReference Include="..\WorshipApplication\WorshipApplication.csproj" />
+    <ProjectReference Include="..\WorshipDomain\WorshipDomain.csproj" />
   </ItemGroup>
 
 </Project>
