@@ -14,5 +14,6 @@ namespace WorshipDomain.DTO.Music
         public string TimeSignature { get; set; }
         public string Duration { get; set; }
         public string VideoUrl { get; set; }
+        public string ImageUrl { get; set; }
     }
 }

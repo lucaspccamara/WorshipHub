@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { Quasar, Cookies, Notify } from 'quasar'
+import { Quasar, Cookies, Notify, Dialog } from 'quasar'
 import router from './router'
 import quasarLang from 'quasar/lang/pt-BR'
 import quasarIconSet from 'quasar/icon-set/fontawesome-v6'
@@ -19,7 +19,7 @@ const pinia = createPinia();
 const myApp = createApp(App)
 
 myApp.use(Quasar, {
-  plugins: { Cookies, Notify }, // import Quasar plugins and add here
+  plugins: { Cookies, Notify, Dialog }, // import Quasar plugins and add here
   lang: quasarLang,
   iconSet: quasarIconSet,
 })

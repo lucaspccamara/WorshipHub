@@ -10,5 +10,12 @@ namespace WorshipDomain.Repository
     {
         bool ExistSchedule(DateTime date, EventType eventType);
         ResultFilter<ScheduleOverviewDTO> GetListPaged(ApiRequest<ScheduleFilterDTO> request);
+        ScheduleRepertoireDto GetScheduleRepertoireDetails(int scheduleId);
+        void SaveScheduleRepertoire(int scheduleId, IEnumerable<int> musicIds);
+        SchedulesAssignmentsDetailsDto? GetSchedulesAssignmentsDetails(IEnumerable<int> scheduleIds);
+        void SaveAssignments(int scheduleId, Dictionary<int, int?> assignments);
+        void UpdateStatus(IEnumerable<int> scheduleIds, int newStatus);
+        List<(int Id, string PhoneNumber, string Name)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus);
+        List<(int Id, string PhoneNumber, string Name)> GetAssignedUsers(int scheduleId);
     }
 }

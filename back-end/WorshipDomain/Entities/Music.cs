@@ -34,5 +34,8 @@ namespace WorshipDomain.Entities
 
         [Column("video_url")]
         public string? VideoUrl { get; set; }
+
+        [Column("image_url")]
+        public string? ImageUrl { get; set; }
     }
 }

@@ -13,15 +13,15 @@
         <template v-if="currentPanel">
           <!-- ESCALA -->
           <q-card class="row bg-grey-5">
-            <q-item v-for="position in currentPanel.positions" :key="position.name"
+            <q-item v-for="position in currentPanel.positions" :key="position.positionId"
               :class="position.highlight ? 'role-highlight col-xs-6 col-md-3 q-pa-md' : 'col-xs-6 col-md-3 q-pa-md'"
             >
               <q-item-section avatar>
                 <q-avatar color="primary" icon="fa-solid fa-user" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ position.name }}</q-item-label>
-                <q-item-label caption>{{ position.person }}</q-item-label>
+                <q-item-label>{{ PositionOptions.find(p => p.value == position.positionId).label }}</q-item-label>
+                <q-item-label caption>{{ position.member }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-card>
@@ -32,16 +32,16 @@
             <q-list>
               <q-item
                 clickable
-                v-for="song in currentPanel.songs"
-                :key="song.title"
+                v-for="music in currentPanel.musics"
+                :key="music.title"
                 class="q-pa-md q-mt-sm bg-grey-5 card-music"
               >
-                <q-img class="music-bg" :src="song.image" fit="cover" />
+                <q-img class="music-bg" :src="music.imageUrl" fit="cover" />
                 <div class="overlay"></div>
                 <q-item-section class="music-content">
-                  <q-item-label class="music-title">{{ song.title }}</q-item-label>
-                  <q-item-label class="music-author">{{ song.author }}</q-item-label>
-                  <q-item-label class="music-details">{{ song.details }}</q-item-label>
+                  <q-item-label class="music-title">{{ music.title }}</q-item-label>
+                  <q-item-label class="music-artist">{{ music.artist }}</q-item-label>
+                  <q-item-label class="music-details">{{ music.details }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -65,111 +65,30 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
 import { date as QuasarDate } from 'quasar';
+import api from '../api';
+import { PositionOptions } from '../constants/PositionOptions';
 
+const filter = {};
 const date = ref('');
+let startDate = ref('');
+let endDate = ref('');
 
-const panels = ref([
-  {
-    date: '2025/03/02',
-    positions: [
-      { name: 'Ministro', person: 'Fulano', highlight: true },
-      { name: 'Baixista', person: 'Ciclano', highlight: false },
-      { name: 'Baterista', person: 'Beltrano', highlight: false },
-      { name: 'Guitarrista', person: 'Sicrano', highlight: false },
-      { name: 'Vocalista', person: 'Fulana', highlight: false },
-    ],
-    songs: [
-      {
-        id: 0,
-        title: 'Tu És + Águas Purificadoras',
-        author: 'FHOP',
-        details: 'Tom: D BPM: 71 Tempo: 4/4 Duração: 8:03',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/8772.jpg'
-      },
-      {
-        id: 1,
-        title: 'Lá',
-        author: 'Paulo César Baruk',
-        details: 'Tom: C BPM: 100 Tempo: 4/4 Duração: 4:07',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/3328.jpg'
-      },
-      {
-        id: 2,
-        title: 'Estamos de Pé',
-        author: 'Marcus Salles',
-        details: 'Tom: A BPM: 104 Tempo: 4/4 Duração: 6:32',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/8878.jpg'
-      },
-      {
-        id: 3,
-        title: 'Tudo é Teu / Nova Criatura / Rede ao Mar',
-        author: 'Morada',
-        details: 'Tom: B BPM: 158 Tempo: 4/4 Duração: 5:09',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/7400.jpg'
-      },
-      { 
-        id: 4,
-        title: 'Bondade de Deus',
-        author: 'Isaias Saad',
-        details: 'Tom: G BPM: 68 Tempo: 4/4 Duração: 5:45',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/8201.jpg'
-      },
-    ],
-  },
-  {
-    date: '2025/03/09',
-    positions: [
-      { name: 'Ministro', person: 'Fulano', highlight: false },
-      { name: 'Baixista', person: 'Ciclano', highlight: true },
-      { name: 'Baterista', person: 'Beltrano', highlight: false },
-      { name: 'Guitarrista', person: 'Sicrano', highlight: false },
-      { name: 'Vocalista', person: 'Fulana', highlight: false },
-    ],
-    songs: [
-      {
-        id: 5,
-        title: 'Atos 2',
-        author: 'Gabriel Guedes',
-        details: 'Tom: C BPM: 72 Tempo: 6/8 Duração: 7:39',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/2418.jpg'
-      },
-      {
-        id: 6,
-        title: 'Galileu',
-        author: 'Fernandinho',
-        details: 'Tom: Db BPM: 116 Tempo: 4/4 Duração: 7:20',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/2001.jpg'
-      },
-      {
-        id: 7,
-        title: 'Eu Também (100 Bilhões X)',
-        author: 'Hillsong United',
-        details: 'Tom: A BPM: 64 Tempo: 4/4 Duração: 6:58',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/1171.jpg'
-      },
-      {
-        id: 8,
-        title: 'Teu Amor Não Falha',
-        author: 'Nivea Soares',
-        details: 'Tom: C BPM: 114 Tempo: 4/4 Duração: 6:02',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/507.jpg'
-      },
-      {
-        id: 9,
-        title: 'Escape',
-        author: 'Renascer Praise',
-        details: 'Tom: D BPM: 64 Tempo: 4/4 Duração: 5:58',
-        image: 'https://mtracks.azureedge.net/public/images/albums/284/9737.jpg'
-      },
-    ],
-  },
-]);
+const panels = ref([]);
 
 const events = computed(() => panels.value.map((panel) => panel.date));
 
 const currentPanel = computed(() => panels.value.find((panel) => panel.date === date.value) || null);
 
-onMounted(() => {
+function setDefaultDates() {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+
+  startDate.value = firstDay;
+  endDate.value = lastDay;
+};
+
+function selectNextDate() {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
 
@@ -182,6 +101,25 @@ onMounted(() => {
     nextSunday.setDate(today.getDate() + (7 - dayOfWeek));
     date.value = QuasarDate.formatDate(nextSunday, 'YYYY/MM/DD');
   }
+}
+
+function getCalendar() {
+  panels.value = []
+  filter.value = {
+    startDate: startDate.value,
+    endDate: endDate.value,
+  }
+
+  api.getPost('homes/calendar', filter.value).then((response) => {
+    panels.value.splice(0, panels.value.length, ...response.data);
+  }).finally(() => {
+    selectNextDate();
+  });
+};
+
+onMounted(() => {
+  setDefaultDates();
+  getCalendar();
 });
 </script>
 
@@ -268,7 +206,7 @@ onMounted(() => {
     font-weight: bold;
   }
 
-  .music-author {
+  .music-artist {
     font-size: 12px;
     font-style: italic;
   }

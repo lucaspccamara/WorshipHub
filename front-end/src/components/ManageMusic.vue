@@ -12,6 +12,15 @@
     <q-card class="q-pa-sm">
       <q-form @submit.prevent="submitForm" ref="formRef">
         <q-card-section class="row q-col-gutter-md">
+          <div class="col-12" v-if="form.imageUrl">
+            <q-img
+              class="music-bg"
+              :src="form.imageUrl"
+              spinner-color="blue"
+              fit="cover"
+            />
+          </div>
+
           <div class="col-12 col-md-4">
             <q-input
               label="Título"
@@ -103,6 +112,14 @@
               filled
             />
           </div>
+
+          <div class="col-12 col-md-4">
+            <q-input
+              label="URL da Imagem"
+              v-model="form.imageUrl"
+              filled
+            />
+          </div>
         </q-card-section>
   
         <q-card-actions align="right">
@@ -157,7 +174,8 @@ async function loadMusic() {
       bpm: music.bpm,
       timeSignature: music.timeSignature,
       duration: music.duration,
-      videoUrl: music.videoUrl
+      videoUrl: music.videoUrl,
+      imageUrl: music.imageUrl
     });
   } catch (error) {
     Notify.create({
@@ -185,6 +203,7 @@ async function submitForm() {
         form.value.timeSignature = ''
         form.value.duration = null
         form.value.videoUrl = ''
+        form.value.imageUrl = ''
         formRef.value.resetValidation()
       }).finally(() => {
         emit('updateMusicsList');
@@ -203,6 +222,7 @@ async function submitForm() {
         form.value.timeSignature = ''
         form.value.duration = null
         form.value.videoUrl = ''
+        form.value.imageUrl = ''
         formRef.value.resetValidation()
       }).finally(() => {
         emit('updateMusicList');
@@ -219,3 +239,16 @@ onMounted(async () => {
     loadMusic();
 })
 </script>
+
+<style lang="scss">
+.music-bg {
+    position: absolute;
+    top: -10px;
+    inset: 0;
+    filter: brightness(0.6);
+    
+    /* Aplicando fade diretamente na imagem */
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 20%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.05) 80%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 20%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.05) 80%);
+  }
+</style>

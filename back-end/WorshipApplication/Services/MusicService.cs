@@ -32,7 +32,8 @@ namespace WorshipApplication.Services
                 TimeSignature = music.TimeSignature,
                 Duration = DurationSecondsToStringDuration(music.DurationSeconds),
                 Bpm = music.Bpm,
-                VideoUrl = music.VideoUrl
+                VideoUrl = music.VideoUrl,
+                ImageUrl = music.ImageUrl
             };
         }
 
@@ -51,7 +52,8 @@ namespace WorshipApplication.Services
                 Bpm = musicCreationDTO.Bpm,
                 TimeSignature = musicCreationDTO.TimeSignature,
                 DurationSeconds = StringDurationToDurationSeconds(musicCreationDTO.Duration),
-                VideoUrl = musicCreationDTO.VideoUrl
+                VideoUrl = musicCreationDTO.VideoUrl,
+                ImageUrl = musicCreationDTO.ImageUrl
             };
 
             _repository.Insert(music);
@@ -72,6 +74,7 @@ namespace WorshipApplication.Services
             music.NoteMode = musicDto.NoteMode;
             music.Bpm = musicDto.Bpm;
             music.VideoUrl = musicDto.VideoUrl;
+            music.ImageUrl = musicDto.ImageUrl;
 
             _repository.Update(music);
             return new NoContentResult();

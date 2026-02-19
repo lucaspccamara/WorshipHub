@@ -3,20 +3,42 @@
     <span class="text-h6 header-label">Escalas</span>
     <q-btn
       class="float-right left-icon"
-      color="primary"
-      icon="fa fa-square-plus"
       label="Cadastrar"
+      icon="fa fa-square-plus"
+      color="primary"
       no-caps
       @click="openDialogCreateSchedule"
     />
     <q-btn
-      v-if="selectedRows.length > 0"
+      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.Criado"
       class="float-right q-mr-md"
-      color="orange"
-      label="Continuar"
-      icon="fa fa-play"
-      :disable="selectedRows.length === 0"
-      @click="releaseSelectedSchedules"
+      label="Iniciar Coleta"
+      icon="fa fa-list-check"
+      color="primary"
+      no-caps
+      @click="startCollecting"
+      :disable="selectedRows.length===0"
+    />
+
+    <q-btn
+      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+      class="float-right q-mr-md"
+      label="Solicitar Repertório"
+      icon="fa fa-paper-plane"
+      color="secondary"
+      no-caps
+      @click="startWaitingRepertoire"
+      :disable="selectedRows.length===0"
+    />
+    <q-btn
+      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+      class="float-right q-mr-md"
+      label="Escalar Membros"
+      icon="fa fa-people-group"
+      color="secondary"
+      no-caps
+      @click="openDialogManageSchedulePosition"
+      :disable="selectedRows.length===0"
     />
   </div>
 
@@ -41,7 +63,7 @@
               type="date"
               label="Escala até:"
             />
-          </div> 
+          </div>
           <div class="col-xs-8 col-sm-6 col-md-3">
             <q-select
               v-model="eventType"
@@ -87,15 +109,16 @@
       :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]"
       @request="onRequest"
     >
+    <template v-slot:header-selection="scope" />
     <template v-slot:body="props">
-      <q-tr 
+      <q-tr
         :props="props"
         :class="{'bg-blue-2': isSelected(props.row)}"
         style="cursor: pointer;"
         @click="openDialogScheduleByStatus(props.row.id, props.row.status, props.row.date, props.row.eventType)"
       >
         <q-td key="id" class="text-center">
-          <q-checkbox v-model="selectedRows" :val="props.row" :disable="props.row.status != 0" />
+          <q-checkbox v-model="selectedRows" :val="props.row" :disable="selectedRows.length > 0 && selectedRows[0].status != props.row.status" />
         </q-td>
         <q-td key="date">{{ props.row.date }}</q-td>
         <q-td key="eventType">
@@ -124,19 +147,42 @@
   <q-dialog v-model="dialogManageSchedule" persistent class="lg-dialog">
     <ManageSchedule></ManageSchedule>
   </q-dialog>
+
+  <q-dialog v-model="dialogPosition" maximized transition-show="slide-up" transition-hide="slide-down">
+    <ManageSchedulePosition
+      :schedule-ids="editingSelectedScheduleById"
+      @saved="onSavedPosition"
+      @advanced="onAdvanced"
+      @closeDialog="editingSelectedScheduleById = []"
+    />
+  </q-dialog>
+
+  <q-dialog v-model="dialogRepertoire" persistent class="lg-dialog">
+    <ManageScheduleRepertoire
+      :schedule-id="editingSelectedScheduleById[0]"
+      @released="onRepertoireReleased"
+      @closeDialog="editingSelectedScheduleById = []"
+    />
+  </q-dialog>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Notify } from 'quasar';
 import api from '../api';
 import CreateSchedule from '../components/CreateSchedule.vue';
 import ManageSchedule from '../components/ManageSchedule.vue';
 import { ApiFilter, ApiPagination } from '../entities/ApiUtils';
 import { EventTypes } from '../constants/EventTypes';
-import { ScheduleStatus } from '../constants/ScheduleStatus';
+import { ScheduleStatus, EScheduleStatus } from '../constants/ScheduleStatus';
+import ManageSchedulePosition from '../components/ManageSchedulePosition.vue'
+import ManageScheduleRepertoire from '../components/ManageScheduleRepertoire.vue'
 
 const dialogCreateSchedule = ref(false);
 const dialogManageSchedule = ref(false);
+const dialogPosition = ref(false);
+const dialogRepertoire = ref(false);
+const editingSelectedScheduleById = ref([]);
 const selectedScheduleId = ref(0);
 const selectedScheduleDate = ref(null);
 const selectedScheduleEvent = ref(null);
@@ -164,6 +210,7 @@ function getStatusColor(status) {
 }
 
 function getSchedule() {
+  selectedRows.value = []
   filter.filters = {
     startDate: startDate.value,
     endDate: endDate.value,
@@ -195,32 +242,15 @@ function setDefaultDates() {
   endDate.value = lastDay;
 };
 
-function releaseSelectedSchedules() {
-  if (selectedRows.value.length === 0) return;
-
-  const schedulesToRelease = selectedRows.value.filter(row => !row.released);
-
-  if (schedulesToRelease.length === 0) {
-    alert("Nenhuma escala selecionada pode ser liberada!");
-    return;
-  }
-
-  // Simulação da chamada para API
-  schedulesToRelease.forEach(schedule => {
-    schedule.released = true; // Atualiza localmente o status
-  });
-
-  alert("Escalas liberadas com sucesso!");
-  
-  // Limpa seleção após liberação
-  selectedRows.value = [];
-}
-
 function openDialogScheduleByStatus(idSchedule, status, date, eventType) {
-  if (status == 1) {
-    openDialogManageSchedule(idSchedule)
-  } else {
+  if (status == EScheduleStatus.Criado) {
     openDialogCreateSchedule(idSchedule, date, eventType, status);
+  } else if (status == EScheduleStatus.ColetandoDisponibilidade) {
+    dialogPosition.value = true;
+    editingSelectedScheduleById.value = [idSchedule];
+  } else if (status == EScheduleStatus.AguardandoRepertorio) {
+    dialogRepertoire.value = true;
+    editingSelectedScheduleById.value = [idSchedule];
   }
 };
 
@@ -245,6 +275,45 @@ function openDialogManageSchedule(idSchedule) {
   selectedScheduleId.value = idSchedule;
   dialogManageSchedule.value = true;
 };
+
+function openDialogManageSchedulePosition() {
+  dialogPosition.value = true;
+  editingSelectedScheduleById.value = selectedRows.value.map(s => s.id);
+};
+
+async function startCollecting() {
+  if (!selectedRows.value.length) return
+  try {
+    await api.post(`schedules/transition`, { scheduleIds: selectedRows.value.map(s => s.id), newStatus: EScheduleStatus.ColetandoDisponibilidade })
+    Notify.create({ type: 'positive', message: 'Escalas movidas para Coleta de Disponibilidade.' })
+    selectedRows.value = []
+    getSchedule()
+  } catch {
+    Notify.create({ type: 'negative', message: 'Erro ao iniciar coleta.' })
+  }
+}
+
+async function startWaitingRepertoire() {
+  if (!selectedRows.value.length) return
+  try {
+    await api.post(`schedules/transition`, { scheduleIds: selectedRows.value.map(s => s.id), newStatus: EScheduleStatus.AguardandoRepertorio })
+    Notify.create({ type: 'positive', message: 'Escalas movidas para Aguardar Repertório.' })
+    selectedRows.value = []
+    getSchedule()
+  } catch {
+    Notify.create({ type: 'negative', message: 'Erro ao mover escalas.' })
+  }
+}
+
+function onSavedPosition(id) {
+  getSchedule()
+}
+function onAdvanced(id) {
+  getSchedule()
+}
+function onRepertoireReleased(id) {
+  getSchedule()
+}
 
 onMounted(() => {
   setDefaultDates();

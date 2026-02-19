@@ -34,6 +34,12 @@ const routes = [
     path: '/schedules',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
+    meta: { requiresAuth: true, roles: [Role.Admin, Role.Leader, Role.Minister] }
+  },
+  { 
+    path: '/availabilities',
+    name: 'Availabilities',
+    component: () => import('./pages/Availability.vue'),
     meta: { requiresAuth: true }
   },
   {

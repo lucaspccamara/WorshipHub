@@ -11,8 +11,22 @@ namespace WorshipApplication.Services
 {
     public class ScheduleService : ServiceBase<int, Schedule, IScheduleRepository>
     {
-        public ScheduleService(IScheduleRepository repository) : base(repository)
+        private readonly IUserRepository _userRepo;
+        private readonly IMusicRepository _musicRepo;
+        private readonly IScheduleAvailabilitiesRepository _scheduleAvailabilitiesRepository;
+        private readonly WhatsAppService _whatsAppService;
+
+        public ScheduleService(
+            IScheduleRepository repository,
+            IUserRepository userRepo,
+            IMusicRepository musicRepo,
+            IScheduleAvailabilitiesRepository scheduleAvailabilitiesRepository,
+            WhatsAppService whatsAppService) : base(repository)
         {
+            _userRepo = userRepo;
+            _musicRepo = musicRepo;
+            _scheduleAvailabilitiesRepository = scheduleAvailabilitiesRepository;
+            _whatsAppService = whatsAppService;
         }
 
         public Result<string> CreateSchedule(IEnumerable<ScheduleCreationDTO> schedulesCreationDTO)
@@ -88,6 +102,88 @@ namespace WorshipApplication.Services
         public ResultFilter<ScheduleOverviewDTO> GetListPaged(ApiRequest<ScheduleFilterDTO> request)
         {
             return _repository.GetListPaged(request);
+        }
+
+        public void TransitionSchedules(IEnumerable<int> scheduleIds, int newStatus)
+        {
+            if (scheduleIds == null) throw new ArgumentNullException(nameof(scheduleIds));
+            _repository.UpdateStatus(scheduleIds, newStatus);
+        }
+
+        public List<ScheduleAvailabilityDTO> GetPendingAvailabilities(int userId)
+        {
+            return _scheduleAvailabilitiesRepository.GetPendingByUser(userId);
+        }
+
+        public void RespondAvailability(int availabilityId, bool available, int userId)
+        {
+            // busca registro e valida propriedade
+            var record = _scheduleAvailabilitiesRepository.GetById(availabilityId);
+            if (record == null) throw new InvalidOperationException("Registro não encontrado.");
+            if (record.UserId != userId) throw new UnauthorizedAccessException("Registro não pertence ao usuário.");
+
+            // valida se a escala ainda está em status de coleta
+            var schedule = _repository.Get(record.ScheduleId);
+            if (schedule == null) throw new InvalidOperationException("Escala não encontrada.");
+            if (schedule.Status != ScheduleStatus.CollectingAvailability)
+                throw new InvalidOperationException("Não é possível alterar resposta: escala não está em coleta.");
+
+            // atualiza
+            _scheduleAvailabilitiesRepository.UpdateAvailability(availabilityId, available);
+        }
+
+        public async Task CollectingAvailabilitiesTransitionAsync(IEnumerable<int> scheduleIds, int newStatus)
+        {
+            var users = _repository.GetUsersToNotifyForTransition(scheduleIds, newStatus);
+
+            foreach (var scheduleId in scheduleIds)
+            {
+                users.ForEach(user => 
+                {
+                    _scheduleAvailabilitiesRepository.Insert(new ScheduleAvailabilities { ScheduleId = scheduleId, UserId = user.Id });
+                });
+            }
+
+            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name)).ToArray();
+            await Task.WhenAll(tasks);
+        }
+
+        public async Task NotifyRepertoireReleasedAsync(int scheduleId)
+        {
+            var users = _repository.GetAssignedUsers(scheduleId);
+            var message = $"O repertório da escala {scheduleId} foi liberado.";
+            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name)).ToArray();
+            await Task.WhenAll(tasks);
+        }
+
+        public ScheduleRepertoireDto GetScheduleRepertoireDetails(int scheduleId)
+        {
+            return _repository.GetScheduleRepertoireDetails(scheduleId);
+        }
+
+        public void SaveScheduleRepertoire(int scheduleId, IEnumerable<int> musicIds)
+        {
+            _repository.SaveScheduleRepertoire(scheduleId, musicIds);
+        }
+
+        public SchedulesAssignmentsDetailsDto? GetSchedulesAssignmentsDetails(IEnumerable<int> scheduleIds)
+        {
+            if (scheduleIds == null) throw new ArgumentNullException(nameof(scheduleIds));
+            return _repository.GetSchedulesAssignmentsDetails(scheduleIds);
+        }
+
+        public void SaveAssignments(int scheduleId, ScheduleAssignmentsDto dto)
+        {
+            if (dto == null) throw new ArgumentNullException(nameof(dto));
+            // repository expects position -> userId mapping
+            _repository.SaveAssignments(scheduleId, dto.Assignments);
+        }
+
+        private async Task SendNotificationSafe(string phoneNumber, string name)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber)) return;
+            
+            await _whatsAppService.SendsScheduleNotificationAsync($"55{phoneNumber.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")}", name);
         }
     }
 }
