@@ -243,7 +243,6 @@ onMounted(async () => {
 <style lang="scss">
 .music-bg {
     position: absolute;
-    top: -10px;
     inset: 0;
     filter: brightness(0.6);
     

@@ -1,0 +1,56 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: worshiphub-mysql
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - worshiphub-network
+
+  worshiphub-api:
+    build:
+      context: ../back-end
+      dockerfile: WorshipApi/Dockerfile
+    container_name: worshiphub-api
+    restart: always
+    depends_on:
+      - mysql
+    env_file:
+      - .env
+    networks:
+      - worshiphub-network
+
+  frontend:
+    build:
+      context: ../front-end
+    container_name: worshiphub-frontend
+    restart: always
+    networks:
+      - worshiphub-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: worshiphub-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ../front-end/dist:/usr/share/nginx/html
+    depends_on:
+      - frontend
+      - worshiphub-api
+    networks:
+      - worshiphub-network
+
+volumes:
+  mysql_data:
+    external: true
+    name: worshiphub_mysql_data
+
+networks:
+  worshiphub-network:
