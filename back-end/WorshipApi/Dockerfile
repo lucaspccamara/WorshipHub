@@ -24,8 +24,7 @@ WORKDIR /src/WorshipApi
 
 # Publish otimizado
 RUN dotnet publish -c Release -o /app/publish \
-    /p:UseAppHost=false \
-    /p:PublishReadyToRun=true
+    /p:UseAppHost=false
 
 # =========================
 # RUNTIME STAGE
