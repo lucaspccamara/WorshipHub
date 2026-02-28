@@ -2,7 +2,7 @@
   <div class="login-container">
     <q-card class="login-card" :class="{ 'keyboard-open': isKeyboardOpen }">
       <q-card-section>
-        <div class="text-h6 text-center">Login Worship</div>
+        <div class="text-h6 text-center">Login</div>
   
         <q-input
           v-model="email"
