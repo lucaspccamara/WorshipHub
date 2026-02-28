@@ -1,0 +1,75 @@
+name: Deploy WorshipHub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # =========================
+      # LOGIN GHCR
+      # =========================
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # =========================
+      # BUILD E PUSH API
+      # =========================
+      - name: Build imagem API
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/worshiphub-api:latest \
+            -f back-end/WorshipApi/Dockerfile \
+            back-end
+
+      - name: Push imagem API
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/worshiphub-api:latest
+
+      # =========================
+      # BUILD FRONTEND
+      # =========================
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Frontend
+        working-directory: front-end
+        run: |
+          npm ci
+          npm run build
+
+      # =========================
+      # ENVIAR FRONTEND PARA VPS
+      # =========================
+      - name: Enviar frontend para VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "front-end/dist/*"
+          target: "/home/worship/apps/worshiphub/infra/frontend-dist"
+          strip_components: 2
+
+      # =========================
+      # ATUALIZAR CONTAINERS NA VPS
+      # =========================
+      - name: Deploy na VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/worship/apps/worshiphub/infra
+            docker compose pull
+            docker compose up -d --remove-orphans
