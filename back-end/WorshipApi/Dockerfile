@@ -25,7 +25,6 @@ WORKDIR /src/WorshipApi
 # Publish otimizado
 RUN dotnet publish -c Release -o /app/publish \
     /p:UseAppHost=false \
-    /p:PublishTrimmed=true \
     /p:PublishReadyToRun=true
 
 # =========================
