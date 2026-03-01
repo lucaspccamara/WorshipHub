@@ -35,6 +35,7 @@
                 v-for="music in currentPanel.musics"
                 :key="music.title"
                 class="q-pa-md q-mt-sm bg-grey-5 card-music"
+                @click="openMusicOverview(music)"
               >
                 <q-img class="music-bg" :src="music.imageUrl" fit="cover" />
                 <div class="overlay"></div>
@@ -60,6 +61,15 @@
       </q-tab-panel>
     </q-tab-panels>
   </div>
+
+  <q-dialog
+    v-model="dialogMusic"
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+  >
+    <MusicOverview :music="selectedMusic" />
+  </q-dialog>
 </template>
 
 <script setup>
@@ -67,11 +77,14 @@ import { computed, ref, onMounted } from 'vue';
 import { date as QuasarDate } from 'quasar';
 import api from '../api';
 import { PositionOptions } from '../constants/PositionOptions';
+import MusicOverview from './MusicOverview.vue'
 
 const filter = {};
 const date = ref('');
 let startDate = ref('');
 let endDate = ref('');
+const dialogMusic = ref(false)
+const selectedMusic = ref(null)
 
 const panels = ref([]);
 
@@ -116,6 +129,11 @@ function getCalendar() {
     selectNextDate();
   });
 };
+
+function openMusicOverview(music) {
+  selectedMusic.value = music
+  dialogMusic.value = true
+}
 
 onMounted(() => {
   setDefaultDates();
