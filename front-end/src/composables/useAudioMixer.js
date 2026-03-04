@@ -1,12 +1,22 @@
 import { ref } from 'vue'
 
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
 const AudioCtx = window.AudioContext || window.webkitAudioContext
-const audioContext = new AudioCtx()
+const audioContext = new AudioCtx({
+  sampleRate: isMobile ? 32000 : 44100
+})
 
 const tracks = ref([])
 const isPlaying = ref(false)
 const duration = ref(0)
 const currentTime = ref(0)
+
+const loadingStage = ref('Iniciando Engine de Áudio...')
+const isLoading = ref(false)
+const loaded = ref(0)
+const totalTracks = ref(0)
+const loadProgress = ref(0)
 
 let startTime = 0
 
@@ -21,37 +31,59 @@ export function useAudioMixer() {
 
     if (tracks.value.length) return
 
+    isLoading.value = true
+    loadProgress.value = 0
+
     const trackFiles = [
-      { name: 'Click', file: '/mock/01_Click Track.aac' },
-      { name: 'Guide', file: '/mock/02_Guide.aac' },
-      { name: 'Drums', file: '/mock/03_Drums.aac' },
-      { name: 'Bass', file: '/mock/04_Bass.aac' },
-      { name: 'AG', file: '/mock/05_AG.aac' },
-      { name: 'EG 1', file: '/mock/06_EG 1.aac' },
-      { name: 'EG 2', file: '/mock/07_EG 2.aac' },
-      { name: 'EG 3', file: '/mock/08_EG 3.aac' },
-      { name: 'EG 4', file: '/mock/09_EG 4.aac' },
-      { name: 'EG 5', file: '/mock/10_EG 5.aac' },
-      { name: 'EG 6', file: '/mock/11_EG 6.aac' },
-      { name: 'EG 7', file: '/mock/12_EG 7.aac' },
-      { name: 'Piano', file: '/mock/13_Piano.aac' },
-      { name: 'Keys 1', file: '/mock/14_Keys 1.aac' },
-      { name: 'Keys 2', file: '/mock/15_Keys 2.aac' },
-      { name: 'Keys 3', file: '/mock/16_Keys 3.aac' },
-      { name: 'Keys 4', file: '/mock/17_Keys 4.aac' },
-      { name: 'Synth Bass', file: '/mock/18_Synth Bass.aac' },
-      { name: 'Synth Loop', file: '/mock/19_Synth Loop.aac' }
+      { name: 'Click', url: '/mock/01_Click Track.aac' },
+      { name: 'Guide', url: '/mock/02_Guide.aac' },
+      { name: 'Drums', url: '/mock/03_Drums.aac' },
+      { name: 'Bass', url: '/mock/04_Bass.aac' },
+      { name: 'AG', url: '/mock/05_AG.aac' },
+      { name: 'EG 1', url: '/mock/06_EG 1.aac' },
+      { name: 'EG 2', url: '/mock/07_EG 2.aac' },
+      { name: 'EG 3', url: '/mock/08_EG 3.aac' },
+      { name: 'EG 4', url: '/mock/09_EG 4.aac' },
+      { name: 'EG 5', url: '/mock/10_EG 5.aac' },
+      { name: 'EG 6', url: '/mock/11_EG 6.aac' },
+      { name: 'EG 7', url: '/mock/12_EG 7.aac' },
+      { name: 'Piano', url: '/mock/13_Piano.aac' },
+      { name: 'Keys 1', url: '/mock/14_Keys 1.aac' },
+      { name: 'Keys 2', url: '/mock/15_Keys 2.aac' },
+      { name: 'Keys 3', url: '/mock/16_Keys 3.aac' },
+      { name: 'Keys 4', url: '/mock/17_Keys 4.aac' },
+      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac' },
+      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac' }
     ]
 
-    for (const t of trackFiles) {
+    loadingStage.value = 'Obtendo arquivos de áudio...'
+    totalTracks.value = trackFiles.length
+    loaded.value = 0
 
-      const response = await fetch(t.file)
-      const buffer = await audioContext.decodeAudioData(
-        await response.arrayBuffer()
-      )
+    const tasks = trackFiles.map((file, index) => {
+      return async () => {
+        loadingStage.value = 'Decodificando buffers de áudio...'
 
-      duration.value = buffer.duration
+        const response = await fetch(file.url)
+        const arrayBuffer = await response.arrayBuffer()
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
 
+        loaded.value++
+        loadProgress.value = Math.round((loaded.value / trackFiles.length) * 100)
+
+        return {
+          ...file,
+          buffer: audioBuffer
+        }
+      }
+    })
+
+    const concurrencyLimit = isMobile ? 4 : trackFiles.length
+
+    const loadedTracks = await runWithConcurrencyLimit(tasks, concurrencyLimit)
+
+    loadingStage.value = 'Carregando interface...'
+    loadedTracks.forEach(t => {
       const gain = audioContext.createGain()
       const panner = audioContext.createStereoPanner()
       const analyser = audioContext.createAnalyser()
@@ -65,7 +97,7 @@ export function useAudioMixer() {
 
       tracks.value.push({
         name: t.name,
-        buffer,
+        buffer: t.buffer,
         source: null,
         gain,
         panner,
@@ -75,7 +107,12 @@ export function useAudioMixer() {
         mute: false,
         solo: false
       })
-    }
+
+      duration.value = t.buffer.duration
+    })
+    loadingStage.value = 'Pronto!'
+
+    isLoading.value = false
   }
 
   function createSources(offset = 0) {
@@ -176,11 +213,35 @@ export function useAudioMixer() {
     track.panner.pan.value = value / 100
   }
 
+  async function runWithConcurrencyLimit(tasks, limit) {
+    const results = []
+    const executing = []
+
+    for (const task of tasks) {
+      const p = Promise.resolve().then(() => task())
+      results.push(p)
+
+      if (limit <= tasks.length) {
+        const e = p.then(() => executing.splice(executing.indexOf(e), 1))
+        executing.push(e)
+
+        if (executing.length >= limit) {
+          await Promise.race(executing)
+        }
+      }
+    }
+
+    return Promise.all(results)
+  }
+
   return {
     tracks,
     isPlaying,
     duration,
     currentTime,
+    loadingStage,
+    isLoading,
+    loadProgress,
     loadMockTracks,
     play,
     stop,

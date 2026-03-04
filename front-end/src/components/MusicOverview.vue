@@ -21,7 +21,7 @@
         <!-- <MusicDetails /> -->
       </q-tab-panel>
 
-      <q-tab-panel name="mixer">
+      <q-tab-panel name="mixer" class="q-pa-none">
         <MixerVS />
       </q-tab-panel>
 

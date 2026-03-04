@@ -1,69 +1,94 @@
 <template>
-  <div class="mixer">
-    <div v-for="track in tracks" :key="track.name" class="channel">
+  <div class="mixer-wrapper">
 
-      <!-- DISPLAY -->
-      <div class="db-display">
-        {{ track.db.toFixed(1) }}
+    <transition name="fade">
+      <div v-if="isLoading" class="loading-screen">
+        <div class="loading-content">
+
+          <h1 class="project-title">WorshipHub Mixer</h1>
+          <p class="loading-stage">{{ loadingStage }}</p>
+
+          <div class="progress-track">
+            <div 
+              class="progress-bar"
+              :style="{ width: loadProgress + '%' }"
+            />
+          </div>
+
+          <div class="progress-text">
+            {{ loadProgress }}%
+          </div>
+
+        </div>
       </div>
+    </transition>
 
-      <!-- FADER + METER SIDE BY SIDE -->
-      <div class="strip">
-
-        <!-- SCALE -->
-        <div class="scale">
-          <div v-for="mark in dbMarks" :key="mark">
-            {{ mark }}
+    <transition name="fade">
+      <div v-if="!isLoading" class="mixer-screen">
+        <div v-for="track in tracks" :key="track.name" class="channel">
+    
+          <!-- DISPLAY -->
+          <div class="db-display">
+            {{ track.db.toFixed(1) }}
+          </div>
+    
+          <!-- FADER + METER SIDE BY SIDE -->
+          <div class="strip">
+    
+            <!-- SCALE -->
+            <div class="scale">
+              <div v-for="mark in dbMarks" :key="mark">
+                {{ mark }}
+              </div>
+            </div>
+    
+            <!-- FADER -->
+            <q-slider
+              vertical
+              reverse
+              :min="-60"
+              :max="6"
+              :step="0.1"
+              v-model="track.db"
+              @update:model-value="val => setDb(track, val)"
+              class="fader"
+            />
+    
+            <!-- METER -->
+            <div class="meter">
+              <MeterCanvas :analyser="track.analyser" />
+            </div>
+    
+          </div>
+    
+          <!-- PAN -->
+          <!-- <q-knob
+            size="60px"
+            :min="-100"
+            :max="100"
+            v-model="track.pan"
+            @update:model-value="val => setPan(track, val)"
+            color="grey-5"
+          /> -->
+    
+          <!-- CHANNEL NAME -->
+          <div class="btn channel-name" :class="{ active: !track.mute }" @click="toggleMute(track)">
+            {{ track.name }}
+          </div>
+    
+          <!-- BUTTONS -->
+          <div class="buttons">
+            <div
+              class="btn"
+              :class="{ active: track.solo }"
+              @click="toggleSolo(track)"
+            >
+              S
+            </div>
           </div>
         </div>
-
-        <!-- FADER -->
-        <q-slider
-          vertical
-          reverse
-          :min="-60"
-          :max="6"
-          :step="0.1"
-          v-model="track.db"
-          @update:model-value="val => setDb(track, val)"
-          class="fader"
-        />
-
-        <!-- METER -->
-        <div class="meter">
-          <MeterCanvas :analyser="track.analyser" />
-        </div>
-
       </div>
-
-      <!-- PAN -->
-      <!-- <q-knob
-        size="60px"
-        :min="-100"
-        :max="100"
-        v-model="track.pan"
-        @update:model-value="val => setPan(track, val)"
-        color="grey-5"
-      /> -->
-
-      <!-- CHANNEL NAME -->
-      <div class="btn channel-name" :class="{ active: !track.mute }" @click="toggleMute(track)">
-        {{ track.name }}
-      </div>
-
-      <!-- BUTTONS -->
-      <div class="buttons">
-        <div
-          class="btn"
-          :class="{ active: track.solo }"
-          @click="toggleSolo(track)"
-        >
-          S
-        </div>
-      </div>
-
-    </div>
-
+    </transition>
   </div>
 </template>
 
@@ -74,6 +99,9 @@ import MeterCanvas from './MeterCanvas.vue'
 
 const {
   tracks,
+  isLoading,
+  loadingStage,
+  loadProgress,
   loadMockTracks,
   setDb,
   toggleMute,
@@ -88,14 +116,82 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mixer {
-  max-width: 97vw;
+.mixer-wrapper {
+  position: relative;
+  height: 100%;
+  background: #2c2c2c;
+  color: #eee;
+  overflow: hidden;
+}
+
+/* Fade suave */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Loading Screen */
+.loading-screen {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-self: center;
+  align-items: center;
+  justify-content: center;
+  background: #2c2c2c;;
+}
+
+.loading-content {
+  width: 340px;
+  text-align: center;
+}
+
+.project-title {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.loading-stage {
+  font-size: 13px;
+  opacity: 0.6;
+  margin-bottom: 24px;
+}
+
+.progress-track {
+  height: 4px;
+  background: #1b1b22;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff88, #00ccff);
+  transition: width 0.2s ease;
+}
+
+.progress-text {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Mixer Screen */
+.mixer-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: auto;
   gap: 6px;
   padding: 20px;
-  background: #2c2c2c;
-  overflow-x: auto;
+  background: #2c2c2c;;
 }
 
 .channel {
