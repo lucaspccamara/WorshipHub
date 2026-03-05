@@ -35,7 +35,7 @@
                 v-for="music in currentPanel.musics"
                 :key="music.title"
                 class="q-pa-md q-mt-sm bg-grey-5 card-music"
-                @click="openMusicOverview(music)"
+                @click="openMusicOverview(music.id)"
               >
                 <q-img class="music-bg" :src="music.imageUrl" fit="cover" />
                 <div class="overlay"></div>
@@ -68,7 +68,7 @@
     transition-show="slide-up"
     transition-hide="slide-down"
   >
-    <MusicOverview :music="selectedMusic" />
+    <MusicOverview :musicId="selectedMusic" />
   </q-dialog>
 </template>
 

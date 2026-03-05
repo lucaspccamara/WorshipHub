@@ -73,7 +73,7 @@
       @request="onRequest"
     >
       <template v-slot:body="props">
-        <q-tr :props="props">
+        <q-tr :props="props" @click="openMusicOverview(props.row.id)" class="cursor-pointer">
           <q-td key="title">{{ props.row.title }}</q-td>
           <q-td key="artist">{{ props.row.artist }}</q-td>
           <q-td key="album">{{ props.row.album }}</q-td>
@@ -88,6 +88,15 @@
   <q-dialog v-model="dialogManageMusic" maximized transition-show="slide-up" transition-hide="slide-down">
     <ManageMusic :musicId="selectedMusic" @updateMusicList="getMusics" @closeDialog="dialogManageMusic = false" />
   </q-dialog>
+
+  <q-dialog
+    v-model="dialogMusic"
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+  >
+    <MusicOverview :music="selectedMusic" />
+  </q-dialog>
 </template>
 
 <script setup>
@@ -95,6 +104,7 @@ import { ref, onMounted, computed } from 'vue';
 import api from "../api";
 import { ApiFilter, ApiPagination } from '../entities/ApiUtils';
 import ManageMusic from '../components/ManageMusic.vue';
+import MusicOverview from '../components/MusicOverview.vue';
 import { Role } from '../constants/Role';
 import { useAuthStore } from "../stores/authStore";
 
@@ -105,6 +115,7 @@ const title = ref('');
 const artist = ref('');
 const album = ref('');
 const dialogManageMusic = ref(false);
+const dialogMusic = ref(false);
 const selectedMusic = ref(null);
 
 const filter = ApiFilter;
@@ -152,6 +163,11 @@ const editMusic = (musicId) => {
   selectedMusic.value = musicId;
   dialogManageMusic.value = true;
 };
+
+function openMusicOverview(musicId) {
+  selectedMusic.value = musicId
+  dialogMusic.value = true
+}
 
 onMounted(() => {
   getMusics();
