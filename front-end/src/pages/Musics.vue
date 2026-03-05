@@ -1,7 +1,7 @@
 <template>
   <div class="card-header">
     <span class="text-h6 header-label">Músicas</span>
-    <q-btn class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="editMusic(0)">
+    <q-btn v-if="hasRole" class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="editMusic(0)">
       Cadastrar
     </q-btn>
   </div>

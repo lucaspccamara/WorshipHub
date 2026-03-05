@@ -2,6 +2,7 @@
   <div class="card-header">
     <span class="text-h6 header-label">Escalas</span>
     <q-btn
+      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader])"
       class="float-right left-icon"
       label="Cadastrar"
       icon="fa fa-square-plus"
@@ -10,7 +11,7 @@
       @click="openDialogCreateSchedule"
     />
     <q-btn
-      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.Criado"
+      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.Criado"
       class="float-right q-mr-md"
       label="Iniciar Coleta"
       icon="fa fa-list-check"
@@ -21,7 +22,7 @@
     />
 
     <q-btn
-      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
       class="float-right q-mr-md"
       label="Solicitar Repertório"
       icon="fa fa-paper-plane"
@@ -31,7 +32,7 @@
       :disable="selectedRows.length===0"
     />
     <q-btn
-      v-if="selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
       class="float-right q-mr-md"
       label="Escalar Membros"
       icon="fa fa-people-group"
@@ -175,8 +176,12 @@ import ManageSchedule from '../components/ManageSchedule.vue';
 import { ApiFilter, ApiPagination } from '../entities/ApiUtils';
 import { EventTypes } from '../constants/EventTypes';
 import { ScheduleStatus, EScheduleStatus } from '../constants/ScheduleStatus';
-import ManageSchedulePosition from '../components/ManageSchedulePosition.vue'
-import ManageScheduleRepertoire from '../components/ManageScheduleRepertoire.vue'
+import ManageSchedulePosition from '../components/ManageSchedulePosition.vue';
+import ManageScheduleRepertoire from '../components/ManageScheduleRepertoire.vue';
+import { Role } from '../constants/Role';
+import { useAuthStore } from '../stores/authStore';
+
+const authStore = useAuthStore();
 
 const dialogCreateSchedule = ref(false);
 const dialogManageSchedule = ref(false);
