@@ -15,7 +15,8 @@ namespace WorshipInfra.Repository
             const string Sql = @"
                 SELECT password
                 FROM users
-                WHERE email = @Email;";
+                WHERE email = @Email
+                AND status = 1;";
 
             return _dbConnection.QuerySingle<string>(Sql, new { Email = email});
         }
