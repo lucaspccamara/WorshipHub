@@ -73,10 +73,10 @@
       @request="onRequest"
     >
       <template v-slot:body="props">
-        <q-tr :props="props" @click="openMusicOverview(props.row.id)" class="cursor-pointer">
-          <q-td key="title">{{ props.row.title }}</q-td>
-          <q-td key="artist">{{ props.row.artist }}</q-td>
-          <q-td key="album">{{ props.row.album }}</q-td>
+        <q-tr :props="props">
+          <q-td key="title" @click="openMusicOverview(props.row.id)" class="cursor-pointer">{{ props.row.title }}</q-td>
+          <q-td key="artist" @click="openMusicOverview(props.row.id)" class="cursor-pointer">{{ props.row.artist }}</q-td>
+          <q-td key="album" @click="openMusicOverview(props.row.id)" class="cursor-pointer">{{ props.row.album }}</q-td>
           <q-td key="actions" v-if="hasRole">
             <q-btn dense flat icon="fa fa-edit" @click="editMusic(props.row.id)" />
           </q-td>
