@@ -12,19 +12,45 @@
       <q-tab-panel class="q-pa-none" :name="date">
         <template v-if="currentPanel">
           <!-- ESCALA -->
-          <q-card class="row bg-grey-5">
-            <q-item v-for="position in currentPanel.positions" :key="position.positionId"
-              :class="position.highlight ? 'role-highlight col-xs-6 col-md-3 q-pa-md' : 'col-xs-6 col-md-3 q-pa-md'"
-            >
-              <q-item-section avatar>
-                <q-avatar color="primary" icon="fa-solid fa-user" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ PositionOptions.find(p => p.value == position.positionId).label }}</q-item-label>
-                <q-item-label caption>{{ position.member }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-card>
+          <div v-if="currentPanel.positions.filter(p => p.positionId < 50).length > 0">
+            <p class="text-h6 q-mt-md q-mb-none">Louvor</p>
+            <q-card class="row bg-grey-5">
+              <q-item v-for="position in currentPanel.positions.filter(p => p.positionId < 50)" :key="position.positionId"
+                :class="position.highlight ? 'role-highlight col-xs-6 col-md-3 q-pa-md' : 'col-xs-6 col-md-3 q-pa-md'"
+              >
+                <q-item-section avatar>
+                  <q-avatar v-if="position.avatarUrl" color="primary">
+                    <q-img :src="position.avatarUrl" />
+                  </q-avatar>
+                  <q-avatar v-else color="primary" icon="fa-solid fa-user" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ PositionOptions.find(p => p.value == position.positionId).label }}</q-item-label>
+                  <q-item-label caption>{{ position.member }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-card>
+          </div>
+
+          <div v-if="currentPanel.positions.filter(p => p.positionId >= 50).length > 0" class="q-mt-md">
+            <p class="text-h6 q-mt-md q-mb-none">Produção</p>
+            <q-card class="row bg-grey-5">
+              <q-item v-for="position in currentPanel.positions.filter(p => p.positionId >= 50)" :key="position.positionId"
+                :class="position.highlight ? 'role-highlight col-xs-6 col-md-3 q-pa-md' : 'col-xs-6 col-md-3 q-pa-md'"
+              >
+                <q-item-section avatar>
+                  <q-avatar v-if="position.avatarUrl" color="primary">
+                    <q-img :src="position.avatarUrl" />
+                  </q-avatar>
+                  <q-avatar v-else color="primary" icon="fa-solid fa-user" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ PositionOptions.find(p => p.value == position.positionId).label }}</q-item-label>
+                  <q-item-label caption>{{ position.member }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-card>
+          </div>
 
           <!-- MÚSICAS -->
           <div class="text-h6 q-mt-md">Músicas</div>

@@ -37,11 +37,11 @@ namespace WorshipInfra.Repository
 
                 // load assignments (positions -> user)
                 const string assignSql = @"
-                    SELECT su.position, u.id AS user_id, u.name
+                    SELECT su.position, u.id AS user_id, u.name, u.avatar_url
                     FROM schedules_users su
                     LEFT JOIN users u ON u.id = su.user_id
                     WHERE su.schedule_id = @ScheduleId;";
-                var assigns = _dbConnection.Query(assignSql, new { ScheduleId = (int)s.id }).Select(a => ((int)a.position, (int)a.user_id, (string)a.name)).ToList();
+                var assigns = _dbConnection.Query(assignSql, new { ScheduleId = (int)s.id }).Select(a => ((int)a.position, (int)a.user_id, (string)a.name, (string)a.avatar_url)).ToList();
 
                 // build positions list
                 foreach (var assign in assigns)
@@ -50,6 +50,7 @@ namespace WorshipInfra.Repository
                     {
                         PositionId = assign.Item1,
                         Member = assign.Item3,
+                        AvatarUrl = assign.Item4,
                         Highlight = assign.Item2 == userId ? true : false
                     });
                 }

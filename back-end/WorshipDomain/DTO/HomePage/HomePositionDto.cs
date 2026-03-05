@@ -4,6 +4,7 @@
     {
         public int PositionId { get; set; }
         public string? Member { get; set; }
+        public string AvatarUrl { get; set; }
         public bool Highlight { get; set; }
     }
 }
