@@ -78,6 +78,7 @@ const route = useRoute();
 const showMenu = computed(() => route.path !== "/login" && route.path !== "/request-password-reset-code" && route.path !== "/verify-reset-code" && route.path !== "/reset-password");
 
 const menuItems = [
+  { label: "Home", route: "/", icon: "fa-solid fa-house", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
   { label: "Escalas", route: "/schedules", icon: "fa-solid fa-calendar", roles: [Role.Admin, Role.Leader, Role.Minister] },
   { label: "Disponibilidades", route: "/availabilities", icon: "fa-solid fa-thumbs-up", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
   { label: "Músicas", route: "/musics", icon: "fa-solid fa-music", roles: [Role.Admin, Role.Leader, Role.Member, Role.Minister] },
