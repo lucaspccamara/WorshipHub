@@ -15,7 +15,7 @@ namespace WorshipInfra.Repository
         {
             const string sql = @"
                 SELECT sa.id,
-                       s.date as Date,
+                       DATE_FORMAT(s.date, '%d/%m/%Y') as Date,
                        s.event_type as EventType,
                        sa.available as Available,
                        s.id as ScheduleId
