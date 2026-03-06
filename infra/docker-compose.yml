@@ -37,6 +37,7 @@ services:
       - ./frontend-dist:/usr/share/nginx/html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - /var/www/certbot:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt
     depends_on:
       - worshiphub-api
     networks:
