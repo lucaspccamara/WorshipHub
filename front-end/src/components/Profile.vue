@@ -72,18 +72,32 @@
 
         <div class="col-12" v-if="isSupported">
           <div class="text-subtitle1 q-mb-sm">Notificações do Dispositivo</div>
-          <q-banner :class="permissionGranted ? 'bg-positive text-white' : 'bg-grey-3 text-black'" rounded>
+          <q-banner :class="permissionGranted ? 'bg-positive text-white' : 'bg-grey-2 text-black'" rounded>
             <template v-slot:avatar>
               <q-icon name="fa-solid fa-bell-ring" :color="permissionGranted ? 'white' : 'primary'" />
             </template>
-            <div>Notificações</div>
-            <div class="text-subtitle2" v-if="!permissionGranted">
-              Mantenha-se informado sobre convites e repertórios ativando notificações.
+            <div>Notificações Push</div>
+            <div class="text-caption" v-if="!permissionGranted">
+              Mantenha-se informado sobre convites e escalas ativando as notificações.
+            </div>
+            <div class="text-caption" v-else>
+              As notificações estão ativas para este dispositivo!
             </div>
             
             <template v-slot:action v-if="!permissionGranted">
-              <q-btn flat label="Ativar Notificações" class="bg-primary text-white" @click="requestPermission" />
+              <q-btn flat dense label="Ativar Notificações" class="bg-primary text-white q-px-md" @click="requestPermission" />
             </template>
+          </q-banner>
+        </div>
+        <div class="col-12" v-else>
+          <q-banner class="bg-warning text-black" rounded>
+            <template v-slot:avatar>
+              <q-icon name="fa-solid fa-circle-info" color="black" />
+            </template>
+            <div class="text-subtitle2">Push não habilitado</div>
+            <div class="text-caption">
+              Para ativar notificações no celular (iOS/Android), você deve primeiro <strong>instalar o App</strong> (Adicionar à Tela Inicial) e abri-lo pelo ícone gerado.
+            </div>
           </q-banner>
         </div>
         <div class="col-12">

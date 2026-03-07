@@ -31,6 +31,16 @@ namespace WorshipApplication.Services
                 Data = new Dictionary<string, string>()
                 {
                     { "url", url }
+                },
+                Webpush = new WebpushConfig()
+                {
+                    Notification = new WebpushNotification()
+                    {
+                        Icon = "/pwa-192x192.png",
+                        Badge = "/vite.svg",
+                        Tag = "worship-push",
+                        Renotify = true
+                    }
                 }
             };
 
