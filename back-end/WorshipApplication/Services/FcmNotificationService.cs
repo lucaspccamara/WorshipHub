@@ -44,8 +44,6 @@ namespace WorshipApplication.Services
                 }
             };
 
-            _logger.LogInformation("Enviando Push para o token iniciado em: {TokenPrefix}...", fcmToken.Substring(0, Math.Min(10, fcmToken.Length)));
-
             try
             {
                 if (FirebaseMessaging.DefaultInstance == null)
@@ -55,8 +53,7 @@ namespace WorshipApplication.Services
                 }
 
                 // Dispara o Push pro Firebase
-                string response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
-                _logger.LogInformation("FCM Push enviado com sucesso. Firebase message ID: {Id}", response);
+                await FirebaseMessaging.DefaultInstance.SendAsync(message);
             }
             catch (Exception ex)
             {

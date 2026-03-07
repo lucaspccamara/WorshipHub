@@ -73,8 +73,6 @@ export function useNotifications() {
 
     // Listener para mensagens em PRIMEIRO PLANO (aba aberta e ativa)
     onMessage(messaging, (payload) => {
-        console.log('[useNotifications] Mensagem em foreground recebida:', payload);
-
         const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
         const body = payload.notification?.body || payload.data?.body || '';
 

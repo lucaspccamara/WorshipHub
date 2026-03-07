@@ -6,15 +6,11 @@ import { firebaseConfig } from "./firebase-config";
 // O VitePWA injetará o manifesto de precache aqui
 precacheAndRoute(self.__WB_MANIFEST);
 
-console.log('[SW] Firebase Config:', firebaseConfig);
-
 const firebaseApp = initializeApp(firebaseConfig);
 
 const messaging = getMessaging(firebaseApp);
 
 onBackgroundMessage(messaging, (payload) => {
-    console.log('[SW] Mensagem em BACKGROUND recebida:', payload);
-
     // Tenta extrair do payload do Firebase (estrutura pode variar se vier 'notification' ou só 'data')
     const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
     const body = payload.notification?.body || payload.data?.body || 'Nova atualização no painel.';
@@ -27,7 +23,6 @@ onBackgroundMessage(messaging, (payload) => {
         data: { url: payload.data?.url || '/' }
     };
 
-    console.log('[SW] Disparando showNotification:', title, notificationOptions);
     self.registration.showNotification(title, notificationOptions);
 });
 
