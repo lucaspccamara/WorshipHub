@@ -349,33 +349,33 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             _dbConnection.Execute(sql, new { Status = newStatus, Ids = scheduleIds.ToArray() });
         }
 
-        public List<(int Id, string PhoneNumber, string Name)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus)
+        public List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus)
         {
             const string sql = @"
-                SELECT DISTINCT u.id, u.phone_number, u.name
+                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token
                 FROM schedules_users su
                 JOIN users u ON u.id = su.user_id
                 WHERE su.schedule_id IN @Ids;";
 
             var rows = _dbConnection.Query(sql, new { Ids = scheduleIds.ToArray() }).ToList();
-            var list = rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name)).ToList();
+            var list = rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
             if (list.Count > 0) return list;
 
-            const string allSql = @"SELECT id, phone_number, name FROM users WHERE status = 1;";
-            var all = _dbConnection.Query(allSql).Select(r => ((int)r.id, (string)r.phone_number, (string)r.name)).ToList();
+            const string allSql = @"SELECT id, phone_number, name, fcm_token FROM users WHERE status = 1;";
+            var all = _dbConnection.Query(allSql).Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
             return all;
         }
 
-        public List<(int Id, string PhoneNumber, string Name)> GetAssignedUsers(int scheduleId)
+        public List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetAssignedUsers(int scheduleId)
         {
             const string sql = @"
-                SELECT DISTINCT u.id, u.phone_number, u.name
+                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token
                 FROM schedules_users su
                 JOIN users u ON u.id = su.user_id
                 WHERE su.schedule_id = @ScheduleId;";
 
             var rows = _dbConnection.Query(sql, new { ScheduleId = scheduleId }).ToList();
-            return rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name)).ToList();
+            return rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
         }
     }
 }

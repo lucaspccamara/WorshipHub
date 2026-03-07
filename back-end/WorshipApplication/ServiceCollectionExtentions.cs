@@ -14,6 +14,7 @@ namespace WorshipApplication
             services.AddScoped<ScheduleService>();
             services.AddScoped<UserService>();
             services.AddScoped<WhatsAppService>();
+            services.AddScoped<FcmNotificationService>();
 
             return services;
         }

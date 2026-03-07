@@ -15,18 +15,21 @@ namespace WorshipApplication.Services
         private readonly IMusicRepository _musicRepo;
         private readonly IScheduleAvailabilitiesRepository _scheduleAvailabilitiesRepository;
         private readonly WhatsAppService _whatsAppService;
+        private readonly FcmNotificationService _fcmNotificationService;
 
         public ScheduleService(
             IScheduleRepository repository,
             IUserRepository userRepo,
             IMusicRepository musicRepo,
             IScheduleAvailabilitiesRepository scheduleAvailabilitiesRepository,
-            WhatsAppService whatsAppService) : base(repository)
+            WhatsAppService whatsAppService,
+            FcmNotificationService fcmNotificationService) : base(repository)
         {
             _userRepo = userRepo;
             _musicRepo = musicRepo;
             _scheduleAvailabilitiesRepository = scheduleAvailabilitiesRepository;
             _whatsAppService = whatsAppService;
+            _fcmNotificationService = fcmNotificationService;
         }
 
         public Result<string> CreateSchedule(IEnumerable<ScheduleCreationDTO> schedulesCreationDTO)
@@ -144,7 +147,7 @@ namespace WorshipApplication.Services
                 });
             }
 
-            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name)).ToArray();
+            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name, u.FcmToken)).ToArray();
             await Task.WhenAll(tasks);
         }
 
@@ -152,7 +155,7 @@ namespace WorshipApplication.Services
         {
             var users = _repository.GetAssignedUsers(scheduleId);
             var message = $"O repertório da escala {scheduleId} foi liberado.";
-            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name)).ToArray();
+            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name, u.FcmToken)).ToArray();
             await Task.WhenAll(tasks);
         }
 
@@ -179,11 +182,27 @@ namespace WorshipApplication.Services
             _repository.SaveAssignments(scheduleId, dto.Assignments);
         }
 
-        private async Task SendNotificationSafe(string phoneNumber, string name)
+        private async Task SendNotificationSafe(string phoneNumber, string name, string fcmToken)
         {
-            if (string.IsNullOrWhiteSpace(phoneNumber)) return;
-            
-            await _whatsAppService.SendsScheduleNotificationAsync($"55{phoneNumber.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")}", name);
+            var tasks = new List<Task>();
+
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                tasks.Add(_whatsAppService.SendsScheduleNotificationAsync($"55{phoneNumber.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")}", name));
+            }
+
+            if (!string.IsNullOrWhiteSpace(fcmToken))
+            {
+                // Dispara o PWA Push (Mobile/Desktop Web)
+                tasks.Add(_fcmNotificationService.SendNotificationAsync(
+                    fcmToken,
+                    "WorshipHub: Nova Escala",
+                    $"Olá {name}, uma nova escala requer sua atenção!",
+                    "/"
+                ));
+            }
+
+            await Task.WhenAll(tasks);
         }
     }
 }

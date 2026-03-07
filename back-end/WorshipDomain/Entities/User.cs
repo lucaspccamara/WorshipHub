@@ -35,5 +35,8 @@ namespace WorshipDomain.Entities
 
         [Column("reset_password_token_code")]
         public string ResetPasswordTokenCode { get; set; }
+        
+        [Column("fcm_token")]
+        public string FcmToken { get; set; }
     }
 }

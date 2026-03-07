@@ -398,3 +398,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Ocultando credenciais do Firebase (Evitando vazamento de chaves privadas)
+firebase-service-account.json

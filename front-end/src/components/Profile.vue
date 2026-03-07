@@ -69,6 +69,23 @@
             </template>
           </q-select>
         </div>
+
+        <div class="col-12" v-if="isSupported">
+          <div class="text-subtitle1 q-mb-sm">Notificações do Dispositivo</div>
+          <q-banner :class="permissionGranted ? 'bg-positive text-white' : 'bg-grey-3 text-black'" rounded>
+            <template v-slot:avatar>
+              <q-icon name="notifications" :color="permissionGranted ? 'white' : 'primary'" />
+            </template>
+            <div>Notificações</div>
+            <div class="text-subtitle2" v-if="!permissionGranted">
+              Mantenha-se informado sobre convites e repertórios ativando notificações.
+            </div>
+            
+            <template v-slot:action v-if="!permissionGranted">
+              <q-btn flat label="Ativar Notificações" class="bg-primary text-white" @click="requestPermission" />
+            </template>
+          </q-banner>
+        </div>
         <div class="col-12">
           <div class="text-subtitle1 q-mb-sm">Escolha seu Avatar</div>
           <div class="row q-col-gutter-sm">
@@ -130,6 +147,9 @@ import { RoleOptions } from '../constants/RoleOptions';
 import { PositionOptions } from '../constants/PositionOptions';
 import ChangePassword from './ChangePassword.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useNotifications } from '../composables/useNotifications';
+
+const { isSupported, permissionGranted, requestPermission, syncToken } = useNotifications();
 
 const authStore = useAuthStore();
 
@@ -222,6 +242,12 @@ async function submitForm() {
 
 onMounted(async () => {
   loadUserProfile();
+  
+  // Se a permissão já foi concedida (ex: o usuário ativou manualmente no 
+  // ícone do cadeado do Chrome), garantimos que o token está atualizado.
+  if (isSupported.value && permissionGranted.value) {
+    syncToken();
+  }
 })
 </script>
 

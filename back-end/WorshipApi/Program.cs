@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using System.Threading.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -54,6 +56,20 @@ builder.Services.AddSwaggerGen(options =>
 // Dependency Injection
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
+
+// Inicializar Google Firebase Admin SDK para envio de Push Notifications FCM
+var firebaseCredentialsPath = Path.Combine(builder.Environment.ContentRootPath, "firebase-service-account.json");
+if (System.IO.File.Exists(firebaseCredentialsPath))
+{
+    FirebaseApp.Create(new AppOptions()
+    {
+        Credential = GoogleCredential.FromFile(firebaseCredentialsPath)
+    });
+}
+else
+{
+    Console.WriteLine("Aviso: Aquivo firebase-service-account.json não encontrado. FCM Push Notifications estarão desativadas no servidor.");
+}
 
 // Instantiate RSA once and keep it alive
 var rsa = RSA.Create();
