@@ -13,13 +13,11 @@ namespace WorshipApplication.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly RsaSecurityKey _rsaSecurityKey;
-        private readonly WhatsAppService _whatsAppService;
 
-        public AuthService(IAuthRepository repository, IUserRepository userRepository, RsaSecurityKey rsaSecurityKey, WhatsAppService whatsAppService) : base(repository)
+        public AuthService(IAuthRepository repository, IUserRepository userRepository, RsaSecurityKey rsaSecurityKey) : base(repository)
         {
             _userRepository = userRepository;
             _rsaSecurityKey = rsaSecurityKey;
-            _whatsAppService = whatsAppService;
         }
 
         public string AuthenticateUser(string email, string password)
@@ -85,8 +83,7 @@ namespace WorshipApplication.Services
             user.ResetPasswordTokenCode = tokenHandler.WriteToken(token);
             _userRepository.Update(user);
 
-            // Enviando o código via WhatsApp Api
-            await _whatsAppService.SendVerificationCodeAsync($"55{user.PhoneNumber.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")}", code);
+            // TODO: Enviar código por email
             Console.WriteLine($"Código de verificação: {code}");
         }
 
