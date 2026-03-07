@@ -48,6 +48,12 @@ namespace WorshipApplication.Services
 
             try
             {
+                if (FirebaseMessaging.DefaultInstance == null)
+                {
+                    _logger.LogError("Falha ao disparar Push: Firebase Messaging não foi inicializado (DefaultInstance é nulo). Verifique se o arquivo firebase-service-account.json está presente e acessível.");
+                    return;
+                }
+
                 // Dispara o Push pro Firebase
                 string response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
                 _logger.LogInformation("FCM Push enviado com sucesso. Firebase message ID: {Id}", response);

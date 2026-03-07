@@ -25,6 +25,8 @@ services:
     mem_limit: 400m
     networks:
       - worshiphub-network
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
 
   nginx:
     image: nginx:alpine
