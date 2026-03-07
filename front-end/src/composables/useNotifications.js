@@ -1,5 +1,6 @@
 import { ref } from 'vue';
-import { getToken } from 'firebase/messaging';
+import { getToken, onMessage } from 'firebase/messaging';
+import { useRouter } from 'vue-router';
 import { messaging } from '../firebase';
 import api from '../api';
 import { Notify } from 'quasar';
@@ -9,6 +10,7 @@ import { Notify } from 'quasar';
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 export function useNotifications() {
+    const router = useRouter();
     const isSupported = ref(false);
     const permissionGranted = ref(false);
 
@@ -69,10 +71,23 @@ export function useNotifications() {
         }
     };
 
-    // Sincroniza automaticamente se já houver permissão ao carregar o composable
-    if (isSupported.value && permissionGranted.value) {
-        syncToken();
-    }
+    // Listener para mensagens em PRIMEIRO PLANO (aba aberta e ativa)
+    onMessage(messaging, (payload) => {
+        console.log('[useNotifications] Mensagem em foreground recebida:', payload);
+
+        const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
+        const body = payload.notification?.body || payload.data?.body || '';
+
+        // Em foreground, geralmente mostramos um Notify interno ou forçamos a Notificação de sistema
+        Notify.create({
+            type: 'info',
+            message: `<strong>${title}</strong><br>${body}`,
+            html: true,
+            position: 'top',
+            timeout: 5000,
+            actions: [{ label: 'Ver', color: 'white', handler: () => { router.push(payload.data?.url || '/') } }]
+        });
+    });
 
     const saveTokenToBackend = async (token) => {
         try {
@@ -82,6 +97,12 @@ export function useNotifications() {
             console.error('Falha ao espelhar FCM token para API', err);
             Notify.create({ type: 'negative', message: 'Não foi possível vincular seu dispositivo com sua conta.' });
         }
+    };
+
+    // Sincroniza automaticamente se já houver permissão ao carregar o composable
+    // Usamos um delay ou navigator.serviceWorker.ready para garantir que o worker subiu antes
+    if (typeof window !== 'undefined' && isSupported.value && permissionGranted.value) {
+        navigator.serviceWorker.ready.then(reg => syncToken(reg));
     };
 
     return {

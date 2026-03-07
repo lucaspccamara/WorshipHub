@@ -242,12 +242,6 @@ async function submitForm() {
 
 onMounted(async () => {
   loadUserProfile();
-  
-  // Se a permissão já foi concedida (ex: o usuário ativou manualmente no 
-  // ícone do cadeado do Chrome), garantimos que o token está atualizado.
-  if (isSupported.value && permissionGranted.value) {
-    syncToken();
-  }
 })
 </script>
 
