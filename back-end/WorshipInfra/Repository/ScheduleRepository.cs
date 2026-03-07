@@ -349,33 +349,33 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             _dbConnection.Execute(sql, new { Status = newStatus, Ids = scheduleIds.ToArray() });
         }
 
-        public List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus)
+        public List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus)
         {
             const string sql = @"
-                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token
+                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token, su.position
                 FROM schedules_users su
                 JOIN users u ON u.id = su.user_id
                 WHERE su.schedule_id IN @Ids;";
 
             var rows = _dbConnection.Query(sql, new { Ids = scheduleIds.ToArray() }).ToList();
-            var list = rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
+            var list = rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token, (int?)r.position)).ToList();
             if (list.Count > 0) return list;
 
-            const string allSql = @"SELECT id, phone_number, name, fcm_token FROM users WHERE status = 1;";
-            var all = _dbConnection.Query(allSql).Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
+            const string allSql = @"SELECT id, phone_number, name, fcm_token, NULL as position FROM users WHERE status = 1;";
+            var all = _dbConnection.Query(allSql).Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token, (int?)null)).ToList();
             return all;
         }
 
-        public List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetAssignedUsers(int scheduleId)
+        public List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetAssignedUsers(int scheduleId)
         {
             const string sql = @"
-                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token
+                SELECT DISTINCT u.id, u.phone_number, u.name, u.fcm_token, su.position
                 FROM schedules_users su
                 JOIN users u ON u.id = su.user_id
                 WHERE su.schedule_id = @ScheduleId;";
 
             var rows = _dbConnection.Query(sql, new { ScheduleId = scheduleId }).ToList();
-            return rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token)).ToList();
+            return rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token, (int?)r.position)).ToList();
         }
     }
 }

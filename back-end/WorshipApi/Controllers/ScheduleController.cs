@@ -63,23 +63,18 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost("transition")]
-        public ActionResult Transition(
+        public async Task<ActionResult> Transition(
             [FromServices] ScheduleService _scheduleService,
             [FromBody] TransitionDto dto)
         {
             if (dto == null || dto.ScheduleIds == null || dto.ScheduleIds.Count == 0) return BadRequest();
             try
             {
-                _scheduleService.TransitionSchedules(dto.ScheduleIds, dto.NewStatus);
+                await _scheduleService.TransitionSchedulesAsync(dto.ScheduleIds, dto.NewStatus);
 
-                if (dto.NewStatus == ScheduleStatus.CollectingAvailability.GetHashCode())
+                if (dto.NewStatus == (int)ScheduleStatus.CollectingAvailability)
                 {
-                    // fire-and-forget notifications
-                    _ = Task.Run(async () =>
-                    {
-                        try { await _scheduleService.CollectingAvailabilitiesTransitionAsync(dto.ScheduleIds, dto.NewStatus); }
-                        catch { /* log if needed */ }
-                    });
+                    await _scheduleService.CollectingAvailabilitiesTransitionAsync(dto.ScheduleIds, dto.NewStatus);
                 }
 
                 return Ok();

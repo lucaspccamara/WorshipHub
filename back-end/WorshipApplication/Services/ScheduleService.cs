@@ -14,7 +14,6 @@ namespace WorshipApplication.Services
         private readonly IUserRepository _userRepo;
         private readonly IMusicRepository _musicRepo;
         private readonly IScheduleAvailabilitiesRepository _scheduleAvailabilitiesRepository;
-        private readonly WhatsAppService _whatsAppService;
         private readonly FcmNotificationService _fcmNotificationService;
 
         public ScheduleService(
@@ -22,13 +21,11 @@ namespace WorshipApplication.Services
             IUserRepository userRepo,
             IMusicRepository musicRepo,
             IScheduleAvailabilitiesRepository scheduleAvailabilitiesRepository,
-            WhatsAppService whatsAppService,
             FcmNotificationService fcmNotificationService) : base(repository)
         {
             _userRepo = userRepo;
             _musicRepo = musicRepo;
             _scheduleAvailabilitiesRepository = scheduleAvailabilitiesRepository;
-            _whatsAppService = whatsAppService;
             _fcmNotificationService = fcmNotificationService;
         }
 
@@ -107,10 +104,28 @@ namespace WorshipApplication.Services
             return _repository.GetListPaged(request);
         }
 
-        public void TransitionSchedules(IEnumerable<int> scheduleIds, int newStatus)
+        public async Task TransitionSchedulesAsync(IEnumerable<int> scheduleIds, int newStatus)
         {
             if (scheduleIds == null) throw new ArgumentNullException(nameof(scheduleIds));
+            
             _repository.UpdateStatus(scheduleIds, newStatus);
+
+            // Se a transição for para "Aguardando Repertório", notificar ministros
+            if (newStatus == (int)ScheduleStatus.WaitingRepertoire)
+            {
+                foreach (var id in scheduleIds)
+                {
+                    await NotifyWaitingRepertoireAsync(id);
+                }
+            }
+            // Se a transição for para "Concluído", notificar músicos (exceto ministros)
+            else if (newStatus == (int)ScheduleStatus.Completed)
+            {
+                foreach (var id in scheduleIds)
+                {
+                    await NotifyRepertoireReleasedAsync(id);
+                }
+            }
         }
 
         public List<ScheduleAvailabilityDTO> GetPendingAvailabilities(int userId)
@@ -147,15 +162,56 @@ namespace WorshipApplication.Services
                 });
             }
 
-            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name, u.FcmToken)).ToArray();
+            // Notifica cada usuário apenas uma vez, independentemente de quantas escalas foram liberadas
+            var tasks = users
+                .Where(u => !string.IsNullOrWhiteSpace(u.FcmToken))
+                .Select(u => _fcmNotificationService.SendNotificationAsync(
+                    u.FcmToken,
+                    "Novas escalas disponíveis! 🗓️",
+                    $"Olá {u.Name}, existem escalas que precisam da sua atenção. Informe sua disponibilidade no app.",
+                    "/availabilities"
+                )).ToArray();
+
+            await Task.WhenAll(tasks);
+        }
+
+        public async Task NotifyWaitingRepertoireAsync(int scheduleId)
+        {
+            var schedule = _repository.Get(scheduleId);
+            if (schedule == null) return;
+
+            var users = _repository.GetAssignedUsers(scheduleId);
+            
+            // Notifica apenas os Ministros (Position 0)
+            var tasks = users
+                .Where(u => u.Position == 0 && !string.IsNullOrWhiteSpace(u.FcmToken))
+                .Select(u => _fcmNotificationService.SendNotificationAsync(
+                    u.FcmToken,
+                    "Escolha do Repertório 🎸",
+                    $"A escala do dia {schedule.Date:dd/MM} está aguardando a sua escolha de músicas.",
+                    $"/schedules" // Redirecionar para escalas ou tela específica de repertório
+                )).ToArray();
+
             await Task.WhenAll(tasks);
         }
 
         public async Task NotifyRepertoireReleasedAsync(int scheduleId)
         {
+            var schedule = _repository.Get(scheduleId);
+            if (schedule == null) return;
+
             var users = _repository.GetAssignedUsers(scheduleId);
-            var message = $"O repertório da escala {scheduleId} foi liberado.";
-            var tasks = users.Select(u => SendNotificationSafe(u.PhoneNumber, u.Name, u.FcmToken)).ToArray();
+            
+            // Notifica todos os membros EXCETO o Ministro (Position 0)
+            var tasks = users
+                .Where(u => u.Position != 0 && !string.IsNullOrWhiteSpace(u.FcmToken))
+                .Select(u => _fcmNotificationService.SendNotificationAsync(
+                    u.FcmToken,
+                    "Repertório Liberado! ✨",
+                    $"O repertório para a escala do dia {schedule.Date:dd/MM} já está disponível. Confira no app!",
+                    $"/schedules"
+                )).ToArray();
+
             await Task.WhenAll(tasks);
         }
 
@@ -180,29 +236,6 @@ namespace WorshipApplication.Services
             if (dto == null) throw new ArgumentNullException(nameof(dto));
             // repository expects position -> userId mapping
             _repository.SaveAssignments(scheduleId, dto.Assignments);
-        }
-
-        private async Task SendNotificationSafe(string phoneNumber, string name, string fcmToken)
-        {
-            var tasks = new List<Task>();
-
-            if (!string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                tasks.Add(_whatsAppService.SendsScheduleNotificationAsync($"55{phoneNumber.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")}", name));
-            }
-
-            if (!string.IsNullOrWhiteSpace(fcmToken))
-            {
-                // Dispara o PWA Push (Mobile/Desktop Web)
-                tasks.Add(_fcmNotificationService.SendNotificationAsync(
-                    fcmToken,
-                    "WorshipHub: Nova Escala",
-                    $"Olá {name}, uma nova escala requer sua atenção!",
-                    "/"
-                ));
-            }
-
-            await Task.WhenAll(tasks);
         }
     }
 }

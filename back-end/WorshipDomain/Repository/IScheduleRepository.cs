@@ -15,7 +15,7 @@ namespace WorshipDomain.Repository
         SchedulesAssignmentsDetailsDto? GetSchedulesAssignmentsDetails(IEnumerable<int> scheduleIds);
         void SaveAssignments(int scheduleId, Dictionary<int, int?> assignments);
         void UpdateStatus(IEnumerable<int> scheduleIds, int newStatus);
-        List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus);
-        List<(int Id, string PhoneNumber, string Name, string FcmToken)> GetAssignedUsers(int scheduleId);
+        List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus);
+        List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetAssignedUsers(int scheduleId);
     }
 }
