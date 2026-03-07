@@ -20,7 +20,7 @@ export function useNotifications() {
         permissionGranted.value = Notification.permission === 'granted';
     }
 
-    const syncToken = async (passedRegistration = null) => {
+    const syncToken = async (passedRegistration = null, showNotify = true) => {
         try {
             // Se não passar registration, tenta pegar a que estiver pronta
             // Isso garante que estamos usando o worker gerenciado pelo VitePWA
@@ -34,14 +34,18 @@ export function useNotifications() {
 
             if (currentToken) {
                 // Envia e persiste na nossa API .NET
-                await saveTokenToBackend(currentToken);
+                await saveTokenToBackend(currentToken, showNotify);
             } else {
                 console.warn('Nenhum token FCM retornado, valide a VAPID KEY.');
-                Notify.create({ type: 'warning', message: 'Falha ao recuperar a Identidade Push do dispositivo.' });
+                if (showNotify) {
+                    Notify.create({ type: 'warning', message: 'Falha ao recuperar a Identidade Push do dispositivo.' });
+                }
             }
         } catch (err) {
             console.error('Erro ao sincronizar token:', err);
-            Notify.create({ type: 'negative', message: 'Erro interno ao assinar notificações Push.' });
+            if (showNotify) {
+                Notify.create({ type: 'negative', message: 'Erro interno ao assinar notificações Push.' });
+            }
         }
     };
 
@@ -62,7 +66,7 @@ export function useNotifications() {
                 // Isso evita que o Firebase tente registrar um worker padrão incorreto
                 const registration = await navigator.serviceWorker.ready;
 
-                await syncToken(registration);
+                await syncToken(registration, true);
             } else {
                 Notify.create({ type: 'warning', message: 'Permissão de notificação negada.' });
             }
@@ -87,20 +91,24 @@ export function useNotifications() {
         });
     });
 
-    const saveTokenToBackend = async (token) => {
+    const saveTokenToBackend = async (token, showNotify = true) => {
         try {
             await api.post('notification/token', { "fcmToken": token });
-            Notify.create({ type: 'positive', message: 'Notificações ativadas para este dispositivo!' });
+            if (showNotify) {
+                Notify.create({ type: 'positive', message: 'Notificações ativadas para este dispositivo!' });
+            }
         } catch (err) {
             console.error('Falha ao espelhar FCM token para API', err);
-            Notify.create({ type: 'negative', message: 'Não foi possível vincular seu dispositivo com sua conta.' });
+            if (showNotify) {
+                Notify.create({ type: 'negative', message: 'Não foi possível vincular seu dispositivo com sua conta.' });
+            }
         }
     };
 
     // Sincroniza automaticamente se já houver permissão ao carregar o composable
     // Usamos um delay ou navigator.serviceWorker.ready para garantir que o worker subiu antes
     if (typeof window !== 'undefined' && isSupported.value && permissionGranted.value) {
-        navigator.serviceWorker.ready.then(reg => syncToken(reg));
+        navigator.serviceWorker.ready.then(reg => syncToken(reg, false));
     };
 
     return {

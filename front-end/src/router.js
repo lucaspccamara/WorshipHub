@@ -4,7 +4,7 @@ import api from './api';
 import { Role } from './constants/Role';
 
 const routes = [
-  { 
+  {
     path: '/login',
     name: 'Login',
     component: () => import('./pages/LoginPage.vue')
@@ -24,19 +24,19 @@ const routes = [
     name: 'Reset_Password',
     component: () => import('./pages/ResetPassword.vue')
   },
-  { 
+  {
     path: '/',
     name: 'Home',
     component: () => import('./components/HomePage.vue'),
     meta: { requiresAuth: true }
   },
-  { 
+  {
     path: '/schedules',
     name: 'Schedule',
     component: () => import('./pages/Schedule.vue'),
     meta: { requiresAuth: true, roles: [Role.Admin, Role.Leader, Role.Minister] }
   },
-  { 
+  {
     path: '/availabilities',
     name: 'Availabilities',
     component: () => import('./pages/Availability.vue'),
@@ -54,10 +54,16 @@ const routes = [
     component: () => import('./pages/Users.vue'),
     meta: { requiresAuth: true, roles: [Role.Admin, Role.Leader] }
   },
-  { 
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('./components/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('./pages/Settings.vue'),
     meta: { requiresAuth: true }
   },
 ];
