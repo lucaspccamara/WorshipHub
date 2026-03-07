@@ -74,7 +74,7 @@
           <div class="text-subtitle1 q-mb-sm">Notificações do Dispositivo</div>
           <q-banner :class="permissionGranted ? 'bg-positive text-white' : 'bg-grey-3 text-black'" rounded>
             <template v-slot:avatar>
-              <q-icon name="notifications" :color="permissionGranted ? 'white' : 'primary'" />
+              <q-icon name="fa-solid fa-bell-ring" :color="permissionGranted ? 'white' : 'primary'" />
             </template>
             <div>Notificações</div>
             <div class="text-subtitle2" v-if="!permissionGranted">
