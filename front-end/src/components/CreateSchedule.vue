@@ -1,6 +1,6 @@
 <template>
-  <q-card>
-    <form @submit.prevent="save">
+  <form @submit.prevent="save">
+    <q-card>
       <q-bar class="card-header">
         <span class="text-h6 header-label" v-if="scheduleId == 0">Cadastrar Escala</span>
         <span class="text-h6 header-label" v-else>Editar Escala</span>
@@ -78,56 +78,56 @@
           </q-card-actions>
         </div>
       </div>
-    </form>
-  </q-card>
-
-  <q-dialog v-model="showMobileEventsDialog" full-width>
-    <q-card class="scrolling-dialog">
-      <q-bar class="card-header">
-        <div class="text-h6">Eventos Selecionados</div>
-        <q-space />
-        <q-btn dense flat icon="fa fa-close" v-close-popup>
-          <q-tooltip>Fechar</q-tooltip>
-        </q-btn>
-      </q-bar>
-
-      <q-separator />
-
-      <q-card-section class="events-scroll">
-        <q-card
+    </q-card>
+    
+    <q-dialog v-model="showMobileEventsDialog" full-width>
+      <q-card class="scrolling-dialog">
+        <q-bar class="card-header">
+          <div class="text-h6">Eventos Selecionados</div>
+          <q-space />
+          <q-btn dense flat icon="fa fa-close" v-close-popup>
+            <q-tooltip>Fechar</q-tooltip>
+          </q-btn>
+        </q-bar>
+        
+        <q-separator />
+        
+        <q-card-section class="events-scroll">
+          <q-card
           v-for="(event, index) in events"
           :key="index"
           class="q-mb-md"
-        >
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <p><strong>Data:</strong> {{ formatDate(event.date) }}</p>
-              <p><strong>Tipo de Evento:</strong> {{ event.label }}</p>
-            </div>
-            
-            <q-btn
+          >
+            <q-card-section class="row items-center justify-between">
+              <div>
+                <p><strong>Data:</strong> {{ formatDate(event.date) }}</p>
+                <p><strong>Tipo de Evento:</strong> {{ event.label }}</p>
+              </div>
+              
+              <q-btn
               align="right"
               color="negative"
               flat
               dense
               icon="fa fa-trash"
               @click="removeEvent(index)"
-            />
-          </q-card-section>
-        </q-card>
-      </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn
+              />
+            </q-card-section>
+          </q-card>
+        </q-card-section>
+      
+        <q-card-actions align="right">
+          <q-btn
           v-if="isMobile"
           class="full-width q-mt-md"
           color="primary"
           type="submit"
           label="Cadastrar Escala"
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </form>
 </template>
 
 <script setup>
