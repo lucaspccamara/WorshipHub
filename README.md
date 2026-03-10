@@ -39,9 +39,10 @@ cd WorshipHub
 ### 2. Back-end (.NET)
 Localizado na pasta `/back-end`:
 
-- Nomeie o arquivo `appsettings.json` na pasta `WorshipApi` e configure as credenciais:
-  - **ConnectionStrings**: String de conexão com o banco MySQL.
-  - **JWT_PRIVATE_KEY**: Chave RSA privada para assinatura de tokens.
+- No projeto `WorshipApi`, verifique o arquivo `appsettings.Development.json`.
+- **ConnectionStrings**: Certifique-se de que a string de conexão aponta para o seu banco MySQL local.
+- **JWT_PRIVATE_KEY**: Chave RSA privada para assinatura de tokens.
+- **AllowedOrigins**: Adicione o IP da sua máquina (ex: `http://192.168.100.10:5173`) para permitir que o celular acesse a API.
 
 ```bash
 cd back-end
@@ -52,9 +53,8 @@ dotnet build
 ### 3. Front-end (Vue/Vite)
 Localizado na pasta `/front-end`:
 
-- Crie um arquivo `.env.development` baseado no `.env.example` e preencha as chaves:
-  - **VITE_FIREBASE_***: Configurações do seu projeto Firebase.
-  - **VITE_API_BASE_URL**: URL da API (geralmente `http://localhost:8080/api/`).
+- Crie ou edite o arquivo `.env.development`.
+- **VITE_API_URL**: Altere `localhost` para o IP da sua máquina (ex: `http://192.168.100.10:5255/api`). Isso permitirá que dispositivos na sua rede Wi-Fi encontrem o servidor.
 
 ```bash
 cd front-end
@@ -81,17 +81,27 @@ O sistema estará disponível em `http://localhost`.
 
 ### Modo Desenvolvimento Local
 
-**API:**
+1. **Inicie o Banco de Dados**: Certifique-se de que o MySQL está rodando.
+2. **Inicie a API**:
 ```bash
 cd back-end/WorshipApi
-dotnet run
+dotnet run --launch-profile http
 ```
+*(A API rodará por padrão na porta 5255)*.
 
-**Front-end:**
+3. **Inicie o Front-end**:
 ```bash
 cd front-end
 npm run dev
 ```
+O Vite exibirá no terminal o link local e o link de rede (ex: `http://192.168.100.10:5173`).
+
+### 📱 Acessando pelo Celular
+Para testar no dispositivo móvel:
+1. Conecte o celular na **mesma rede Wi-Fi** do computador.
+2. No terminal do front-end, localize o endereço de **Network** (ex: `http://192.168.100.10:5173`).
+3. Acesse esse endereço no navegador do celular.
+4. O login e as funcionalidades agora funcionarão integrados com a API rodando no seu PC.
 
 ---
 
