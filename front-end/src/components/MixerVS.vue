@@ -77,13 +77,20 @@
             </div>
           </div>
         </div>
+
+        <!-- Debug Overlay Discreto -->
+        <div class="debug-overlay">
+          <span>SYNC: {{ syncCount }}</span>
+          <span class="platform-tag">{{ devicePrefix }}</span>
+        </div>
+
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useAudioMixer } from '../composables/useAudioMixer'
 import MeterCanvas from './MeterCanvas.vue'
 
@@ -92,11 +99,19 @@ const {
   isLoading,
   loadingStage,
   loadProgress,
+  syncCount,
   loadMockTracks,
   setDb,
   toggleMute,
   toggleSolo
 } = useAudioMixer()
+
+const devicePrefix = computed(() => {
+  const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
+  if (/Android/i.test(ua)) return 'Android'
+  return 'Desktop'
+})
 
 const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
 
@@ -269,4 +284,27 @@ onMounted(() => {
   color: black;
 }
 
+/* Debug Overlay */
+.debug-overlay {
+  position: fixed;
+  bottom: 80px; /* Fica acima do MiniPlayer para não obstruir */
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  color: #00ff88;
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  gap: 12px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.platform-tag {
+  color: #00ccff;
+  font-weight: bold;
+}
 </style>
