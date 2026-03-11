@@ -3,9 +3,9 @@ import { ref } from 'vue'
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 const AudioCtx = window.AudioContext || window.webkitAudioContext
-const audioContext = new AudioCtx({
-  sampleRate: isMobile ? 32000 : 44100
-})
+const audioContext = new AudioCtx()
+
+const DRIFT_THRESHOLD = 0.02 // 20ms de tolerância antes de forçar sync
 
 const tracks = ref([])
 const isPlaying = ref(false)
@@ -18,7 +18,7 @@ const loaded = ref(0)
 const totalTracks = ref(0)
 const loadProgress = ref(0)
 
-let startTime = 0
+let animationFrameId = null
 
 function dbToGain(db) {
   if (db <= -60) return 0
@@ -28,7 +28,6 @@ function dbToGain(db) {
 export function useAudioMixer() {
 
   async function loadMockTracks() {
-
     if (tracks.value.length) return
 
     isLoading.value = true
@@ -60,137 +59,168 @@ export function useAudioMixer() {
     totalTracks.value = trackFiles.length
     loaded.value = 0
 
-    const tasks = trackFiles.map((file, index) => {
+    const concurrencyLimit = isMobile ? 4 : trackFiles.length
+
+    const tasks = trackFiles.map((file) => {
       return async () => {
-        loadingStage.value = 'Decodificando buffers de áudio...'
+        return new Promise((resolve) => {
+          const audio = new Audio()
+          audio.src = file.url
+          audio.crossOrigin = 'anonymous'
+          audio.preload = 'auto'
 
-        const response = await fetch(file.url)
-        const arrayBuffer = await response.arrayBuffer()
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+          const onCanPlay = async () => {
+            if (audio.duration > duration.value) {
+              duration.value = audio.duration
+            }
 
-        loaded.value++
-        loadProgress.value = Math.round((loaded.value / trackFiles.length) * 100)
+            // 🔥 Priming: Inicializa o decodificador para evitar stutter no primeiro play
+            try {
+              audio.volume = 0
+              await audio.play()
+              audio.pause()
+              audio.currentTime = 0
+            } catch (e) {
+              // Falha silenciosa se houver bloqueio de autoplay
+            }
 
-        return {
-          ...file,
-          buffer: audioBuffer
-        }
+            loaded.value++
+            loadProgress.value = Math.round((loaded.value / trackFiles.length) * 100)
+
+            audio.removeEventListener('canplaythrough', onCanPlay)
+            resolve({ ...file, audio })
+          }
+
+          audio.addEventListener('canplaythrough', onCanPlay)
+
+          audio.onerror = () => {
+            console.error(`Erro ao carregar trilha: ${file.name}`)
+            loaded.value++
+            resolve({ ...file, audio: null })
+          }
+
+          audio.load()
+        })
       }
     })
 
-    const concurrencyLimit = isMobile ? 4 : trackFiles.length
-
     const loadedTracks = await runWithConcurrencyLimit(tasks, concurrencyLimit)
 
-    loadingStage.value = 'Carregando interface...'
+    loadingStage.value = 'Configurando roteamento...'
+
     loadedTracks.forEach(t => {
+      if (!t || !t.audio) return
+
+      const source = audioContext.createMediaElementSource(t.audio)
       const gain = audioContext.createGain()
-      const panner = audioContext.createStereoPanner()
       const analyser = audioContext.createAnalyser()
 
-      analyser.fftSize = 2048
-      analyser.smoothingTimeConstant = 0
+      analyser.fftSize = 512 // 512 oferece bom equilíbrio entre performance e visual
+      analyser.smoothingTimeConstant = 0.8
 
-      gain.connect(panner)
-      panner.connect(analyser)
+      source.connect(gain)
+      gain.connect(analyser)
       analyser.connect(audioContext.destination)
 
       tracks.value.push({
         name: t.name,
-        buffer: t.buffer,
-        source: null,
+        audio: t.audio,
         gain,
-        panner,
         analyser,
         db: 0,
-        pan: 0,
         mute: false,
         solo: false
       })
-
-      duration.value = t.buffer.duration
     })
+
     loadingStage.value = 'Pronto!'
-
     isLoading.value = false
-  }
-
-  function createSources(offset = 0) {
-    tracks.value.forEach(track => {
-
-      const source = audioContext.createBufferSource()
-      source.buffer = track.buffer
-
-      source.connect(track.gain)
-
-      source.start(0, offset)
-
-      track.source = source
-    })
   }
 
   function updateAudioRouting() {
     const soloed = tracks.value.filter(t => t.solo)
 
     tracks.value.forEach(track => {
-
       let targetGain = 0
-
       if (soloed.length > 0) {
         targetGain = track.solo ? dbToGain(track.db) : 0
       } else {
         targetGain = track.mute ? 0 : dbToGain(track.db)
       }
 
-      // 🔥 pequena rampa evita clicks
       track.gain.gain.cancelScheduledValues(audioContext.currentTime)
       track.gain.gain.linearRampToValueAtTime(
         targetGain,
-        audioContext.currentTime + 0.02
+        audioContext.currentTime + 0.05
       )
     })
   }
 
-  function play(offset = currentTime.value) {
-
+  async function play(offset = currentTime.value) {
     if (isPlaying.value) return
 
     if (audioContext.state === 'suspended') {
-      audioContext.resume()
+      await audioContext.resume()
     }
 
-    startTime = audioContext.currentTime - offset
+    tracks.value.forEach(track => {
+      track.audio.currentTime = offset
+      track.audio.volume = 1
+    })
 
-    createSources(offset)
+    try {
+      await Promise.all(tracks.value.map(track => track.audio.play()))
 
-    isPlaying.value = true
+      isPlaying.value = true
 
-    requestAnimationFrame(updateTime)
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
+      animationFrameId = requestAnimationFrame(updateTime)
+    } catch (err) {
+      console.error("Erro ao iniciar reprodução:", err)
+    }
   }
 
   function updateTime() {
     if (!isPlaying.value) return
-    currentTime.value = audioContext.currentTime - startTime
-    requestAnimationFrame(updateTime)
+
+    if (tracks.value.length > 0) {
+      const master = tracks.value[0].audio
+      const masterTime = master.currentTime
+      currentTime.value = masterTime
+
+      // Master-Slave Sync: Corrige o drift entre as faixas
+      for (let i = 1; i < tracks.value.length; i++) {
+        const slave = tracks.value[i].audio
+        const diff = slave.currentTime - masterTime
+
+        if (Math.abs(diff) > DRIFT_THRESHOLD) {
+          // console.log(`Corrigindo drift na trilha ${tracks.value[i].name}: ${diff.toFixed(3)}s`)
+          slave.currentTime = masterTime
+        }
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(updateTime)
   }
 
   function stop() {
-
     tracks.value.forEach(track => {
-      if (track.source) {
-        try { track.source.stop() } catch {}
-        track.source.disconnect()
-        track.source = null
-      }
+      track.audio.pause()
     })
-
     isPlaying.value = false
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
   }
 
   function seek(time) {
-    stop()
+    const wasPlaying = isPlaying.value
+    if (wasPlaying) stop()
+
     currentTime.value = time
-    play(time)
+    tracks.value.forEach(track => {
+      track.audio.currentTime = time
+    })
+
+    if (wasPlaying) play(time)
   }
 
   function setDb(track, db) {
@@ -206,11 +236,6 @@ export function useAudioMixer() {
   function toggleSolo(track) {
     track.solo = !track.solo
     updateAudioRouting()
-  }
-
-  function setPan(track, value) {
-    track.pan = value
-    track.panner.pan.value = value / 100
   }
 
   async function runWithConcurrencyLimit(tasks, limit) {
@@ -248,7 +273,6 @@ export function useAudioMixer() {
     seek,
     setDb,
     toggleMute,
-    toggleSolo,
-    setPan
+    toggleSolo
   }
 }

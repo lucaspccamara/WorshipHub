@@ -31,7 +31,9 @@
 
     </q-tab-panels>
 
-    <MiniPlayer />
+    <transition name="cinematic-reveal">
+      <MiniPlayer v-if="!isLoading" />
+    </transition>
 
   </q-card>
 </template>
@@ -42,6 +44,24 @@ import { ref } from 'vue';
 import MixerVS from './MixerVS.vue'
 //import ChordSheet from './ChordSheet.vue'
 import MiniPlayer from './MiniPlayer.vue'
+import { useAudioMixer } from '../composables/useAudioMixer'
 
+const { isLoading } = useAudioMixer()
 const tab = ref('mixer')
 </script>
+
+<style scoped>
+.cinematic-reveal-enter-active {
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cinematic-reveal-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.cinematic-reveal-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>

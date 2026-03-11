@@ -13,6 +13,7 @@
       :max="duration"
       v-model="currentTime"
       @update:model-value="seek"
+      color="primary"
     />
 
     <div class="time">
@@ -47,11 +48,17 @@ function formatTime(sec) {
 .mini-player {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 10px 20px;
   background: #111;
   color: white;
+  border-top: 1px solid #333;
 }
+
 .time {
-  font-size: 12px;
+  font-size: 13px;
+  font-family: 'Roboto Mono', monospace;
+  min-width: 90px;
+  text-align: right;
+  opacity: 0.8;
 }
 </style>
