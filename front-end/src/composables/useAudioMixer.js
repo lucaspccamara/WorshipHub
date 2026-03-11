@@ -1,11 +1,14 @@
 import { ref } from 'vue'
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 const AudioCtx = window.AudioContext || window.webkitAudioContext
 const audioContext = new AudioCtx()
 
-const DRIFT_THRESHOLD = 0.02 // 20ms de tolerância antes de forçar sync
+const DRIFT_THRESHOLD = isIOS ? 0.15 : 0.02 // 150ms no iOS, 20ms no resto
+const SYNC_COOLDOWN_MS = 2000 // 2 segundos de intervalo entre syncs no iOS
+const CHECK_INTERVAL_MS = 100 // Verificar drift a cada 100ms no iOS
 
 const tracks = ref([])
 const isPlaying = ref(false)
@@ -18,6 +21,10 @@ const loaded = ref(0)
 const totalTracks = ref(0)
 const loadProgress = ref(0)
 
+const syncCount = ref(0)
+const lastSyncTimes = new Map() // Controle de cooldown por trilha
+let lastCheckTime = 0
+let playStartTimeAtContext = 0 // Marca o momento exato do Play no hardware
 let animationFrameId = null
 
 function dbToGain(db) {
@@ -115,7 +122,13 @@ export function useAudioMixer() {
       const gain = audioContext.createGain()
       const analyser = audioContext.createAnalyser()
 
-      analyser.fftSize = 512 // 512 oferece bom equilíbrio entre performance e visual
+      // Configuração de fidelidade visual por plataforma
+      const isAndroid = /Android/i.test(navigator.userAgent)
+      let fftSize = 2048 // Desktop padrão
+      if (isIOS) fftSize = 256
+      else if (isAndroid) fftSize = 512
+
+      analyser.fftSize = fftSize
       analyser.smoothingTimeConstant = 0.8
 
       source.connect(gain)
@@ -135,6 +148,11 @@ export function useAudioMixer() {
 
     loadingStage.value = 'Pronto!'
     isLoading.value = false
+
+    // Alinhamento preventivo: Já deixa todas as trilhas na posição inicial para pre-buffer
+    tracks.value.forEach(t => {
+      t.audio.currentTime = currentTime.value
+    })
   }
 
   function updateAudioRouting() {
@@ -163,6 +181,8 @@ export function useAudioMixer() {
       await audioContext.resume()
     }
 
+    playStartTimeAtContext = audioContext.currentTime
+
     tracks.value.forEach(track => {
       track.audio.currentTime = offset
       track.audio.volume = 1
@@ -189,13 +209,46 @@ export function useAudioMixer() {
       currentTime.value = masterTime
 
       // Master-Slave Sync: Corrige o drift entre as faixas
-      for (let i = 1; i < tracks.value.length; i++) {
-        const slave = tracks.value[i].audio
-        const diff = slave.currentTime - masterTime
+      const now = Date.now()
+      const elapsedSinceStart = (audioContext.currentTime - playStartTimeAtContext) * 1000
 
-        if (Math.abs(diff) > DRIFT_THRESHOLD) {
-          // console.log(`Corrigindo drift na trilha ${tracks.value[i].name}: ${diff.toFixed(3)}s`)
-          slave.currentTime = masterTime
+      // Auto-Stop: Pausa a música ao chegar no final para evitar drift infinito
+      if (master.ended || masterTime >= duration.value - 0.1) {
+        stop()
+        return
+      }
+
+      // Janela de Inércia: Nos primeiros 2 segundos, não corrigimos drift
+      // Isso permite que o buffer se estabilize sem seeks agressivos na largada
+      const isInInertiaWindow = elapsedSinceStart < 2000
+
+      if (!isInInertiaWindow) {
+        // Fase de Sincronia Sob Demanda (Smart Check)
+        const shouldCheckSync = !isIOS || (now - lastCheckTime > CHECK_INTERVAL_MS)
+
+        if (shouldCheckSync) {
+          if (isIOS) lastCheckTime = now
+
+          for (let i = 1; i < tracks.value.length; i++) {
+            const track = tracks.value[i]
+            const slave = track.audio
+
+            if (track.mute) continue
+
+            const diff = slave.currentTime - masterTime
+
+            if (Math.abs(diff) > DRIFT_THRESHOLD) {
+              if (isIOS) {
+                const lastSync = lastSyncTimes.get(track.name) || 0
+                if (now - lastSync < SYNC_COOLDOWN_MS) continue
+
+                lastSyncTimes.set(track.name, now)
+              }
+
+              slave.currentTime = masterTime
+              syncCount.value++
+            }
+          }
         }
       }
     }
@@ -267,6 +320,7 @@ export function useAudioMixer() {
     loadingStage,
     isLoading,
     loadProgress,
+    syncCount,
     loadMockTracks,
     play,
     stop,
