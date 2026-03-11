@@ -61,16 +61,6 @@
     
           </div>
     
-          <!-- PAN -->
-          <!-- <q-knob
-            size="60px"
-            :min="-100"
-            :max="100"
-            v-model="track.pan"
-            @update:model-value="val => setPan(track, val)"
-            color="grey-5"
-          /> -->
-    
           <!-- CHANNEL NAME -->
           <div class="btn channel-name" :class="{ active: !track.mute }" @click="toggleMute(track)">
             {{ track.name }}
