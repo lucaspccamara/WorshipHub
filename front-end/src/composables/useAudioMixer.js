@@ -47,27 +47,17 @@ async function initDB() {
   })
 }
 
-async function saveSlice(trackName, index, audioBuffer) {
+async function saveSlicesForTrack(trackName, slices) {
   const db = await initDB()
-
-  // Extraímos os dados dos canais para salvar como arrays genéricos (IndexedDB aceita AudioBuffer direto em alguns browsers, mas ArrayBuffer é mais seguro)
-  const channels = []
-  for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
-    channels.push(audioBuffer.getChannelData(i))
-  }
-
-  const sliceData = {
-    numberOfChannels: audioBuffer.numberOfChannels,
-    length: audioBuffer.length,
-    sampleRate: audioBuffer.sampleRate,
-    channels: channels
-  }
-
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite')
     const store = transaction.objectStore(STORE_NAME)
-    const key = `${trackName}_${index}`
-    store.put(sliceData, key)
+
+    slices.forEach((slice, index) => {
+      const key = `${trackName}_${index}`
+      store.put(slice, key)
+    })
+
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)
   })
@@ -135,44 +125,55 @@ export function useAudioMixer() {
     await clearOldCache()
 
     const trackFiles = [
-      { name: 'Click', url: '/mock/01_Click Track.aac' },
-      { name: 'Guide', url: '/mock/02_Guide.aac' },
-      { name: 'Drums', url: '/mock/03_Drums.aac' },
-      { name: 'Bass', url: '/mock/04_Bass.aac' },
-      { name: 'AG', url: '/mock/05_AG.aac' },
-      { name: 'EG 1', url: '/mock/06_EG 1.aac' },
-      { name: 'EG 2', url: '/mock/07_EG 2.aac' },
-      { name: 'EG 3', url: '/mock/08_EG 3.aac' },
-      { name: 'EG 4', url: '/mock/09_EG 4.aac' },
-      { name: 'EG 5', url: '/mock/10_EG 5.aac' },
-      { name: 'EG 6', url: '/mock/11_EG 6.aac' },
-      { name: 'EG 7', url: '/mock/12_EG 7.aac' },
-      { name: 'Piano', url: '/mock/13_Piano.aac' },
-      { name: 'Keys 1', url: '/mock/14_Keys 1.aac' },
-      { name: 'Keys 2', url: '/mock/15_Keys 2.aac' },
-      { name: 'Keys 3', url: '/mock/16_Keys 3.aac' },
-      { name: 'Keys 4', url: '/mock/17_Keys 4.aac' },
-      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac' },
-      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac' }
+      { name: 'Click', url: '/mock/01_Click Track.aac', order: 1 },
+      { name: 'Guide', url: '/mock/02_Guide.aac', order: 2 },
+      { name: 'Drums', url: '/mock/03_Drums.aac', order: 3 },
+      { name: 'Bass', url: '/mock/04_Bass.aac', order: 4 },
+      { name: 'AG', url: '/mock/05_AG.aac', order: 5 },
+      { name: 'EG 1', url: '/mock/06_EG 1.aac', order: 6 },
+      { name: 'EG 2', url: '/mock/07_EG 2.aac', order: 7 },
+      { name: 'EG 3', url: '/mock/08_EG 3.aac', order: 8 },
+      { name: 'EG 4', url: '/mock/09_EG 4.aac', order: 9 },
+      { name: 'EG 5', url: '/mock/10_EG 5.aac', order: 10 },
+      { name: 'EG 6', url: '/mock/11_EG 6.aac', order: 11 },
+      { name: 'EG 7', url: '/mock/12_EG 7.aac', order: 12 },
+      { name: 'Piano', url: '/mock/13_Piano.aac', order: 13 },
+      { name: 'Keys 1', url: '/mock/14_Keys 1.aac', order: 14 },
+      { name: 'Keys 2', url: '/mock/15_Keys 2.aac', order: 15 },
+      { name: 'Keys 3', url: '/mock/16_Keys 3.aac', order: 16 },
+      { name: 'Keys 4', url: '/mock/17_Keys 4.aac', order: 17 },
+      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac', order: 18 },
+      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac', order: 19 }
     ]
 
     totalTracks.value = trackFiles.length
 
-    for (const file of trackFiles) {
-      loadingStage.value = `Processando: ${file.name}...`
+    // Processador de Fila com Concorrência
+    const queue = [...trackFiles]
+    const CONCURRENCY = 4
 
+    const updateLoadingMessage = () => {
+      const progress = loadProgress.value
+      if (progress < 25) loadingStage.value = 'Iniciando preparação dos instrumentos...'
+      else if (progress < 50) loadingStage.value = 'Otimizando trilhas de áudio...'
+      else if (progress < 75) loadingStage.value = 'Configurando mixagem e efeitos...'
+      else if (progress < 100) loadingStage.value = 'Finalizando últimos detalhes...'
+    }
+
+    const processTrack = async (file) => {
       try {
         const response = await fetch(file.url)
         const arrayBuffer = await response.arrayBuffer()
 
-        // Decodifica apenas uma trilha por vez
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        let audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
 
         if (audioBuffer.duration > duration.value) {
           duration.value = audioBuffer.duration
         }
 
         const numSlices = Math.ceil(audioBuffer.duration / SLICE_DURATION)
+        const slicesToSave = []
+
         for (let i = 0; i < numSlices; i++) {
           const start = i * SLICE_DURATION
           const end = Math.min(start + SLICE_DURATION, audioBuffer.duration)
@@ -180,30 +181,30 @@ export function useAudioMixer() {
 
           if (length <= 0) continue
 
-          const sliceBuffer = audioContext.createBuffer(
-            audioBuffer.numberOfChannels,
-            length,
-            audioBuffer.sampleRate
-          )
-
+          const channels = []
           for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-            const channelData = audioBuffer.getChannelData(ch).subarray(
+            const sliceData = audioBuffer.getChannelData(ch).slice(
               Math.floor(start * audioBuffer.sampleRate),
               Math.floor(end * audioBuffer.sampleRate)
             )
-            sliceBuffer.copyToChannel(channelData, ch)
+            channels.push(sliceData)
           }
 
-          await saveSlice(file.name, i, sliceBuffer)
+          slicesToSave.push({
+            numberOfChannels: audioBuffer.numberOfChannels,
+            length: length,
+            sampleRate: audioBuffer.sampleRate,
+            channels: channels
+          })
         }
+
+        audioBuffer = null
+        await saveSlicesForTrack(file.name, slicesToSave)
 
         const gain = audioContext.createGain()
         const analyser = audioContext.createAnalyser()
-
         const isAndroid = /Android/i.test(navigator.userAgent)
-        let fftSize = 2048
-        if (isIOS) fftSize = 256
-        else if (isAndroid) fftSize = 512
+        let fftSize = isIOS ? 1024 : (isAndroid ? 1024 : 2048)
         analyser.fftSize = fftSize
 
         gain.connect(analyser)
@@ -211,6 +212,7 @@ export function useAudioMixer() {
 
         tracks.value.push({
           name: file.name,
+          order: file.order,
           gain,
           analyser,
           db: 0,
@@ -219,14 +221,28 @@ export function useAudioMixer() {
           activeSources: []
         })
 
+        tracks.value.sort((a, b) => a.order - b.order)
+
         loaded.value++
         loadProgress.value = Math.round((loaded.value / totalTracks.value) * 100)
-
+        updateLoadingMessage()
       } catch (err) {
-        console.error(`Erro ao processar ${file.name}:`, err)
+        console.error(`Erro em ${file.name}:`, err)
         loaded.value++
+        loadProgress.value = Math.round((loaded.value / totalTracks.value) * 100)
+        updateLoadingMessage()
       }
     }
+
+    // Modelo de Workers Paralelos (mais estável que Promise.race)
+    const workers = Array(CONCURRENCY).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const file = queue.shift()
+        if (file) await processTrack(file)
+      }
+    })
+
+    await Promise.all(workers)
 
     loadingStage.value = 'Pronto!'
     isLoading.value = false
