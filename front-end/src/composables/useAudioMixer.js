@@ -1,32 +1,107 @@
 import { ref } from 'vue'
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 const AudioCtx = window.AudioContext || window.webkitAudioContext
 const audioContext = new AudioCtx()
 
-const DRIFT_THRESHOLD = isIOS ? 0.15 : 0.02 // 150ms no iOS, 20ms no resto
-const SYNC_COOLDOWN_MS = 2000 // 2 segundos de intervalo entre syncs no iOS
-const CHECK_INTERVAL_MS = 100 // Verificar drift a cada 100ms no iOS
+const SLICE_DURATION = 15 // Segundos por fatia
+const DB_NAME = 'WorshipHub_AudioCache'
+const DB_VERSION = 1
+const STORE_NAME = 'slices'
 
+// Refs de Estado do Mixer
 const tracks = ref([])
 const isPlaying = ref(false)
 const duration = ref(0)
 const currentTime = ref(0)
 
+// Refs de Loading
 const loadingStage = ref('Iniciando Engine de Áudio...')
 const isLoading = ref(false)
 const loaded = ref(0)
 const totalTracks = ref(0)
 const loadProgress = ref(0)
 
-const syncCount = ref(0)
-const lastSyncTimes = new Map() // Controle de cooldown por trilha
-let lastCheckTime = 0
-let playStartTimeAtContext = 0 // Marca o momento exato do Play no hardware
+// Estado Interno do Scheduler
 let animationFrameId = null
+let nextSliceTimeout = null
+let playbackStartTime = 0 // Referência absoluta (audioContext.currentTime - offset)
+let expectedNextSliceTime = 0 // Quando a próxima fatia deve começar
 
+/**
+ * --- INDEXED DB ENGINE ---
+ * Gerencia o armazenamento persistente dos slices decodificados
+ */
+async function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME)
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+async function saveSlicesForTrack(trackName, slices) {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+
+    slices.forEach((slice, index) => {
+      const key = `${trackName}_${index}`
+      store.put(slice, key)
+    })
+
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+async function getSliceAsBuffer(trackName, index) {
+  const db = await initDB()
+  const sliceData = await new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    const key = `${trackName}_${index}`
+    const request = store.get(key)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+
+  if (!sliceData) return null
+
+  const buffer = audioContext.createBuffer(
+    sliceData.numberOfChannels,
+    sliceData.length,
+    sliceData.sampleRate
+  )
+
+  for (let i = 0; i < sliceData.numberOfChannels; i++) {
+    buffer.copyToChannel(sliceData.channels[i], i)
+  }
+
+  return buffer
+}
+
+async function clearOldCache() {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    transaction.objectStore(STORE_NAME).clear()
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+/**
+ * --- HELPER DE GAIN ---
+ */
 function dbToGain(db) {
   if (db <= -60) return 0
   return Math.pow(10, db / 20)
@@ -34,130 +109,285 @@ function dbToGain(db) {
 
 export function useAudioMixer() {
 
+  /**
+   * --- CARREGAMENTO SEQUENCIAL (SAFE FOR IOS) ---
+   * Baixa, decodifica e fatia trilha por trilha para não estourar a RAM
+   */
   async function loadMockTracks() {
     if (tracks.value.length) return
 
     isLoading.value = true
     loadProgress.value = 0
+    loadingStage.value = 'Limpando cache...'
+
+    // TODO: Implementar lógica de persistência inteligente (manter até limite X de memória)
+    // para evitar reprocessamento de músicas abertas recentemente.
+    await clearOldCache()
 
     const trackFiles = [
-      { name: 'Click', url: '/mock/01_Click Track.aac' },
-      { name: 'Guide', url: '/mock/02_Guide.aac' },
-      { name: 'Drums', url: '/mock/03_Drums.aac' },
-      { name: 'Bass', url: '/mock/04_Bass.aac' },
-      { name: 'AG', url: '/mock/05_AG.aac' },
-      { name: 'EG 1', url: '/mock/06_EG 1.aac' },
-      { name: 'EG 2', url: '/mock/07_EG 2.aac' },
-      { name: 'EG 3', url: '/mock/08_EG 3.aac' },
-      { name: 'EG 4', url: '/mock/09_EG 4.aac' },
-      { name: 'EG 5', url: '/mock/10_EG 5.aac' },
-      { name: 'EG 6', url: '/mock/11_EG 6.aac' },
-      { name: 'EG 7', url: '/mock/12_EG 7.aac' },
-      { name: 'Piano', url: '/mock/13_Piano.aac' },
-      { name: 'Keys 1', url: '/mock/14_Keys 1.aac' },
-      { name: 'Keys 2', url: '/mock/15_Keys 2.aac' },
-      { name: 'Keys 3', url: '/mock/16_Keys 3.aac' },
-      { name: 'Keys 4', url: '/mock/17_Keys 4.aac' },
-      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac' },
-      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac' }
+      { name: 'Click', url: '/mock/01_Click Track.aac', order: 1 },
+      { name: 'Guide', url: '/mock/02_Guide.aac', order: 2 },
+      { name: 'Drums', url: '/mock/03_Drums.aac', order: 3 },
+      { name: 'Bass', url: '/mock/04_Bass.aac', order: 4 },
+      { name: 'AG', url: '/mock/05_AG.aac', order: 5 },
+      { name: 'EG 1', url: '/mock/06_EG 1.aac', order: 6 },
+      { name: 'EG 2', url: '/mock/07_EG 2.aac', order: 7 },
+      { name: 'EG 3', url: '/mock/08_EG 3.aac', order: 8 },
+      { name: 'EG 4', url: '/mock/09_EG 4.aac', order: 9 },
+      { name: 'EG 5', url: '/mock/10_EG 5.aac', order: 10 },
+      { name: 'EG 6', url: '/mock/11_EG 6.aac', order: 11 },
+      { name: 'EG 7', url: '/mock/12_EG 7.aac', order: 12 },
+      { name: 'Piano', url: '/mock/13_Piano.aac', order: 13 },
+      { name: 'Keys 1', url: '/mock/14_Keys 1.aac', order: 14 },
+      { name: 'Keys 2', url: '/mock/15_Keys 2.aac', order: 15 },
+      { name: 'Keys 3', url: '/mock/16_Keys 3.aac', order: 16 },
+      { name: 'Keys 4', url: '/mock/17_Keys 4.aac', order: 17 },
+      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac', order: 18 },
+      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac', order: 19 }
     ]
 
-    loadingStage.value = 'Obtendo arquivos de áudio...'
     totalTracks.value = trackFiles.length
-    loaded.value = 0
 
-    const concurrencyLimit = isMobile ? 4 : trackFiles.length
+    // Processador de Fila com Concorrência
+    const queue = [...trackFiles]
+    const CONCURRENCY = 4
 
-    const tasks = trackFiles.map((file) => {
-      return async () => {
-        return new Promise((resolve) => {
-          const audio = new Audio()
-          audio.src = file.url
-          audio.crossOrigin = 'anonymous'
-          audio.preload = 'auto'
+    const updateLoadingMessage = () => {
+      const progress = loadProgress.value
+      if (progress < 25) loadingStage.value = 'Iniciando preparação dos instrumentos...'
+      else if (progress < 50) loadingStage.value = 'Otimizando trilhas de áudio...'
+      else if (progress < 75) loadingStage.value = 'Configurando mixagem e efeitos...'
+      else if (progress < 100) loadingStage.value = 'Finalizando últimos detalhes...'
+    }
 
-          const onCanPlay = async () => {
-            if (audio.duration > duration.value) {
-              duration.value = audio.duration
-            }
+    const processTrack = async (file) => {
+      try {
+        const response = await fetch(file.url)
+        const arrayBuffer = await response.arrayBuffer()
 
-            // 🔥 Priming: Inicializa o decodificador para evitar stutter no primeiro play
-            try {
-              audio.volume = 0
-              await audio.play()
-              audio.pause()
-              audio.currentTime = 0
-            } catch (e) {
-              // Falha silenciosa se houver bloqueio de autoplay
-            }
+        let audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
 
-            loaded.value++
-            loadProgress.value = Math.round((loaded.value / trackFiles.length) * 100)
+        if (audioBuffer.duration > duration.value) {
+          duration.value = audioBuffer.duration
+        }
 
-            audio.removeEventListener('canplaythrough', onCanPlay)
-            resolve({ ...file, audio })
+        const numSlices = Math.ceil(audioBuffer.duration / SLICE_DURATION)
+        const slicesToSave = []
+
+        for (let i = 0; i < numSlices; i++) {
+          const start = i * SLICE_DURATION
+          const end = Math.min(start + SLICE_DURATION, audioBuffer.duration)
+          const length = Math.floor((end - start) * audioBuffer.sampleRate)
+
+          if (length <= 0) continue
+
+          const channels = []
+          for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+            const sliceData = audioBuffer.getChannelData(ch).slice(
+              Math.floor(start * audioBuffer.sampleRate),
+              Math.floor(end * audioBuffer.sampleRate)
+            )
+            channels.push(sliceData)
           }
 
-          audio.addEventListener('canplaythrough', onCanPlay)
+          slicesToSave.push({
+            numberOfChannels: audioBuffer.numberOfChannels,
+            length: length,
+            sampleRate: audioBuffer.sampleRate,
+            channels: channels
+          })
+        }
 
-          audio.onerror = () => {
-            console.error(`Erro ao carregar trilha: ${file.name}`)
-            loaded.value++
-            resolve({ ...file, audio: null })
-          }
+        audioBuffer = null
+        await saveSlicesForTrack(file.name, slicesToSave)
 
-          audio.load()
+        const gain = audioContext.createGain()
+        const analyser = audioContext.createAnalyser()
+        const isAndroid = /Android/i.test(navigator.userAgent)
+        let fftSize = isIOS ? 1024 : (isAndroid ? 1024 : 2048)
+        analyser.fftSize = fftSize
+
+        gain.connect(analyser)
+        analyser.connect(audioContext.destination)
+
+        tracks.value.push({
+          name: file.name,
+          order: file.order,
+          gain,
+          analyser,
+          db: 0,
+          mute: false,
+          solo: false,
+          activeSources: []
         })
+
+        tracks.value.sort((a, b) => a.order - b.order)
+
+        loaded.value++
+        loadProgress.value = Math.round((loaded.value / totalTracks.value) * 100)
+        updateLoadingMessage()
+      } catch (err) {
+        console.error(`Erro em ${file.name}:`, err)
+        loaded.value++
+        loadProgress.value = Math.round((loaded.value / totalTracks.value) * 100)
+        updateLoadingMessage()
+      }
+    }
+
+    // Modelo de Workers Paralelos (mais estável que Promise.race)
+    const workers = Array(CONCURRENCY).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const file = queue.shift()
+        if (file) await processTrack(file)
       }
     })
 
-    const loadedTracks = await runWithConcurrencyLimit(tasks, concurrencyLimit)
-
-    loadingStage.value = 'Configurando roteamento...'
-
-    loadedTracks.forEach(t => {
-      if (!t || !t.audio) return
-
-      const source = audioContext.createMediaElementSource(t.audio)
-      const gain = audioContext.createGain()
-      const analyser = audioContext.createAnalyser()
-
-      // Configuração de fidelidade visual por plataforma
-      const isAndroid = /Android/i.test(navigator.userAgent)
-      let fftSize = 2048 // Desktop padrão
-      if (isIOS) fftSize = 256
-      else if (isAndroid) fftSize = 512
-
-      analyser.fftSize = fftSize
-      analyser.smoothingTimeConstant = 0.8
-
-      source.connect(gain)
-      gain.connect(analyser)
-      analyser.connect(audioContext.destination)
-
-      tracks.value.push({
-        name: t.name,
-        audio: t.audio,
-        gain,
-        analyser,
-        db: 0,
-        mute: false,
-        solo: false
-      })
-    })
+    await Promise.all(workers)
 
     loadingStage.value = 'Pronto!'
     isLoading.value = false
+  }
 
-    // Alinhamento preventivo: Já deixa todas as trilhas na posição inicial para pre-buffer
-    tracks.value.forEach(t => {
-      t.audio.currentTime = currentTime.value
+  /**
+   * --- SCHEDULER ENGINE ---
+   */
+  async function scheduleNextSlice(offsetInSong) {
+    if (!isPlaying.value) return
+
+    const sliceIndex = Math.floor(offsetInSong / SLICE_DURATION)
+    const offsetInSlice = offsetInSong % SLICE_DURATION
+
+    if (offsetInSong >= duration.value) {
+      stop()
+      return
+    }
+
+    const slicePromises = tracks.value.map(async (track) => {
+      const buffer = await getSliceAsBuffer(track.name, sliceIndex)
+      if (!buffer || !isPlaying.value) return null
+
+      const source = audioContext.createBufferSource()
+      source.buffer = buffer
+      source.connect(track.gain)
+      track.activeSources.push(source)
+
+      const startTimeAt = expectedNextSliceTime
+      source.start(startTimeAt, offsetInSlice)
+
+      // Quando o buffer termina, removemos da lista de ativos
+      source.onended = () => {
+        track.activeSources = track.activeSources.filter(s => s !== source)
+      }
+
+      return buffer.duration - offsetInSlice
     })
+
+    const durations = await Promise.all(slicePromises)
+    const currentSliceRemaining = Math.max(...durations.filter(d => d !== null), 0)
+
+    expectedNextSliceTime += currentSliceRemaining
+    const nextOffsetInSong = offsetInSong + currentSliceRemaining
+
+    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 1) * 1000
+
+    nextSliceTimeout = setTimeout(() => {
+      scheduleNextSlice(nextOffsetInSong)
+    }, Math.max(0, msToWait))
+  }
+
+  async function play(offset = currentTime.value) {
+    if (isPlaying.value) return
+    if (audioContext.state === 'suspended') await audioContext.resume()
+
+    isPlaying.value = true
+
+    // --- FASE DE PRE-FETCH ATÔMICO ---
+    const sliceIndex = Math.floor(offset / SLICE_DURATION)
+    const offsetInSlice = offset % SLICE_DURATION
+
+    // Busca os buffers iniciais de TODAS as trilhas em paralelo antes de agendar
+    const buffers = await Promise.all(
+      tracks.value.map(t => getSliceAsBuffer(t.name, sliceIndex))
+    )
+
+    // Se o usuário parou a música durante o carregamento dos buffers
+    if (!isPlaying.value) return
+
+    // Define o ponto de partida absoluto no tempo do AudioContext após os buffers estarem na RAM
+    const renderDelay = 0.1 // 100ms para o hardware processar o disparo
+    expectedNextSliceTime = audioContext.currentTime + renderDelay
+    playbackStartTime = expectedNextSliceTime - offset
+
+    // Dispara todas as trilhas sincronizadas no futuro próximo
+    const durations = tracks.value.map((track, i) => {
+      const buffer = buffers[i]
+      if (!buffer) return 0
+
+      const source = audioContext.createBufferSource()
+      source.buffer = buffer
+      source.connect(track.gain)
+      track.activeSources.push(source)
+
+      source.start(expectedNextSliceTime, offsetInSlice)
+
+      source.onended = () => {
+        track.activeSources = track.activeSources.filter(s => s !== source)
+      }
+
+      return buffer.duration - offsetInSlice
+    })
+
+    const currentSliceRemaining = Math.max(...durations, 0)
+
+    // Agenda a recursividade para o próximo bloco
+    const nextOffsetInSong = offset + currentSliceRemaining
+    expectedNextSliceTime += currentSliceRemaining
+
+    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 1) * 1000
+    nextSliceTimeout = setTimeout(() => {
+      scheduleNextSlice(nextOffsetInSong)
+    }, Math.max(0, msToWait))
+
+    updateTime()
+  }
+
+  function updateTime() {
+    if (!isPlaying.value) return
+    currentTime.value = audioContext.currentTime - playbackStartTime
+
+    if (currentTime.value >= duration.value) {
+      stop()
+      return
+    }
+
+    animationFrameId = requestAnimationFrame(updateTime)
+  }
+
+  function stop() {
+    isPlaying.value = false
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    if (nextSliceTimeout) {
+      clearTimeout(nextSliceTimeout)
+      nextSliceTimeout = null
+    }
+
+    tracks.value.forEach(track => {
+      track.activeSources.forEach(s => {
+        try { s.stop() } catch (e) { }
+      })
+      track.activeSources = []
+    })
+  }
+
+  function seek(time) {
+    const wasPlaying = isPlaying.value
+    stop()
+    currentTime.value = time
+    if (wasPlaying) play(time)
   }
 
   function updateAudioRouting() {
     const soloed = tracks.value.filter(t => t.solo)
-
     tracks.value.forEach(track => {
       let targetGain = 0
       if (soloed.length > 0) {
@@ -165,115 +395,8 @@ export function useAudioMixer() {
       } else {
         targetGain = track.mute ? 0 : dbToGain(track.db)
       }
-
-      track.gain.gain.cancelScheduledValues(audioContext.currentTime)
-      track.gain.gain.linearRampToValueAtTime(
-        targetGain,
-        audioContext.currentTime + 0.05
-      )
+      track.gain.gain.setTargetAtTime(targetGain, audioContext.currentTime, 0.05)
     })
-  }
-
-  async function play(offset = currentTime.value) {
-    if (isPlaying.value) return
-
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume()
-    }
-
-    playStartTimeAtContext = audioContext.currentTime
-
-    tracks.value.forEach(track => {
-      track.audio.currentTime = offset
-      track.audio.volume = 1
-    })
-
-    try {
-      await Promise.all(tracks.value.map(track => track.audio.play()))
-
-      isPlaying.value = true
-
-      if (animationFrameId) cancelAnimationFrame(animationFrameId)
-      animationFrameId = requestAnimationFrame(updateTime)
-    } catch (err) {
-      console.error("Erro ao iniciar reprodução:", err)
-    }
-  }
-
-  function updateTime() {
-    if (!isPlaying.value) return
-
-    if (tracks.value.length > 0) {
-      const master = tracks.value[0].audio
-      const masterTime = master.currentTime
-      currentTime.value = masterTime
-
-      // Master-Slave Sync: Corrige o drift entre as faixas
-      const now = Date.now()
-      const elapsedSinceStart = (audioContext.currentTime - playStartTimeAtContext) * 1000
-
-      // Auto-Stop: Pausa a música ao chegar no final para evitar drift infinito
-      if (master.ended || masterTime >= duration.value - 0.1) {
-        stop()
-        return
-      }
-
-      // Janela de Inércia: Nos primeiros 2 segundos, não corrigimos drift
-      // Isso permite que o buffer se estabilize sem seeks agressivos na largada
-      const isInInertiaWindow = elapsedSinceStart < 2000
-
-      if (!isInInertiaWindow) {
-        // Fase de Sincronia Sob Demanda (Smart Check)
-        const shouldCheckSync = !isIOS || (now - lastCheckTime > CHECK_INTERVAL_MS)
-
-        if (shouldCheckSync) {
-          if (isIOS) lastCheckTime = now
-
-          for (let i = 1; i < tracks.value.length; i++) {
-            const track = tracks.value[i]
-            const slave = track.audio
-
-            if (track.mute) continue
-
-            const diff = slave.currentTime - masterTime
-
-            if (Math.abs(diff) > DRIFT_THRESHOLD) {
-              if (isIOS) {
-                const lastSync = lastSyncTimes.get(track.name) || 0
-                if (now - lastSync < SYNC_COOLDOWN_MS) continue
-
-                lastSyncTimes.set(track.name, now)
-              }
-
-              slave.currentTime = masterTime
-              syncCount.value++
-            }
-          }
-        }
-      }
-    }
-
-    animationFrameId = requestAnimationFrame(updateTime)
-  }
-
-  function stop() {
-    tracks.value.forEach(track => {
-      track.audio.pause()
-    })
-    isPlaying.value = false
-    if (animationFrameId) cancelAnimationFrame(animationFrameId)
-  }
-
-  function seek(time) {
-    const wasPlaying = isPlaying.value
-    if (wasPlaying) stop()
-
-    currentTime.value = time
-    tracks.value.forEach(track => {
-      track.audio.currentTime = time
-    })
-
-    if (wasPlaying) play(time)
   }
 
   function setDb(track, db) {
@@ -291,27 +414,6 @@ export function useAudioMixer() {
     updateAudioRouting()
   }
 
-  async function runWithConcurrencyLimit(tasks, limit) {
-    const results = []
-    const executing = []
-
-    for (const task of tasks) {
-      const p = Promise.resolve().then(() => task())
-      results.push(p)
-
-      if (limit <= tasks.length) {
-        const e = p.then(() => executing.splice(executing.indexOf(e), 1))
-        executing.push(e)
-
-        if (executing.length >= limit) {
-          await Promise.race(executing)
-        }
-      }
-    }
-
-    return Promise.all(results)
-  }
-
   return {
     tracks,
     isPlaying,
@@ -320,7 +422,6 @@ export function useAudioMixer() {
     loadingStage,
     isLoading,
     loadProgress,
-    syncCount,
     loadMockTracks,
     play,
     stop,
