@@ -110,11 +110,33 @@ function dbToGain(db) {
 export function useAudioMixer() {
 
   /**
-   * --- CARREGAMENTO SEQUENCIAL (SAFE FOR IOS) ---
-   * Baixa, decodifica e fatia trilha por trilha para não estourar a RAM
+   * Limpa todo o estado do mixer para carregar uma nova música.
    */
-  async function loadMockTracks() {
-    if (tracks.value.length) return
+  function resetMixer() {
+    stop()
+    tracks.value.forEach(track => {
+      track.gain.disconnect()
+      track.analyser.disconnect()
+    })
+    tracks.value = []
+    duration.value = 0
+    currentTime.value = 0
+    loaded.value = 0
+    totalTracks.value = 0
+    loadProgress.value = 0
+    isLoading.value = false
+    loadingStage.value = 'Iniciando Engine de Áudio...'
+  }
+
+  /**
+   * --- CARREGAMENTO DINÂMICO ---
+   * Recebe um array de tracks [{ name, url, order }] e processa em paralelo.
+   */
+  async function loadTracks(trackFiles) {
+    if (!trackFiles || trackFiles.length === 0) return
+
+    // Limpar estado anterior (caso esteja trocando de música)
+    if (tracks.value.length) resetMixer()
 
     isLoading.value = true
     loadProgress.value = 0
@@ -123,28 +145,6 @@ export function useAudioMixer() {
     // TODO: Implementar lógica de persistência inteligente (manter até limite X de memória)
     // para evitar reprocessamento de músicas abertas recentemente.
     await clearOldCache()
-
-    const trackFiles = [
-      { name: 'Click', url: '/mock/01_Click Track.aac', order: 1 },
-      { name: 'Guide', url: '/mock/02_Guide.aac', order: 2 },
-      { name: 'Drums', url: '/mock/03_Drums.aac', order: 3 },
-      { name: 'Bass', url: '/mock/04_Bass.aac', order: 4 },
-      { name: 'AG', url: '/mock/05_AG.aac', order: 5 },
-      { name: 'EG 1', url: '/mock/06_EG 1.aac', order: 6 },
-      { name: 'EG 2', url: '/mock/07_EG 2.aac', order: 7 },
-      { name: 'EG 3', url: '/mock/08_EG 3.aac', order: 8 },
-      { name: 'EG 4', url: '/mock/09_EG 4.aac', order: 9 },
-      { name: 'EG 5', url: '/mock/10_EG 5.aac', order: 10 },
-      { name: 'EG 6', url: '/mock/11_EG 6.aac', order: 11 },
-      { name: 'EG 7', url: '/mock/12_EG 7.aac', order: 12 },
-      { name: 'Piano', url: '/mock/13_Piano.aac', order: 13 },
-      { name: 'Keys 1', url: '/mock/14_Keys 1.aac', order: 14 },
-      { name: 'Keys 2', url: '/mock/15_Keys 2.aac', order: 15 },
-      { name: 'Keys 3', url: '/mock/16_Keys 3.aac', order: 16 },
-      { name: 'Keys 4', url: '/mock/17_Keys 4.aac', order: 17 },
-      { name: 'Synth Bass', url: '/mock/18_Synth Bass.aac', order: 18 },
-      { name: 'Synth Loop', url: '/mock/19_Synth Loop.aac', order: 19 }
-    ]
 
     totalTracks.value = trackFiles.length
 
@@ -234,7 +234,7 @@ export function useAudioMixer() {
       }
     }
 
-    // Modelo de Workers Paralelos (mais estável que Promise.race)
+    // Modelo de Workers Paralelos
     const workers = Array(CONCURRENCY).fill(null).map(async () => {
       while (queue.length > 0) {
         const file = queue.shift()
@@ -422,7 +422,8 @@ export function useAudioMixer() {
     loadingStage,
     isLoading,
     loadProgress,
-    loadMockTracks,
+    loadTracks,
+    resetMixer,
     play,
     stop,
     seek,
