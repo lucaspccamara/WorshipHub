@@ -1,15 +1,24 @@
 <template>
   <div class="mixer-wrapper">
 
+    <!-- ESTADO 1: SPLASH (tela inicial) -->
     <transition name="fade">
-      <div v-if="isLoading" class="loading-screen">
+      <MixerSplash
+        v-if="mixerState === 'splash'"
+        @start="startMixer"
+      />
+    </transition>
+
+    <!-- ESTADO 2: LOADING (processando áudio) -->
+    <transition name="fade">
+      <div v-if="mixerState === 'loading'" class="loading-screen">
         <div class="loading-content">
 
           <h1 class="project-title">WorshipHub Mixer</h1>
           <p class="loading-stage">{{ loadingStage }}</p>
 
           <div class="progress-track">
-            <div 
+            <div
               class="progress-bar"
               :style="{ width: loadProgress + '%' }"
             />
@@ -23,25 +32,26 @@
       </div>
     </transition>
 
+    <!-- ESTADO 3: MIXER (mesa de som) -->
     <transition name="fade">
-      <div v-if="!isLoading" class="mixer-screen">
+      <div v-if="mixerState === 'mixer'" class="mixer-screen">
         <div v-for="track in tracks" :key="track.name" class="channel">
-    
+
           <!-- DISPLAY -->
           <div class="db-display">
             {{ track.db.toFixed(1) }}
           </div>
-    
+
           <!-- FADER + METER SIDE BY SIDE -->
           <div class="strip">
-    
+
             <!-- SCALE -->
             <div class="scale">
               <div v-for="mark in dbMarks" :key="mark">
                 {{ mark }}
               </div>
             </div>
-    
+
             <!-- FADER -->
             <q-slider
               vertical
@@ -53,19 +63,19 @@
               @update:model-value="val => setDb(track, val)"
               class="fader"
             />
-    
+
             <!-- METER -->
             <div class="meter">
               <MeterCanvas :analyser="track.analyser" />
             </div>
-    
+
           </div>
-    
+
           <!-- CHANNEL NAME -->
           <div class="btn channel-name" :class="{ active: !track.mute }" @click="toggleMute(track)">
             {{ track.name }}
           </div>
-    
+
           <!-- BUTTONS -->
           <div class="buttons">
             <div
@@ -84,40 +94,88 @@
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { useAudioMixer } from '../composables/useAudioMixer'
 import MeterCanvas from './MeterCanvas.vue'
+import MixerSplash from './MixerSplash.vue'
+
+const props = defineProps({
+  musicId: {
+    type: Number,
+    required: true
+  }
+})
 
 const {
   tracks,
   isLoading,
   loadingStage,
   loadProgress,
-  loadMockTracks,
+  loadTracks,
   setDb,
   toggleMute,
   toggleSolo
 } = useAudioMixer()
 
-const devicePrefix = computed(() => {
-  const ua = navigator.userAgent
-  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
-  if (/Android/i.test(ua)) return 'Android'
-  return 'Desktop'
+const mixerState = ref('splash') // 'splash' | 'loading' | 'mixer'
+
+/**
+ * Busca as tracks da música selecionada.
+ * No modo mock: lê /mock/{musicId}/tracks.json
+ * Futuramente: GET /api/musics/{id}/tracks
+ */
+async function fetchTracks(musicId) {
+  // TODO: Substituir por chamada à API quando o backend estiver pronto
+  // const response = await api.get('musics', `${musicId}/tracks`)
+  // return response.data.map(t => ({ name: t.name, url: t.fileUrl, order: t.order }))
+
+  const basePath = `/mock/${musicId}`
+  const response = await fetch(`${basePath}/tracks.json`)
+
+  if (!response.ok) {
+    console.error(`Tracks não encontradas para a música ${musicId}`)
+    return []
+  }
+
+  try {
+    const manifest = await response.json()
+    return manifest.map(t => ({
+      name: t.name,
+      url: `${basePath}/${t.file}`,
+      order: t.order
+    }))
+  } catch (error) {
+    console.error(`Erro ao parsear tracks.json (provavelmente o arquivo não existe e a rota retornou HTML):`, error)
+    return []
+  }
+}
+
+/**
+ * Inicia o carregamento do mixer quando o usuário clica no botão
+ */
+async function startMixer() {
+  mixerState.value = 'loading'
+  const trackFiles = await fetchTracks(props.musicId)
+  if (trackFiles.length > 0) {
+    loadTracks(trackFiles)
+  }
+}
+
+// Quando o loading termina, transitar para o mixer
+watch(isLoading, (loading) => {
+  if (!loading && mixerState.value === 'loading') {
+    mixerState.value = 'mixer'
+  }
 })
 
 const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
-
-onMounted(() => {
-  loadMockTracks()
-})
 </script>
 
 <style scoped>
 .mixer-wrapper {
   position: relative;
   height: 100%;
-  background: #2c2c2c;
+  background: #1a1a2e;
   color: #eee;
   overflow: hidden;
 }
@@ -125,7 +183,7 @@ onMounted(() => {
 /* Fade suave */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 .fade-enter-from,
 .fade-leave-to {
@@ -139,7 +197,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2c2c2c;;
+  background: #1a1a2e;
 }
 
 .loading-content {
@@ -162,7 +220,7 @@ onMounted(() => {
 
 .progress-track {
   height: 4px;
-  background: #1b1b22;
+  background: #0d0d1a;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -189,7 +247,7 @@ onMounted(() => {
   overflow-x: auto;
   gap: 6px;
   padding: 20px;
-  background: #2c2c2c;;
+  background: #2c2c2c;
 }
 
 .channel {
@@ -249,7 +307,7 @@ onMounted(() => {
 
 .channel-name {
   width: 90px;
-  margin-top: 10px;  
+  margin-top: 10px;
 }
 
 .buttons {
@@ -275,11 +333,5 @@ onMounted(() => {
 .btn.active {
   background: #f4a742;
   color: black;
-}
-
-
-.platform-tag {
-  color: #00ccff;
-  font-weight: bold;
 }
 </style>

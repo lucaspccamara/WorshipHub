@@ -9,7 +9,7 @@
 
     <q-tabs v-model="tab" dense>
       <q-tab name="details" label="Detalhes" />
-      <q-tab name="mixer" label="Mixer VS" />
+      <q-tab name="mixer" label="Mixer" />
       <q-tab name="chords" label="Cifra" />
     </q-tabs>
 
@@ -22,7 +22,7 @@
       </q-tab-panel>
 
       <q-tab-panel name="mixer" class="q-pa-none">
-        <MixerVS />
+        <MixerVS :musicId="musicId" />
       </q-tab-panel>
 
       <q-tab-panel name="chords">
@@ -32,7 +32,7 @@
     </q-tab-panels>
 
     <transition name="cinematic-reveal">
-      <MiniPlayer v-if="!isLoading" />
+      <MiniPlayer v-if="!isLoading && tracks.length > 0" />
     </transition>
 
   </q-card>
@@ -46,7 +46,14 @@ import MixerVS from './MixerVS.vue'
 import MiniPlayer from './MiniPlayer.vue'
 import { useAudioMixer } from '../composables/useAudioMixer'
 
-const { isLoading } = useAudioMixer()
+const props = defineProps({
+  musicId: {
+    type: Number,
+    required: true
+  }
+})
+
+const { isLoading, tracks } = useAudioMixer()
 const tab = ref('mixer')
 </script>
 

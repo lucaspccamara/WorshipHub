@@ -1,0 +1,21 @@
+[
+  { "name": "Click", "file": "01_Click Track.aac", "order": 1 },
+  { "name": "Guide", "file": "02_Guide.aac", "order": 2 },
+  { "name": "Drums", "file": "03_Drums.aac", "order": 3 },
+  { "name": "Bass", "file": "04_Bass.aac", "order": 4 },
+  { "name": "AG", "file": "05_AG.aac", "order": 5 },
+  { "name": "EG 1", "file": "06_EG 1.aac", "order": 6 },
+  { "name": "EG 2", "file": "07_EG 2.aac", "order": 7 },
+  { "name": "EG 3", "file": "08_EG 3.aac", "order": 8 },
+  { "name": "EG 4", "file": "09_EG 4.aac", "order": 9 },
+  { "name": "EG 5", "file": "10_EG 5.aac", "order": 10 },
+  { "name": "EG 6", "file": "11_EG 6.aac", "order": 11 },
+  { "name": "EG 7", "file": "12_EG 7.aac", "order": 12 },
+  { "name": "Piano", "file": "13_Piano.aac", "order": 13 },
+  { "name": "Keys 1", "file": "14_Keys 1.aac", "order": 14 },
+  { "name": "Keys 2", "file": "15_Keys 2.aac", "order": 15 },
+  { "name": "Keys 3", "file": "16_Keys 3.aac", "order": 16 },
+  { "name": "Keys 4", "file": "17_Keys 4.aac", "order": 17 },
+  { "name": "Synth Bass", "file": "18_Synth Bass.aac", "order": 18 },
+  { "name": "Synth Loop", "file": "19_Synth Loop.aac", "order": 19 }
+]

@@ -95,7 +95,7 @@
     transition-show="slide-up"
     transition-hide="slide-down"
   >
-    <MusicOverview :music="selectedMusic" />
+    <MusicOverview :musicId="selectedMusic" />
   </q-dialog>
 </template>
 
