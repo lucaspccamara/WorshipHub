@@ -142,8 +142,6 @@ export function useAudioMixer() {
     loadProgress.value = 0
     loadingStage.value = 'Limpando cache...'
 
-    // TODO: Implementar lógica de persistência inteligente (manter até limite X de memória)
-    // para evitar reprocessamento de músicas abertas recentemente.
     await clearOldCache()
 
     totalTracks.value = trackFiles.length
@@ -387,10 +385,10 @@ export function useAudioMixer() {
   }
 
   function updateAudioRouting() {
-    const soloed = tracks.value.filter(t => t.solo)
+    const isSoloed = tracks.value.some(t => t.solo)
     tracks.value.forEach(track => {
       let targetGain = 0
-      if (soloed.length > 0) {
+      if (isSoloed) {
         targetGain = track.solo ? dbToGain(track.db) : 0
       } else {
         targetGain = track.mute ? 0 : dbToGain(track.db)
@@ -399,9 +397,20 @@ export function useAudioMixer() {
     })
   }
 
+  function updateSingleTrackRouting(track) {
+    const isSoloed = tracks.value.some(t => t.solo)
+    let targetGain = 0
+    if (isSoloed) {
+      targetGain = track.solo ? dbToGain(track.db) : 0
+    } else {
+      targetGain = track.mute ? 0 : dbToGain(track.db)
+    }
+    track.gain.gain.setTargetAtTime(targetGain, audioContext.currentTime, 0.05)
+  }
+
   function setDb(track, db) {
-    track.db = db
-    updateAudioRouting()
+    track.db = Number(db.toFixed(1)) // Arredonda e previne reatividade excessiva de floats longos
+    updateSingleTrackRouting(track)
   }
 
   function toggleMute(track) {

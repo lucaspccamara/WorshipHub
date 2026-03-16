@@ -93,7 +93,7 @@ function draw() {
 onMounted(() => {
   const c = canvas.value
   c.width = 14
-  c.height = 240
+  c.height = 260
 
   ctx = c.getContext('2d')
 
@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .meter-canvas {
   width: 14px;
-  height: 240px;
+  height: 260px;
   background: #111;
   border-radius: 2px;
 }

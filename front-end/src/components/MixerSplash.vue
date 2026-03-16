@@ -6,15 +6,32 @@
       <h1 class="splash-title">WorshipHub<span class="splash-accent">Mixer</span></h1>
       <p class="splash-subtitle">Virtual Soundcheck</p>
 
-      <button
-        class="splash-btn"
-        @click="$emit('start')"
-        @mouseenter="isHovering = true"
-        @mouseleave="isHovering = false"
-      >
-        <span class="btn-icon">▶</span>
-        <span class="btn-text">Abrir Mixer</span>
-      </button>
+      <transition name="fade-slide" mode="out-in">
+        <!-- BOTÃO (Quando não está carregando) -->
+        <button
+          v-if="!isProcessing"
+          key="btn"
+          class="splash-btn"
+          @click="$emit('start')"
+          @mouseenter="isHovering = true"
+          @mouseleave="isHovering = false"
+        >
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">Abrir Mixer</span>
+        </button>
+
+        <!-- CARREGAMENTO (Quando o usuário já clicou) -->
+        <div v-else key="loader" class="loader-container">
+          <p class="loading-stage">{{ loadingStage }}</p>
+          <div class="progress-track">
+            <div
+              class="progress-bar"
+              :style="{ width: loadProgress + '%' }"
+            />
+          </div>
+          <div class="progress-text">{{ loadProgress }}%</div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -22,6 +39,12 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as THREE from 'three'
+
+const props = defineProps({
+  isProcessing: { type: Boolean, default: false },
+  loadProgress: { type: Number, default: 0 },
+  loadingStage: { type: String, default: 'Iniciando Engine...' }
+})
 
 defineEmits(['start'])
 
@@ -186,7 +209,7 @@ function animate() {
 
   const positionAttr = particles.geometry.attributes.position
   const positions = positionAttr.array
-  const target = isHovering.value ? notePositions : spherePositions
+  const target = (isHovering.value || props.isProcessing) ? notePositions : spherePositions
 
   // Interpolar partículas para a posição alvo (morphing suave)
   for (let i = 0; i < positions.length; i++) {
@@ -322,5 +345,55 @@ onBeforeUnmount(() => {
 
 .btn-text {
   text-transform: uppercase;
+}
+
+/* Transições Splash -> Loading */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.4s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Loader Estilos Novos */
+.loader-container {
+  width: 320px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.loading-stage {
+  font-size: 14px;
+  color: #00ccff;  /* Ciano claro combinando com a cena */
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.progress-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff88, #00ccff);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.progress-text {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #00ff88;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 </style>
