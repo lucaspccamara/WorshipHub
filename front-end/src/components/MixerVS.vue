@@ -33,8 +33,13 @@
           <div class="strip">
             <!-- SCALE -->
             <div class="scale">
-              <div v-for="mark in dbMarks" :key="mark">
-                {{ mark }}
+              <div 
+                v-for="mark in dbMarks" 
+                :key="mark.val" 
+                class="scale-mark"
+                :style="{ bottom: mark.pos + '%' }"
+              >
+                {{ mark.val }}
               </div>
             </div>
 
@@ -43,10 +48,10 @@
               <q-slider
                 vertical
                 reverse
-                :min="-60"
-                :max="6"
+                :min="0"
+                :max="100"
                 :step="0.1"
-                v-model="track.db"
+                :model-value="dbToRatio(track.db) * 100"
                 class="fader q-slider-cyan"
                 track-size="4px"
                 thumb-size="16px"
@@ -152,14 +157,28 @@ async function fetchTracks(musicId) {
   }
 }
 
+const SENSITIVITY = 0.0025 
+
 /**
- * LOGICA DE DRAG SUAVE (Estilo DAW)
- * Intercepta o movimento do mouse para não "pular" pro local clicado, apenas arrastar a partir do ponto clicado.
+ * Converte dB para Ratio Visual (0 a 1).
+ * 0 = -60dB (base), 1 = +6dB (topo).
  */
+function dbToRatio(db) {
+  const norm = (db + 60) / 66 
+  return Math.pow(Math.max(0, Math.min(1, norm)), 2)
+}
+
+/**
+ * Converte Ratio Visual (0 a 1) para dB.
+ */
+function ratioToDb(ratio) {
+  const norm = Math.sqrt(Math.max(0, Math.min(1, ratio)))
+  return norm * 66 - 60
+}
+
 let dragInitialY = 0
 let dragInitialDb = 0
 let currentDragTrack = null
-const SENSITIVITY = 0.15 // Visualmente ajustado para cobrir ~55% da escala ao percorrer toda a extensão física do fader (≈15dB a cada 100px).
 
 function startDrag(event, track) {
   currentDragTrack = track
@@ -176,18 +195,19 @@ function startDrag(event, track) {
 }
 
 function onDrag(event) {
-  if (!currentDragTrack) return
-  event.preventDefault()
-  
   const clientY = event.clientY || (event.touches ? event.touches[0].clientY : 0)
   const deltaY = clientY - dragInitialY
   
-  // Como o slider é vertical com "reverse" (-60 em baixo, 6 em cima):
-  // Mover o mouse para baixo (deltaY positivo) diminui o volume.
-  let newDb = dragInitialDb - (deltaY * SENSITIVITY)
+  // Pegamos o ratio inicial (0=base, 1=topo)
+  const initialRatio = dbToRatio(dragInitialDb)
   
-  if (newDb > 6) newDb = 6
-  if (newDb < -60) newDb = -60
+  // Mouse para baixo (deltaY > 0) diminui o volume (newRatio desce)
+  let newRatio = initialRatio - (deltaY * SENSITIVITY)
+  
+  if (newRatio > 1) newRatio = 1
+  if (newRatio < 0) newRatio = 0
+  
+  const newDb = ratioToDb(newRatio)
   
   currentDragTrack.db = newDb
   setDb(currentDragTrack, newDb)
@@ -231,7 +251,13 @@ watch(isLoading, (loading, oldLoading) => {
   }
 })
 
-const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
+// Marcas da régua calculadas matematicamente para posicionamento absoluto (Bottom Up)
+const dbMarks = computed(() => {
+  return [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -60].map(val => ({
+    val,
+    pos: dbToRatio(val) * 100
+  }))
+})
 </script>
 
 <style scoped>
@@ -295,13 +321,13 @@ const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
   padding: 6px 0;
   border-radius: 6px;
   font-family: 'Courier New', Courier, monospace;
-  font-variant-numeric: tabular-nums; /* Evita pulos baseados nos caracteres */
+  font-variant-numeric: tabular-nums; 
   font-size: 13px;
   font-weight: 600;
   color: #00ccff;
   letter-spacing: 1px;
   margin-bottom: 30px;
-  width: 50px; /* Largura mínima e fixa para comportar "-60.0" sem quebrar */
+  width: 50px; 
   text-align: center;
 }
 
@@ -316,14 +342,19 @@ const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
 
 /* Escala */
 .scale {
+  position: relative; 
+  width: 30px;
+  height: 100%;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.3);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  text-align: right;
-  padding-right: 8px;
   user-select: none;
+}
+
+.scale-mark {
+  position: absolute;
+  right: 8px;
+  transform: translateY(50%); /* Centraliza o texto na marca */
+  white-space: nowrap;
 }
 
 /* Área de Custom Drag */
@@ -443,8 +474,7 @@ const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
     inset 0 -1px 1px rgba(0,0,0,0.8) !important; /* Escurecimento na base */
   position: absolute !important;
   left: 50% !important;
-  /* Meu thumb agora tem 40px. 
-     A diferença de centro a centro é 40/2 = 20px! Desloco para baixo: */
+  /* Centraliza o knob no ponto exato do valor */
   transform: translate(-50%, 20px) !important;
 }
 

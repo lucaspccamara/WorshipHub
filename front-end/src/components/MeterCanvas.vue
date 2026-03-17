@@ -69,8 +69,9 @@ function draw() {
 
   ctx.clearRect(0, 0, width, height)
 
-  const normalized = (meterValue + 60) / 66
-  const meterHeight = Math.max(0, normalized) * height
+  const normalizedDb = (meterValue + 60) / 66
+  const normalized = Math.pow(Math.max(0, normalizedDb), 2)
+  const meterHeight = normalized * height
 
   const gradient = ctx.createLinearGradient(0, 0, 0, height)
   gradient.addColorStop(0, '#ff3300')
@@ -81,7 +82,8 @@ function draw() {
   ctx.fillRect(0, height - meterHeight, width, meterHeight)
 
   // Desenhar Peak Hold
-  const peakNorm = (peakHoldValue + 60) / 66
+  const peakHoldNormDb = (peakHoldValue + 60) / 66
+  const peakNorm = Math.pow(Math.max(0, peakHoldNormDb), 2)
   const peakY = height - (peakNorm * height)
 
   ctx.fillStyle = '#ffffff'
