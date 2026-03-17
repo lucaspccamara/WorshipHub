@@ -1,85 +1,92 @@
 <template>
   <div class="mixer-wrapper">
 
-    <!-- ESTADO 1: SPLASH (tela inicial) -->
-    <transition name="fade">
+    <!-- SPLASH & LOADING UNIFICADOS (Gerenciado agora pelo MixerSplash) -->
+    <transition name="fade-slow">
       <MixerSplash
-        v-if="mixerState === 'splash'"
+        v-if="mostrarSplashOuLoading"
+        :isProcessing="isLoading"
+        :loadProgress="loadProgress"
+        :loadingStage="loadingStage"
         @start="startMixer"
       />
     </transition>
 
-    <!-- ESTADO 2: LOADING (processando áudio) -->
-    <transition name="fade">
-      <div v-if="mixerState === 'loading'" class="loading-screen">
-        <div class="loading-content">
+    <transition name="fade-slow">
+      <div v-show="!mostrarSplashOuLoading" class="mixer-screen">
+        <div 
+          v-for="track in tracks" 
+          :key="track.name" 
+          class="channel" 
+          :class="{ 
+            'is-muted': track.mute || (hasAnySolo && !track.solo), 
+            'is-solo': track.solo 
+          }"
+        >
 
-          <h1 class="project-title">WorshipHub Mixer</h1>
-          <p class="loading-stage">{{ loadingStage }}</p>
-
-          <div class="progress-track">
-            <div
-              class="progress-bar"
-              :style="{ width: loadProgress + '%' }"
-            />
-          </div>
-
-          <div class="progress-text">
-            {{ loadProgress }}%
-          </div>
-
-        </div>
-      </div>
-    </transition>
-
-    <!-- ESTADO 3: MIXER (mesa de som) -->
-    <transition name="fade">
-      <div v-if="mixerState === 'mixer'" class="mixer-screen">
-        <div v-for="track in tracks" :key="track.name" class="channel">
-
-          <!-- DISPLAY -->
+          <!-- DISPLAY DB -->
           <div class="db-display">
             {{ track.db.toFixed(1) }}
           </div>
 
-          <!-- FADER + METER SIDE BY SIDE -->
+          <!-- STRIP (Escala + Fader + Meter) -->
           <div class="strip">
-
             <!-- SCALE -->
             <div class="scale">
-              <div v-for="mark in dbMarks" :key="mark">
-                {{ mark }}
+              <div 
+                v-for="mark in dbMarks" 
+                :key="mark.val" 
+                class="scale-mark"
+                :style="{ bottom: mark.pos + '%' }"
+              >
+                {{ mark.val }}
               </div>
             </div>
 
-            <!-- FADER -->
-            <q-slider
-              vertical
-              reverse
-              :min="-60"
-              :max="6"
-              :step="0.1"
-              v-model="track.db"
-              @update:model-value="val => setDb(track, val)"
-              class="fader"
-            />
+            <!-- FADER CONTAINER (com nossa lógica Custom de Drag/Daw) -->
+            <div class="fader-wrapper">
+              <q-slider
+                vertical
+                reverse
+                :min="0"
+                :max="100"
+                :step="0.1"
+                :model-value="dbToRatio(track.db) * 100"
+                class="fader q-slider-cyan"
+                track-size="4px"
+                thumb-size="16px"
+                :color="track.solo ? 'orange-8' : (track.mute || (hasAnySolo && !track.solo) ? 'grey-7' : 'cyan-4')"
+                readonly
+              />
+              
+              <!-- ÁREA INVISÍVEL DE CAPTURA DE MOVES -->
+              <div 
+                class="fader-overlay"
+                @mousedown="startDrag($event, track)"
+                @touchstart.prevent="startDrag($event, track)"
+                @dblclick="resetDb(track)"
+              ></div>
+            </div>
 
             <!-- METER -->
             <div class="meter">
               <MeterCanvas :analyser="track.analyser" />
             </div>
-
           </div>
 
-          <!-- CHANNEL NAME -->
-          <div class="btn channel-name" :class="{ active: !track.mute }" @click="toggleMute(track)">
+          <!-- CHANNEL NAME (Mute Button) -->
+          <div 
+            class="btn-name" 
+            :class="{ active: !track.mute }" 
+            @click="toggleMute(track)"
+          >
             {{ track.name }}
           </div>
 
-          <!-- BUTTONS -->
+          <!-- SOLO BUTTON -->
           <div class="buttons">
             <div
-              class="btn"
+              class="btn-solo"
               :class="{ active: track.solo }"
               @click="toggleSolo(track)"
             >
@@ -87,14 +94,13 @@
             </div>
           </div>
         </div>
-
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useAudioMixer } from '../composables/useAudioMixer'
 import MeterCanvas from './MeterCanvas.vue'
 import MixerSplash from './MixerSplash.vue'
@@ -117,7 +123,12 @@ const {
   toggleSolo
 } = useAudioMixer()
 
-const mixerState = ref('splash') // 'splash' | 'loading' | 'mixer'
+// Identifica se existe algum canal em modo Solo na mesa
+const hasAnySolo = computed(() => tracks.value.some(t => t.solo))
+
+// Controle unificado: exibe o splash (com o botão ou com a barra de loading ativada)
+// Só vira `false` quando o carregamento terminar, ou se as tracks já estiverem carregadas na memória.
+const mostrarSplashOuLoading = ref(tracks.value.length === 0)
 
 /**
  * Busca as tracks da música selecionada.
@@ -125,10 +136,6 @@ const mixerState = ref('splash') // 'splash' | 'loading' | 'mixer'
  * Futuramente: GET /api/musics/{id}/tracks
  */
 async function fetchTracks(musicId) {
-  // TODO: Substituir por chamada à API quando o backend estiver pronto
-  // const response = await api.get('musics', `${musicId}/tracks`)
-  // return response.data.map(t => ({ name: t.name, url: t.fileUrl, order: t.order }))
-
   const basePath = `/mock/${musicId}`
   const response = await fetch(`${basePath}/tracks.json`)
 
@@ -150,94 +157,129 @@ async function fetchTracks(musicId) {
   }
 }
 
+const SENSITIVITY = 0.0025 
+
 /**
- * Inicia o carregamento do mixer quando o usuário clica no botão
+ * Converte dB para Ratio Visual (0 a 1).
+ * 0 = -60dB (base), 1 = +6dB (topo).
+ */
+function dbToRatio(db) {
+  const norm = (db + 60) / 66 
+  return Math.pow(Math.max(0, Math.min(1, norm)), 2)
+}
+
+/**
+ * Converte Ratio Visual (0 a 1) para dB.
+ */
+function ratioToDb(ratio) {
+  const norm = Math.sqrt(Math.max(0, Math.min(1, ratio)))
+  return norm * 66 - 60
+}
+
+let dragInitialY = 0
+let dragInitialDb = 0
+let currentDragTrack = null
+
+function startDrag(event, track) {
+  currentDragTrack = track
+  dragInitialY = event.clientY || (event.touches ? event.touches[0].clientY : 0)
+  dragInitialDb = track.db
+  
+  // Prevenir seleção de texto em toda a tela durante o arrasto
+  document.body.style.userSelect = 'none'
+
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', stopDrag)
+  window.addEventListener('touchmove', onDrag, { passive: false })
+  window.addEventListener('touchend', stopDrag)
+}
+
+function onDrag(event) {
+  const clientY = event.clientY || (event.touches ? event.touches[0].clientY : 0)
+  const deltaY = clientY - dragInitialY
+  
+  // Pegamos o ratio inicial (0=base, 1=topo)
+  const initialRatio = dbToRatio(dragInitialDb)
+  
+  // Mouse para baixo (deltaY > 0) diminui o volume (newRatio desce)
+  let newRatio = initialRatio - (deltaY * SENSITIVITY)
+  
+  if (newRatio > 1) newRatio = 1
+  if (newRatio < 0) newRatio = 0
+  
+  const newDb = ratioToDb(newRatio)
+  
+  currentDragTrack.db = newDb
+  setDb(currentDragTrack, newDb)
+}
+
+function stopDrag() {
+  currentDragTrack = null
+  
+  // Restaurar seleção de texto
+  document.body.style.userSelect = ''
+
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', stopDrag)
+  window.removeEventListener('touchmove', onDrag)
+  window.removeEventListener('touchend', stopDrag)
+}
+
+function resetDb(track) {
+  track.db = 0
+  setDb(track, 0)
+}
+
+/**
+ * Inicia o carregamento do mixer quando o usuário clica no botão do Splash
  */
 async function startMixer() {
-  mixerState.value = 'loading'
   const trackFiles = await fetchTracks(props.musicId)
   if (trackFiles.length > 0) {
     loadTracks(trackFiles)
   }
 }
 
-// Quando o loading termina, transitar para o mixer
-watch(isLoading, (loading) => {
-  if (!loading && mixerState.value === 'loading') {
-    mixerState.value = 'mixer'
+// Escuta o fim do carregamento para esconder a tela de Splash/Loading e revelar o Mixer
+watch(isLoading, (loading, oldLoading) => {
+  // Se está mudando de "carregando" (true) para "terminou" (false)
+  if (oldLoading === true && loading === false) {
+    // Atraso intencional mínimo para suavizar a UX de 100% para sumiço
+    setTimeout(() => {
+      mostrarSplashOuLoading.value = false
+    }, 400)
   }
 })
 
-const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
+// Marcas da régua calculadas matematicamente para posicionamento absoluto (Bottom Up)
+const dbMarks = computed(() => {
+  return [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -60].map(val => ({
+    val,
+    pos: dbToRatio(val) * 100
+  }))
+})
 </script>
 
 <style scoped>
 .mixer-wrapper {
   position: relative;
   height: 100%;
-  background: #1a1a2e;
+  background: #1a1a2e; /* Mantém a paleta da splash */
   color: #eee;
   overflow: hidden;
 }
 
-/* Fade suave */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
+/* Transição lenta e elegante */
+.fade-slow-enter-active,
+.fade-slow-leave-active {
+  transition: opacity 0.8s ease-in-out;
 }
-.fade-enter-from,
-.fade-leave-to {
+.fade-slow-enter-from,
+.fade-slow-leave-to {
   opacity: 0;
 }
 
-/* Loading Screen */
-.loading-screen {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1a1a2e;
-}
-
-.loading-content {
-  width: 340px;
-  text-align: center;
-}
-
-.project-title {
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-}
-
-.loading-stage {
-  font-size: 13px;
-  opacity: 0.6;
-  margin-bottom: 24px;
-}
-
-.progress-track {
-  height: 4px;
-  background: #0d0d1a;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #00ff88, #00ccff);
-  transition: width 0.2s ease;
-}
-
-.progress-text {
-  margin-top: 10px;
-  font-size: 12px;
-  opacity: 0.7;
-}
-
-/* Mixer Screen */
+/* === MIXER SCREEN (DESIGN PREMIUM) === */
 .mixer-screen {
   position: absolute;
   inset: 0;
@@ -245,93 +287,251 @@ const dbMarks = [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -54, -60]
   align-items: center;
   justify-content: flex-start;
   overflow-x: auto;
-  gap: 6px;
-  padding: 20px;
-  background: #2c2c2c;
+  gap: 12px;
+  padding: 24px;
+  background: radial-gradient(circle at center, #1b1b22 0%, #101018 100%);
 }
 
+/* Canais com Glassmorphism Neon sutil */
 .channel {
-  width: 100px;
-  background: #3a3a3a;
-  padding: 10px;
+  width: 104px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 136, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  padding: 16px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-radius: 6px;
+  border-radius: 12px;
+  transition: border-color 0.3s ease;
 }
 
+.channel:hover {
+  border-color: rgba(0, 255, 136, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Visor Digital de dB */
 .db-display {
-  background: #1f1f1f;
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 14px;
-  color: #ddd;
-  margin-bottom: 10px;
+  background: #0d0d15;
+  border: 1px solid #222;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  padding: 6px 0;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-variant-numeric: tabular-nums; 
+  font-size: 13px;
+  font-weight: 600;
+  color: #00ccff;
+  letter-spacing: 1px;
+  margin-bottom: 30px;
+  width: 50px; 
+  text-align: center;
 }
 
 .strip {
   display: flex;
-  height: 240px;
-  align-items: stretch;
+  height: 260px;
+  align-items: flex-end;
   position: relative;
+  width: 100%;
+  justify-content: center;
 }
 
+/* Escala */
 .scale {
-  font-size: 9px;
-  color: #aaa;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  margin-right: 4px;
+  position: relative; 
+  width: 30px;
+  height: 100%;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+}
+
+.scale-mark {
+  position: absolute;
+  right: 8px;
+  transform: translateY(50%); /* Centraliza o texto na marca */
+  white-space: nowrap;
+}
+
+/* Área de Custom Drag */
+.fader-wrapper {
+  position: relative;
+  height: 100%;
+  width: 24px;
+  margin-right: 12px;
 }
 
 .fader {
   height: 100%;
-  width: 20px;
-  margin-right: 6px;
+  width: 100%;
+  pointer-events: none; /* Deixa o Quasar apenas de mostruário */
+}
+
+/* Camada invisível que de fato apanha os cliques e drags do mouse */
+.fader-overlay {
+  position: absolute;
+  inset: -10px; /* Margem gorda em volta do slider para facilitar pegar com o dedo/mouse */
+  z-index: 20;
+  cursor: pointer; /* Cursor padrão de botão (mãozinha) */
+  touch-action: none; /* Previne rolagem da tela no mobile ao arrastar fader */
+}
+
+.fader-overlay:active {
+  cursor: grabbing; /* Muda para "mão fechada" indicando que está segurando */
 }
 
 .meter {
   width: 14px;
-  background: #111;
+  height: 260px;
+  background: rgba(0,0,0, 0.6);
+  border: 1px solid rgba(255,255,255, 0.05);
   position: relative;
-  border-radius: 2px;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-.meter-bar {
-  position: absolute;
-  bottom: 0;
+/* Botão de Nome do Canal (Mute) */
+.btn-name {
   width: 100%;
-  background: linear-gradient(to top, #00ff66, #ffff00, #ff3300);
-}
-
-.channel-name {
-  width: 90px;
-  margin-top: 10px;
-}
-
-.buttons {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.btn {
-  min-width: 30px;
-  min-height: 30px;
-  background: #1e1e1e;
-  color: #ddd;
-  font-weight: bold;
+  margin-top: 30px;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
   text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-name.active {
+  color: #111;
+  background: linear-gradient(135deg, #00ff88, #00ccff);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+  border-color: transparent;
+}
+
+/* Botão Solo (S) */
+.buttons {
+  margin-top: 10px;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-solo {
+  width: 36px;
+  height: 36px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
-  padding: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
-.btn.active {
-  background: #f4a742;
-  color: black;
+.btn-solo.active {
+  color: #fff;
+  background: #ff5e00;
+  border-color: #ffaa00;
+  box-shadow: 0 0 15px rgba(255, 94, 0, 0.5);
+}
+
+/* === FADER CUSTOMIZADO (MESA DE SOM REAL) === */
+/* Remove TOTALMENTE as transições nativas do Quasar quando alteramos o v-model do script (evitando catch-up lag) */
+:deep(.q-slider-cyan),
+:deep(.q-slider-cyan *) {
+  transition: none !important;
+}
+
+/* Oculta a bolinha padrão mas a mantém lá para acessibilidade */
+:deep(.q-slider-cyan .q-slider__thumb) {
+  opacity: 1 !important;
+  width: 26px !important;
+  height: 40px !important;
+  border-radius: 4px !important;
+  background: linear-gradient(180deg, #333 0%, #222 50%, #151515 100%) !important;
+  border: 1px solid #000 !important;
+  box-shadow: 
+    0 5px 10px rgba(0,0,0,0.8), /* Sombra projetada */
+    inset 0 1px 1px rgba(255,255,255,0.2), /* Brilho no topo */
+    inset 0 -1px 1px rgba(0,0,0,0.8) !important; /* Escurecimento na base */
+  position: absolute !important;
+  left: 50% !important;
+  /* Centraliza o knob no ponto exato do valor */
+  transform: translate(-50%, 20px) !important;
+}
+
+/* O SVG dentro do thumb original (removeremos para ficar só nosso retangulo) */
+:deep(.q-slider-cyan .q-slider__thumb svg) {
+  display: none !important;
+}
+
+/* A linha central (brilhante/indicadora) do Fader físico */
+:deep(.q-slider-cyan .q-slider__thumb::after) {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #00ccff; /* Cor indicadora alinhada ao neon */
+  box-shadow: 0 0 5px #00ff88, inset 0 1px 1px rgba(255,255,255,0.5);
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  transform: translateY(-50%);
+}
+
+/* Remover o anel transparente padrão de focus/hover do Quasar */
+:deep(.q-slider-cyan .q-slider__focus-ring) {
+  display: none !important;
+}
+
+/* === ESTADOS VISUAIS (MUTE E SOLO) === */
+
+/* Quando Muted: escurece a trilha, a linha do fader e desliga o neon */
+.channel.is-muted .strip,
+.channel.is-muted .db-display {
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.channel.is-muted :deep(.q-slider-cyan .q-slider__thumb::after) {
+  background: #555 !important;
+  box-shadow: none !important;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+/* Quando Solo: Coloração Laranja, independente do Mute */
+.channel.is-solo {
+  border-color: rgba(255, 94, 0, 0.4);
+  background: rgba(255, 94, 0, 0.05);
+}
+
+.channel.is-solo .strip,
+.channel.is-solo .db-display {
+  opacity: 1 !important; /* Ignora o escurecimento do Mute se solado */
+}
+
+.channel.is-solo :deep(.q-slider-cyan .q-slider__thumb::after) {
+  background: #ffcc00 !important;
+  box-shadow: 0 0 8px #ff5e00, inset 0 1px 1px rgba(255,255,255,0.8) !important;
 }
 </style>
