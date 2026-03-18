@@ -16,6 +16,9 @@ let dataArray
 let meterValue = -60
 let peakHoldValue = -60
 let peakHoldTimer = 0
+let gradient = null
+let isVisible = true
+let observer = null
 
 function linearToDb(value) {
   if (value <= 0.000001) return -60
@@ -23,7 +26,7 @@ function linearToDb(value) {
 }
 
 function draw() {
-  if (!props.analyser) return
+  if (!props.analyser || !isVisible) return
 
   props.analyser.getFloatTimeDomainData(dataArray)
 
@@ -73,11 +76,7 @@ function draw() {
   const normalized = Math.pow(Math.max(0, normalizedDb), 2)
   const meterHeight = normalized * height
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, height)
-  gradient.addColorStop(0, '#ff3300')
-  gradient.addColorStop(0.25, '#ffff00')
-  gradient.addColorStop(1, '#00ff66')
-
+  // Usa o gradiente em cache
   ctx.fillStyle = gradient
   ctx.fillRect(0, height - meterHeight, width, meterHeight)
 
@@ -97,15 +96,36 @@ onMounted(() => {
   c.width = 14
   c.height = 260
 
-  ctx = c.getContext('2d')
+  ctx = c.getContext('2d', { alpha: true })
+
+  // PRÉ-RENDERIZAR GRADIENTE (Otimização de Performance)
+  gradient = ctx.createLinearGradient(0, 0, 0, c.height)
+  gradient.addColorStop(0, '#ff3300')
+  gradient.addColorStop(0.25, '#ffff00')
+  gradient.addColorStop(1, '#00ff66')
 
   dataArray = new Float32Array(props.analyser.fftSize)
+
+  // MONITOR DE VISIBILIDADE (IntersectionObserver)
+  // Só processa o desenho se o canal estiver visível na tela (economiza CPU no scroll lateral)
+  observer = new IntersectionObserver((entries) => {
+    const wasVisible = isVisible
+    isVisible = entries[0].isIntersecting
+    
+    // Se tornou-se visível agora, reinicia o loop de animação
+    if (isVisible && !wasVisible) {
+      draw()
+    }
+  }, { threshold: 0.1 })
+  
+  if (c) observer.observe(c)
 
   draw()
 })
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId)
+  if (animationId) cancelAnimationFrame(animationId)
+  if (observer) observer.disconnect()
 })
 </script>
 

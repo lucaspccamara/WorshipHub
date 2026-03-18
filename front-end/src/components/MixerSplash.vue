@@ -64,7 +64,10 @@ let targetPositions = null
 let svgPaths = [] 
 let svgCenter = { x: 0, y: 0 }
 let svgTargetScale = 0.01
-const USER_SCALE_ADJUST = 1.0 // Escala 1.0 = Centralizado e Visível
+
+// Escala responsiva: reduz o tamanho da nota no mobile (0.7) vs desktop (1.0)
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+const USER_SCALE_ADJUST = isMobile ? 0.4 : 1.0
 
 /**
  * Gera posições para uma esfera de partículas
