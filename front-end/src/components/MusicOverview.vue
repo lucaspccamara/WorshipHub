@@ -15,14 +15,20 @@
 
     <q-separator />
 
-    <q-tab-panels v-model="tab" animated class="col">
+    <!-- Keep-alive preserva o estado do Mixer e as camadas de GPU ao trocar de aba -->
+    <q-tab-panels 
+      v-model="tab" 
+      :animated="!isMobile" 
+      keep-alive
+      class="col"
+    >
 
       <q-tab-panel name="details">
         <!-- <MusicDetails /> -->
       </q-tab-panel>
 
       <q-tab-panel name="mixer" class="q-pa-none">
-        <MixerVS :musicId="musicId" />
+        <MixerVS :musicId="musicId" :ready="showContent" />
       </q-tab-panel>
 
       <q-tab-panel name="chords">
@@ -31,8 +37,8 @@
 
     </q-tab-panels>
 
-    <transition name="cinematic-reveal">
-      <MiniPlayer v-if="!isLoading && tracks.length > 0" />
+    <transition name="fade-slow">
+      <MiniPlayer v-if="showContent && tracks.length > 0" />
     </transition>
 
   </q-card>
@@ -55,20 +61,35 @@ const props = defineProps({
 
 const { isLoading, tracks } = useAudioMixer()
 const tab = ref('mixer')
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+// Estado unificado para revelação (Mixer + MiniPlayer)
+const showContent = ref(false)
+
+import { watch } from 'vue'
+watch(isLoading, (loading, oldLoading) => {
+  if (oldLoading === true && loading === false) {
+    // Sincroniza a revelação de ambos após o Splash
+    setTimeout(() => {
+      showContent.value = true
+    }, 400)
+  }
+}, { immediate: !isLoading.value && tracks.value.length > 0 })
+
+// Se já terminou de carregar antes de montar (ex: cache)
+if (!isLoading.value && tracks.value.length > 0) {
+  showContent.value = true
+}
 </script>
 
 <style scoped>
-.cinematic-reveal-enter-active {
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+/* Transição lenta e elegante */
+.fade-slow-enter-active,
+.fade-slow-leave-active {
+  transition: opacity 0.8s ease-in-out;
 }
-
-.cinematic-reveal-enter-from {
+.fade-slow-enter-from,
+.fade-slow-leave-to {
   opacity: 0;
-  transform: translateY(20px);
-}
-
-.cinematic-reveal-enter-to {
-  opacity: 1;
-  transform: translateY(0);
 }
 </style>

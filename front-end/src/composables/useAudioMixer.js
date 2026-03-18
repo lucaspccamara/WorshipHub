@@ -1,7 +1,5 @@
 import { ref } from 'vue'
 
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-
 const AudioCtx = window.AudioContext || window.webkitAudioContext
 const audioContext = new AudioCtx()
 
@@ -201,8 +199,7 @@ export function useAudioMixer() {
 
         const gain = audioContext.createGain()
         const analyser = audioContext.createAnalyser()
-        const isAndroid = /Android/i.test(navigator.userAgent)
-        let fftSize = isIOS ? 1024 : (isAndroid ? 1024 : 2048)
+        let fftSize = 2048
         analyser.fftSize = fftSize
 
         gain.connect(analyser)

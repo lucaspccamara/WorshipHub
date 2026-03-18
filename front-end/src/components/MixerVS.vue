@@ -13,7 +13,7 @@
     </transition>
 
     <transition name="fade-slow">
-      <div v-show="!mostrarSplashOuLoading" class="mixer-screen">
+      <div v-show="ready" class="mixer-screen">
         <div 
           v-for="track in tracks" 
           :key="track.name" 
@@ -31,16 +31,9 @@
 
           <!-- STRIP (Escala + Fader + Meter) -->
           <div class="strip">
-            <!-- SCALE -->
+            <!-- SCALE (Canvas Ruler) -->
             <div class="scale">
-              <div 
-                v-for="mark in dbMarks" 
-                :key="mark.val" 
-                class="scale-mark"
-                :style="{ bottom: mark.pos + '%' }"
-              >
-                {{ mark.val }}
-              </div>
+              <MixerRuler />
             </div>
 
             <!-- FADER CONTAINER (com nossa lógica Custom de Drag/Daw) -->
@@ -104,11 +97,16 @@ import { ref, watch, computed } from 'vue'
 import { useAudioMixer } from '../composables/useAudioMixer'
 import MeterCanvas from './MeterCanvas.vue'
 import MixerSplash from './MixerSplash.vue'
+import MixerRuler from './MixerRuler.vue'
 
 const props = defineProps({
   musicId: {
     type: Number,
     required: true
+  },
+  ready: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -127,8 +125,8 @@ const {
 const hasAnySolo = computed(() => tracks.value.some(t => t.solo))
 
 // Controle unificado: exibe o splash (com o botão ou com a barra de loading ativada)
-// Só vira `false` quando o carregamento terminar, ou se as tracks já estiverem carregadas na memória.
-const mostrarSplashOuLoading = ref(tracks.value.length === 0)
+// O Splash deve sumir apenas quando o pai disser que estamos 'ready'
+const mostrarSplashOuLoading = computed(() => !props.ready)
 
 /**
  * Busca as tracks da música selecionada.
@@ -239,25 +237,6 @@ async function startMixer() {
     loadTracks(trackFiles)
   }
 }
-
-// Escuta o fim do carregamento para esconder a tela de Splash/Loading e revelar o Mixer
-watch(isLoading, (loading, oldLoading) => {
-  // Se está mudando de "carregando" (true) para "terminou" (false)
-  if (oldLoading === true && loading === false) {
-    // Atraso intencional mínimo para suavizar a UX de 100% para sumiço
-    setTimeout(() => {
-      mostrarSplashOuLoading.value = false
-    }, 400)
-  }
-})
-
-// Marcas da régua calculadas matematicamente para posicionamento absoluto (Bottom Up)
-const dbMarks = computed(() => {
-  return [6, 0, -6, -12, -18, -24, -30, -36, -42, -48, -60].map(val => ({
-    val,
-    pos: dbToRatio(val) * 100
-  }))
-})
 </script>
 
 <style scoped>
@@ -290,11 +269,18 @@ const dbMarks = computed(() => {
   gap: 12px;
   padding: 24px;
   background: radial-gradient(circle at center, #1b1b22 0%, #101018 100%);
+  
+  /* ACELERAÇÃO DE HARDWARE */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch; /* Scroll suave no iOS */
 }
 
 /* Canais com Glassmorphism Neon sutil */
 .channel {
-  width: 104px;
+  flex: 0 0 104px; /* Garante largura fixa para evitar saltos de layout */
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -306,6 +292,11 @@ const dbMarks = computed(() => {
   align-items: center;
   border-radius: 12px;
   transition: border-color 0.3s ease;
+
+  /* OTIMIZAÇÕES DE PINTURA E VRAM */
+  transform: translate3d(0, 0, 0); 
+  backface-visibility: hidden;
+  contain: layout paint;           
 }
 
 .channel:hover {
@@ -326,15 +317,15 @@ const dbMarks = computed(() => {
   font-weight: 600;
   color: #00ccff;
   letter-spacing: 1px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   width: 50px; 
   text-align: center;
 }
 
 .strip {
   display: flex;
-  height: 260px;
-  align-items: flex-end;
+  height: 280px; /* Aumentado para acomodar padding da régua/meter */
+  align-items: center; /* Centraliza todos os elementos verticalmente */
   position: relative;
   width: 100%;
   justify-content: center;
@@ -345,22 +336,12 @@ const dbMarks = computed(() => {
   position: relative; 
   width: 30px;
   height: 100%;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  user-select: none;
-}
-
-.scale-mark {
-  position: absolute;
-  right: 8px;
-  transform: translateY(50%); /* Centraliza o texto na marca */
-  white-space: nowrap;
 }
 
 /* Área de Custom Drag */
 .fader-wrapper {
   position: relative;
-  height: 100%;
+  height: 260px; /* Área útil do fader (260px) */
   width: 24px;
   margin-right: 12px;
 }
@@ -386,7 +367,7 @@ const dbMarks = computed(() => {
 
 .meter {
   width: 14px;
-  height: 260px;
+  height: 260px; /* Acompanha a altura da strip */
   background: rgba(0,0,0, 0.6);
   border: 1px solid rgba(255,255,255, 0.05);
   position: relative;
@@ -397,7 +378,7 @@ const dbMarks = computed(() => {
 /* Botão de Nome do Canal (Mute) */
 .btn-name {
   width: 100%;
-  margin-top: 30px;
+  margin-top: 20px;
   padding: 8px 4px;
   font-size: 13px;
   font-weight: 600;
