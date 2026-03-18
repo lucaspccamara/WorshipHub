@@ -1,0 +1,142 @@
+[
+  {
+    "name": "Click",
+    "file": "Click Track.aac",
+    "order": 1
+  },
+  {
+    "name": "Guide",
+    "file": "Guide.aac",
+    "order": 2
+  },
+  {
+    "name": "Drums",
+    "file": "Drums.aac",
+    "order": 3
+  },
+  {
+    "name": "Perc",
+    "file": "Perc.acc",
+    "order": 4
+  },
+  {
+    "name": "Bass",
+    "file": "Bass.aac",
+    "order": 5
+  },
+  {
+    "name": "AG 1",
+    "file": "AG.aac",
+    "order": 6
+  },
+  {
+    "name": "AG 2",
+    "file": "AG 1.aac",
+    "order": 7
+  },
+  {
+    "name": "EG 1",
+    "file": "EG 1.aac",
+    "order": 8
+  },
+  {
+    "name": "EG 2",
+    "file": "EG 2.aac",
+    "order": 9
+  },
+  {
+    "name": "EG 3",
+    "file": "EG 3.aac",
+    "order": 10
+  },
+  {
+    "name": "Piano",
+    "file": "Piano.aac",
+    "order": 11
+  },
+  {
+    "name": "Órgão",
+    "file": "Organ.aac",
+    "order": 12
+  },
+  {
+    "name": "Mandolin",
+    "file": "Mandolin.aac",
+    "order": 13
+  },
+  {
+    "name": "Keys 1",
+    "file": "Keys 1.aac",
+    "order": 14
+  },
+  {
+    "name": "Keys 2",
+    "file": "Keys 2.aac",
+    "order": 15
+  },
+  {
+    "name": "Keys 3",
+    "file": "Keys 3.aac",
+    "order": 16
+  },
+  {
+    "name": "Keys 4",
+    "file": "Keys 4.aac",
+    "order": 17
+  },
+  {
+    "name": "Keys 5",
+    "file": "Keys 5.aac",
+    "order": 18
+  },
+  {
+    "name": "Keys 6",
+    "file": "Keys 6.aac",
+    "order": 19
+  },
+  {
+    "name": "Keys 7",
+    "file": "Keys 7.aac",
+    "order": 20
+  },
+  {
+    "name": "Keys 8",
+    "file": "Keys 8.aac",
+    "order": 21
+  },
+  {
+    "name": "Strings",
+    "file": "Strings.aac",
+    "order": 22
+  },
+  {
+    "name": "Loop",
+    "file": "Loop.aac",
+    "order": 23
+  },
+  {
+    "name": "Vox FX",
+    "file": "Vox-FX.aac",
+    "order": 24
+  },
+  {
+    "name": "Soprano",
+    "file": "Soprano.aac",
+    "order": 25
+  },
+  {
+    "name": "Contralto",
+    "file": "Alto.aac",
+    "order": 26
+  },
+  {
+    "name": "Tenor",
+    "file": "Tenor.aac",
+    "order": 27
+  },
+  {
+    "name": "Baritono",
+    "file": "Baritone.aac",
+    "order": 28
+  }
+]
