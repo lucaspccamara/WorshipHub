@@ -1,18 +1,18 @@
 <template>
   <q-card>
-    <q-bar class="card-header">
+    <q-bar v-if="!hideHeader" class="card-header">
       <div class="text-h6">Repertório</div>
       <q-space />
       <q-btn dense flat icon="fa fa-close" v-close-popup />
     </q-bar>
 
     <q-card-section>
-      <div v-if="loading" class="row items-center justify-center">
-        <q-spinner-dots />
+      <div v-if="loading" class="row items-center justify-center q-pa-lg">
+        <q-spinner-dots color="primary" />
       </div>
 
       <div v-else>
-        <div class="q-mb-md">
+        <div v-if="!hideHeader" class="q-mb-md">
           <div class="text-subtitle2">Escala: {{ formatDate(schedule.date) }}</div>
           <div class="text-caption">Membros escalados:</div>
           <div class="row q-gutter-sm q-mt-sm">
@@ -24,7 +24,7 @@
         </div>
 
         <div class="q-mb-md">
-          <div class="text-subtitle2">Selecionar músicas</div>
+          <div class="text-subtitle2 q-mb-xs">Selecionar músicas</div>
           <q-select
             v-model="selectedTracks"
             dense
@@ -44,9 +44,9 @@
           />
         </div>
 
-        <div class="row justify-end q-gutter-sm">
+        <div v-if="!hideFooter" class="row justify-end q-gutter-sm">
           <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-          <q-btn color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
+          <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
         </div>
       </div>
     </q-card-section>
@@ -60,9 +60,15 @@ import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
 
 const props = defineProps({
-  scheduleId: { type: Number, required: true }
+  scheduleId: { type: Number, required: true },
+  showTransition: { type: Boolean, default: true },
+  hideHeader: { type: Boolean, default: false },
+  hideFooter: { type: Boolean, default: false },
+  showNotify: { type: Boolean, default: true }
 })
 const emit = defineEmits(['saved','advanced'])
+
+defineExpose({ save })
 
 const loading = ref(false)
 const saving = ref(false)
@@ -112,7 +118,9 @@ async function save() {
   saving.value = true
   try {
     await api.post(`schedules/${props.scheduleId}/repertoire`, selectedTracks.value);
-    Notify.create({ type: 'positive', message: 'Repertório salvo.' })
+    if (props.showNotify) {
+      Notify.create({ type: 'positive', message: 'Repertório salvo.' })
+    }
     emit('saved', props.scheduleId)
   } catch (err) {
     console.error(err)

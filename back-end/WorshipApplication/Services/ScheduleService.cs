@@ -1,4 +1,4 @@
-﻿using FluentResults;
+using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Schedule;
@@ -236,6 +236,26 @@ namespace WorshipApplication.Services
             if (dto == null) throw new ArgumentNullException(nameof(dto));
             // repository expects position -> userId mapping
             _repository.SaveAssignments(scheduleId, dto.Assignments);
+        }
+
+        public async Task NotifyScheduleUpdateAsync(int scheduleId)
+        {
+            var schedule = _repository.Get(scheduleId);
+            if (schedule == null) return;
+
+            var users = _repository.GetAssignedUsers(scheduleId);
+
+            // Notifica todos os membros na escala (incluindo o Ministro)
+            var tasks = users
+                .Where(u => !string.IsNullOrWhiteSpace(u.FcmToken))
+                .Select(u => _fcmNotificationService.SendNotificationAsync(
+                    u.FcmToken,
+                    "Escala Atualizada! 🗓️",
+                    $"Houve uma alteração na escala do dia {schedule.Date:dd/MM}. Confira no app!",
+                    $"/schedules"
+                )).ToArray();
+
+            await Task.WhenAll(tasks);
         }
     }
 }

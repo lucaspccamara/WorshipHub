@@ -165,6 +165,14 @@
       @closeDialog="editingSelectedScheduleById = []"
     />
   </q-dialog>
+
+  <q-dialog v-model="dialogManageCompletedSchedule" persistent class="lg-dialog">
+    <ManageCompletedSchedule
+      :schedule-id="selectedScheduleId"
+      :schedule-date="selectedScheduleDate"
+      @updateScheduleList="getSchedule"
+    />
+  </q-dialog>
 </template>
 
 <script setup>
@@ -178,6 +186,7 @@ import { EventTypes } from '../constants/EventTypes';
 import { ScheduleStatus, EScheduleStatus } from '../constants/ScheduleStatus';
 import ManageSchedulePosition from '../components/ManageSchedulePosition.vue';
 import ManageScheduleRepertoire from '../components/ManageScheduleRepertoire.vue';
+import ManageCompletedSchedule from '../components/ManageCompletedSchedule.vue';
 import { Role } from '../constants/Role';
 import { useAuthStore } from '../stores/authStore';
 
@@ -187,6 +196,7 @@ const dialogCreateSchedule = ref(false);
 const dialogManageSchedule = ref(false);
 const dialogPosition = ref(false);
 const dialogRepertoire = ref(false);
+const dialogManageCompletedSchedule = ref(false);
 const editingSelectedScheduleById = ref([]);
 const selectedScheduleId = ref(0);
 const selectedScheduleDate = ref(null);
@@ -256,6 +266,11 @@ function openDialogScheduleByStatus(idSchedule, status, date, eventType) {
   } else if (status == EScheduleStatus.AguardandoRepertorio) {
     dialogRepertoire.value = true;
     editingSelectedScheduleById.value = [idSchedule];
+  } else if (status == EScheduleStatus.Concluido) {
+    const [day, month, year] = date.split('/');
+    selectedScheduleId.value = idSchedule;
+    selectedScheduleDate.value = `${year}/${month}/${day}`;
+    dialogManageCompletedSchedule.value = true;
   }
 };
 

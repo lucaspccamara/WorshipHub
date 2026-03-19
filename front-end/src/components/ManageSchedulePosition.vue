@@ -1,6 +1,6 @@
 <template>
   <q-card>
-    <q-bar class="card-header">
+    <q-bar v-if="!hideHeader" class="card-header">
       <div class="text-h6">Organização da Escala</div>
       <q-space />
       <q-btn dense flat icon="fa fa-close" v-close-popup>
@@ -8,12 +8,12 @@
       </q-btn>
     </q-bar>
 
-    <q-card class="q-pa-sm">
+    <q-card class="q-pa-sm" flat>
       <q-card-section class="q-pt-none">
-        <div class="text-subtitle2 q-mb-sm">Escala</div>
+        <div v-if="!hideHeader" class="text-subtitle2 q-mb-sm">Escala</div>
 
-        <div v-if="loading" class="row items-center justify-center">
-          <q-spinner-dots size="30px" />
+        <div v-if="loading" class="row items-center justify-center q-pa-lg">
+          <q-spinner-dots size="30px" color="primary" />
         </div>
 
         <div v-else>
@@ -40,14 +40,6 @@
                   @update:model-value="val => onSelect(item.scheduleId, pos.value, val)"
                   :placeholder="`Selecionar ${pos.label}`"
                 >
-                  <!-- <template #option="opt">
-                    <div class="row items-center no-wrap">
-                      <div>{{ opt.label }}</div>
-                      <q-space />
-                      <q-chip v-if="memberResponded(opt.value)" dense color="green" text-color="white" class="q-ml-xs">R</q-chip>
-                      <q-chip v-else-if="isMemberUnavailable(opt.value)" dense color="negative" text-color="white" class="q-ml-xs">Indisp</q-chip>
-                    </div>
-                  </template> -->
                 </q-select>
               </div>
             </div>
@@ -62,11 +54,14 @@
               row-key="scheduleId"
               dense
               bordered
+              separator="cell"
+              :pagination="{ rowsPerPage: 0 }"
+              hide-bottom
             >
               <template v-slot:body-cell="props">
                 <q-td :props="props">
                   <div v-if="props.col.name === 'date'">
-                    {{ formatDate(props.row.date) }}
+                    <div class="text-weight-bold">{{ formatDate(props.row.date) }}</div>
                     <div v-if="hasAnyResponse()" class="text-caption text-positive">Respostas</div>
                   </div>
                   <div v-else>
@@ -80,16 +75,8 @@
                       map-options
                       :model-value="assignments[props.row.scheduleId][props.col.name]"
                       @update:model-value="val => onSelect(props.row.scheduleId, props.col.name, val)"
-                      :placeholder="'Selecionar'"
+                      placeholder="Sel."
                     >
-                      <!-- <template #option="opt">
-                        <div class="row items-center no-wrap">
-                          <div>{{ opt.label }}</div>
-                          <q-space />
-                          <q-chip v-if="memberResponded(opt.value)" dense color="green" text-color="white" class="q-ml-xs">R</q-chip>
-                          <q-chip v-else-if="isMemberUnavailable(opt.value)" dense color="negative" text-color="white" class="q-ml-xs">Indisp</q-chip>
-                        </div>
-                      </template> -->
                     </q-select>
                   </div>
                 </q-td>
@@ -99,9 +86,9 @@
         </div>
       </q-card-section>
 
-      <q-card-actions align="right">
+      <q-card-actions v-if="!hideFooter" align="right">
         <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-        <q-btn color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
+        <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
       </q-card-actions>
     </q-card>
   </q-card>
@@ -117,8 +104,14 @@ const $q = useQuasar()
 
 const props = defineProps({
   scheduleIds: { type: Array, required: false },
+  showTransition: { type: Boolean, default: true },
+  hideHeader: { type: Boolean, default: false },
+  hideFooter: { type: Boolean, default: false },
+  showNotify: { type: Boolean, default: true }
 })
 const emit = defineEmits(['saved','advanced'])
+
+defineExpose({ save })
 
 const loading = ref(false)
 const saving = ref(false)
@@ -274,7 +267,9 @@ async function save() {
       const payload = { assignments: assignments.value[sid] || {} }
       await api.post(`schedules/${sid}/assignments`, payload)
     }
-    Notify.create({ type: 'positive', message: 'Atribuições salvas.' })
+    if (props.showNotify) {
+      Notify.create({ type: 'positive', message: 'Atribuições salvas.' })
+    }
     //emit('saved', ids)
   } catch (err) {
     Notify.create({ type: 'negative', message: 'Erro ao salvar.' })
