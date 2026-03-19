@@ -6,13 +6,15 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps({
+  meterNode: Object,
   analyser: Object
 })
 
 const canvas = ref(null)
+const V_PADDING = 10 // Movido para o topo do setup (Escopo Geral)
+
 let ctx
 let animationId
-let dataArray
 let meterValue = -60
 let peakHoldValue = -60
 let peakHoldTimer = 0
@@ -20,37 +22,51 @@ let gradient = null
 let isVisible = true
 let observer = null
 
+// Fallback para AnalyserNode caso Worklet falhe
+let dataArray = null 
+
+// Valores recebidos do Worklet
+let latestPeak = 0
+let latestRms = 0
+
 function linearToDb(value) {
-  if (value <= 0.000001) return -60
+  if (value <= 0.001) return -60 
   return 20 * Math.log10(value)
 }
 
 function draw() {
-  if (!props.analyser || !isVisible) return
-
-  props.analyser.getFloatTimeDomainData(dataArray)
-
-  let sum = 0
-  let peak = 0
-
-  for (let i = 0; i < dataArray.length; i++) {
-    const sample = Math.abs(dataArray[i])
-    sum += sample * sample
-    if (sample > peak) peak = sample
+  if (!isVisible) {
+    animationId = requestAnimationFrame(draw)
+    return
   }
 
-  const rms = Math.sqrt(sum / dataArray.length)
+  // LÓGICA DE EXTRAÇÃO DE DADOS (Worklet vs Analyser)
+  if (props.meterNode) {
+    // Valores já foram atualizados via onmessage
+  } else if (props.analyser && dataArray) {
+    // Processamento tradicional (Fallback)
+    props.analyser.getFloatTimeDomainData(dataArray)
+    let sum = 0
+    let peak = 0
+    for (let i = 0; i < dataArray.length; i++) {
+      const s = Math.abs(dataArray[i])
+      if (s > peak) peak = s
+      if (i % 4 === 0) sum += s * s
+    }
+    latestPeak = peak
+    latestRms = Math.sqrt(sum / (dataArray.length / 4))
+  }
 
-  const rmsDb = linearToDb(rms)
-  const peakDb = linearToDb(peak)
+  // Converte os valores lineares recebidos do áudio para dB
+  const rmsDb = linearToDb(latestRms)
+  const peakDb = linearToDb(latestPeak)
 
-  // Combine RMS + Peak
-  const targetDb = Math.max(rmsDb, peakDb - 3)
+  // O alvo visual do medidor
+  const targetDb = Math.max(rmsDb, peakDb)
 
   // Ballistics estilo DAW
   const attack = 1
   const release = 0.08
-
   if (targetDb > meterValue) {
     meterValue += (targetDb - meterValue) * attack
   } else {
@@ -62,28 +78,28 @@ function draw() {
     peakHoldValue = peakDb
     peakHoldTimer = performance.now()
   }
-
   if (performance.now() - peakHoldTimer > 800) {
     peakHoldValue -= 0.5
   }
 
   const height = canvas.value.height
   const width = canvas.value.width
-
   ctx.clearRect(0, 0, width, height)
+
+  const drawableHeight = height - (V_PADDING * 2)
 
   const normalizedDb = (meterValue + 60) / 66
   const normalized = Math.pow(Math.max(0, normalizedDb), 2)
-  const meterHeight = normalized * height
+  const meterBarHeight = normalized * drawableHeight
 
-  // Usa o gradiente em cache
+  // Desenha o gradiente de volume
   ctx.fillStyle = gradient
-  ctx.fillRect(0, height - meterHeight, width, meterHeight)
+  ctx.fillRect(0, height - V_PADDING - meterBarHeight, width, meterBarHeight)
 
-  // Desenhar Peak Hold
+  // Desenhar linha de Peak Hold
   const peakHoldNormDb = (peakHoldValue + 60) / 66
   const peakNorm = Math.pow(Math.max(0, peakHoldNormDb), 2)
-  const peakY = height - (peakNorm * height)
+  const peakY = height - V_PADDING - (peakNorm * drawableHeight)
 
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, peakY, width, 2)
@@ -94,28 +110,30 @@ function draw() {
 onMounted(() => {
   const c = canvas.value
   c.width = 14
-  c.height = 260
+  c.height = 280
 
   ctx = c.getContext('2d', { alpha: true })
 
-  // PRÉ-RENDERIZAR GRADIENTE (Otimização de Performance)
-  gradient = ctx.createLinearGradient(0, 0, 0, c.height)
+  // PRÉ-RENDERIZAR GRADIENTE
+  gradient = ctx.createLinearGradient(0, V_PADDING, 0, c.height - V_PADDING)
   gradient.addColorStop(0, '#ff3300')
   gradient.addColorStop(0.25, '#ffff00')
   gradient.addColorStop(1, '#00ff66')
 
-  dataArray = new Float32Array(props.analyser.fftSize)
-
-  // MONITOR DE VISIBILIDADE (IntersectionObserver)
-  // Só processa o desenho se o canal estiver visível na tela (economiza CPU no scroll lateral)
-  observer = new IntersectionObserver((entries) => {
-    const wasVisible = isVisible
-    isVisible = entries[0].isIntersecting
-    
-    // Se tornou-se visível agora, reinicia o loop de animação
-    if (isVisible && !wasVisible) {
-      draw()
+  // ESCUTA O AUDIO WORKLET (Se disponível)
+  if (props.meterNode) {
+    props.meterNode.port.onmessage = (e) => {
+      latestPeak = e.data.peak
+      latestRms = e.data.rms
     }
+  } else if (props.analyser) {
+    // Configura Fallback
+    dataArray = new Float32Array(props.analyser.fftSize)
+  }
+
+  // MONITOR DE VISIBILIDADE
+  observer = new IntersectionObserver((entries) => {
+    isVisible = entries[0].isIntersecting
   }, { threshold: 0.1 })
   
   if (c) observer.observe(c)
@@ -126,6 +144,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (animationId) cancelAnimationFrame(animationId)
   if (observer) observer.disconnect()
+  if (props.meterNode) {
+    props.meterNode.port.onmessage = null
+  }
 })
 </script>
 

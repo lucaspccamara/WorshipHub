@@ -27,6 +27,67 @@ let nextSliceTimeout = null
 let playbackStartTime = 0 // Referência absoluta (audioContext.currentTime - offset)
 let expectedNextSliceTime = 0 // Quando a próxima fatia deve começar
 
+// Web Worker para I/O fora da thread principal
+const audioLoaderWorker = new Worker(
+  new URL('../workers/audioLoader.worker.js', import.meta.url),
+  { type: 'module' }
+)
+
+// Gerenciador de promessas para o Worker
+let pendingWorkerRequests = new Map()
+
+// Carregamento do AudioWorklet para Medidores Profissionais
+let workletLoaded = null // Promessa de carregamento
+async function ensureWorklet() {
+  // 1. Verifica suporte básico no navegador
+  if (!audioContext || !audioContext.audioWorklet) {
+    console.warn('AudioWorklet: Não suportado neste ambiente. Usando AnalyserNode.')
+    return false
+  }
+  
+  if (workletLoaded) return workletLoaded
+  
+  workletLoaded = (async () => {
+    try {
+      // Usando caminho absoluto da pasta PUBLIC para evitar problemas de asset do Vite no dev server
+      await audioContext.audioWorklet.addModule('/workers/meter-processor.js')
+      console.log('AudioWorklet: MeterProcessor (Public) carregado.')
+      return true
+    } catch (e) {
+      console.error('AudioWorklet: Falha crítica ao carregar módulo:', e)
+      return false
+    }
+  })()
+  
+  return workletLoaded
+}
+
+audioLoaderWorker.onmessage = (e) => {
+  const { type, requestId, results, error } = e.data
+  const promise = pendingWorkerRequests.get(requestId)
+  if (!promise) return
+
+  if (type === 'SLICE_BATCH_SUCCESS') {
+    promise.resolve(results)
+  } else {
+    promise.reject(error)
+  }
+  pendingWorkerRequests.delete(requestId)
+}
+
+function fetchSliceBatchFromWorker(trackNames, sliceIndex) {
+  return new Promise((resolve, reject) => {
+    const requestId = Math.random().toString(36).substring(7)
+    pendingWorkerRequests.set(requestId, { resolve, reject })
+    audioLoaderWorker.postMessage({
+      type: 'FETCH_SLICE_BATCH',
+      tracks: trackNames,
+      sliceIndex,
+      requestId
+    })
+  })
+}
+
 /**
  * --- INDEXED DB ENGINE ---
  * Gerencia o armazenamento persistente dos slices decodificados
@@ -61,31 +122,6 @@ async function saveSlicesForTrack(trackName, slices) {
   })
 }
 
-async function getSliceAsBuffer(trackName, index) {
-  const db = await initDB()
-  const sliceData = await new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly')
-    const store = transaction.objectStore(STORE_NAME)
-    const key = `${trackName}_${index}`
-    const request = store.get(key)
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-  })
-
-  if (!sliceData) return null
-
-  const buffer = audioContext.createBuffer(
-    sliceData.numberOfChannels,
-    sliceData.length,
-    sliceData.sampleRate
-  )
-
-  for (let i = 0; i < sliceData.numberOfChannels; i++) {
-    buffer.copyToChannel(sliceData.channels[i], i)
-  }
-
-  return buffer
-}
 
 async function clearOldCache() {
   const db = await initDB()
@@ -113,8 +149,9 @@ export function useAudioMixer() {
   function resetMixer() {
     stop()
     tracks.value.forEach(track => {
-      track.gain.disconnect()
-      track.analyser.disconnect()
+      if (track.gain) track.gain.disconnect()
+      if (track.meterNode) track.meterNode.disconnect()
+      if (track.analyser) track.analyser.disconnect()
     })
     tracks.value = []
     duration.value = 0
@@ -136,9 +173,12 @@ export function useAudioMixer() {
     // Limpar estado anterior (caso esteja trocando de música)
     if (tracks.value.length) resetMixer()
 
+    // Garante que o processador de medidores esteja carregado
+    await ensureWorklet().catch(() => {})
+
     isLoading.value = true
+    loadingStage.value = 'fetching'
     loadProgress.value = 0
-    loadingStage.value = 'Limpando cache...'
 
     await clearOldCache()
 
@@ -198,18 +238,41 @@ export function useAudioMixer() {
         await saveSlicesForTrack(file.name, slicesToSave)
 
         const gain = audioContext.createGain()
-        const analyser = audioContext.createAnalyser()
-        let fftSize = 2048
-        analyser.fftSize = fftSize
+        gain.gain.value = 1
 
-        gain.connect(analyser)
-        analyser.connect(audioContext.destination)
+        // Tenta usar AudioWorkletNode se disponível e carregado (Exige HTTPS/Localhost)
+        let meterNode = null
+        let analyser = null
+        
+        const isWorkletReady = await workletLoaded 
+        
+        if (audioContext.audioWorklet && isWorkletReady) {
+          try {
+            meterNode = new AudioWorkletNode(audioContext, 'meter-processor')
+            gain.connect(meterNode)
+            // NOTA: Não conectamos meterNode ao destination para evitar processamento extra de saída
+          } catch (e) {
+            console.warn('AudioWorkletNode: Erro na criação, fallback para AnalyserNode:', e)
+          }
+        }
+
+        if (!meterNode) {
+          analyser = audioContext.createAnalyser()
+          analyser.fftSize = 1024
+          gain.connect(analyser)
+        }
+
+        // Conexão Direta do Áudio (Garante que o som saia independente do medidor)
+        gain.connect(audioContext.destination)
+
+        gain.gain.value = 1
 
         tracks.value.push({
           name: file.name,
           order: file.order,
           gain,
-          analyser,
+          meterNode, 
+          analyser, // Exportamos ambos para o MeterCanvas decidir qual usar
           db: 0,
           mute: false,
           solo: false,
@@ -243,9 +306,6 @@ export function useAudioMixer() {
     isLoading.value = false
   }
 
-  /**
-   * --- SCHEDULER ENGINE ---
-   */
   async function scheduleNextSlice(offsetInSong) {
     if (!isPlaying.value) return
 
@@ -257,19 +317,34 @@ export function useAudioMixer() {
       return
     }
 
-    const slicePromises = tracks.value.map(async (track) => {
-      const buffer = await getSliceAsBuffer(track.name, sliceIndex)
-      if (!buffer || !isPlaying.value) return null
+    // Busca os dados de TODAS as trilhas via Worker (Thread secundária)
+    const trackNames = tracks.value.map(t => t.name)
+    const results = await fetchSliceBatchFromWorker(trackNames, sliceIndex)
+    
+    if (!isPlaying.value) return
+
+    const durations = tracks.value.map((track) => {
+      const match = results.find(r => r.trackName === track.name)
+      const sliceData = match?.data
+      
+      if (!sliceData) return 0
+
+      // Reconstrói o AudioBuffer na thread principal (rápido)
+      const buffer = audioContext.createBuffer(
+        sliceData.numberOfChannels,
+        sliceData.length,
+        sliceData.sampleRate
+      )
+      for (let i = 0; i < sliceData.numberOfChannels; i++) {
+        buffer.copyToChannel(sliceData.channels[i], i)
+      }
 
       const source = audioContext.createBufferSource()
       source.buffer = buffer
       source.connect(track.gain)
       track.activeSources.push(source)
 
-      const startTimeAt = expectedNextSliceTime
-      source.start(startTimeAt, offsetInSlice)
-
-      // Quando o buffer termina, removemos da lista de ativos
+      source.start(expectedNextSliceTime, offsetInSlice)
       source.onended = () => {
         track.activeSources = track.activeSources.filter(s => s !== source)
       }
@@ -277,13 +352,12 @@ export function useAudioMixer() {
       return buffer.duration - offsetInSlice
     })
 
-    const durations = await Promise.all(slicePromises)
-    const currentSliceRemaining = Math.max(...durations.filter(d => d !== null), 0)
-
+    const currentSliceRemaining = Math.max(...durations, 0)
     expectedNextSliceTime += currentSliceRemaining
     const nextOffsetInSong = offsetInSong + currentSliceRemaining
 
-    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 1) * 1000
+    // Look-ahead de 2 segundos
+    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 2) * 1000
 
     nextSliceTimeout = setTimeout(() => {
       scheduleNextSlice(nextOffsetInSong)
@@ -296,27 +370,38 @@ export function useAudioMixer() {
 
     isPlaying.value = true
 
-    // --- FASE DE PRE-FETCH ATÔMICO ---
+    // Fase de pré-fetch via Worker
     const sliceIndex = Math.floor(offset / SLICE_DURATION)
     const offsetInSlice = offset % SLICE_DURATION
 
-    // Busca os buffers iniciais de TODAS as trilhas em paralelo antes de agendar
-    const buffers = await Promise.all(
-      tracks.value.map(t => getSliceAsBuffer(t.name, sliceIndex))
-    )
+    // Busca os dados iniciais via Worker (Thread secundária)
+    const trackNames = tracks.value.map(t => t.name)
+    const results = await fetchSliceBatchFromWorker(trackNames, sliceIndex)
 
-    // Se o usuário parou a música durante o carregamento dos buffers
+    // Se o usuário parou a música durante o carregamento
     if (!isPlaying.value) return
 
     // Define o ponto de partida absoluto no tempo do AudioContext após os buffers estarem na RAM
-    const renderDelay = 0.1 // 100ms para o hardware processar o disparo
+    const renderDelay = 0.2 
     expectedNextSliceTime = audioContext.currentTime + renderDelay
     playbackStartTime = expectedNextSliceTime - offset
 
     // Dispara todas as trilhas sincronizadas no futuro próximo
-    const durations = tracks.value.map((track, i) => {
-      const buffer = buffers[i]
-      if (!buffer) return 0
+    const durations = tracks.value.map((track) => {
+      const match = results.find(r => r.trackName === track.name)
+      const sliceData = match?.data
+      
+      if (!sliceData) return 0
+
+      // Reconstrói o AudioBuffer na thread principal (rápido)
+      const buffer = audioContext.createBuffer(
+        sliceData.numberOfChannels,
+        sliceData.length,
+        sliceData.sampleRate
+      )
+      for (let i = 0; i < sliceData.numberOfChannels; i++) {
+        buffer.copyToChannel(sliceData.channels[i], i)
+      }
 
       const source = audioContext.createBufferSource()
       source.buffer = buffer
@@ -324,7 +409,6 @@ export function useAudioMixer() {
       track.activeSources.push(source)
 
       source.start(expectedNextSliceTime, offsetInSlice)
-
       source.onended = () => {
         track.activeSources = track.activeSources.filter(s => s !== source)
       }
@@ -338,7 +422,8 @@ export function useAudioMixer() {
     const nextOffsetInSong = offset + currentSliceRemaining
     expectedNextSliceTime += currentSliceRemaining
 
-    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 1) * 1000
+    // Look-ahead de 2 segundos
+    const msToWait = (expectedNextSliceTime - audioContext.currentTime - 2) * 1000
     nextSliceTimeout = setTimeout(() => {
       scheduleNextSlice(nextOffsetInSong)
     }, Math.max(0, msToWait))
@@ -346,9 +431,17 @@ export function useAudioMixer() {
     updateTime()
   }
 
+  let lastUpdateTime = 0
   function updateTime() {
     if (!isPlaying.value) return
-    currentTime.value = audioContext.currentTime - playbackStartTime
+    
+    const now = performance.now()
+    // Throttling: atualiza a reatividade do Vue ~16 vezes por segundo (a cada 62ms)
+    // Isso é suficiente para o MiniPlayer mas poupa muita CPU no mobile
+    if (now - lastUpdateTime > 60) {
+      currentTime.value = audioContext.currentTime - playbackStartTime
+      lastUpdateTime = now
+    }
 
     if (currentTime.value >= duration.value) {
       stop()
