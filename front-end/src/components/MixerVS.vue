@@ -63,7 +63,7 @@
 
             <!-- METER -->
             <div class="meter">
-              <MeterCanvas :analyser="track.analyser" />
+              <MeterCanvas :meterNode="track.meterNode" :analyser="track.analyser" />
             </div>
           </div>
 
@@ -281,11 +281,9 @@ async function startMixer() {
 /* Canais com Glassmorphism Neon sutil */
 .channel {
   flex: 0 0 104px; /* Garante largura fixa para evitar saltos de layout */
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 136, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(30, 30, 45, 0.7); /* Fundo sólido semi-transparente (sem blur para máxima performance) */
+  border: 1px solid rgba(0, 255, 136, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   padding: 16px 10px;
   display: flex;
   flex-direction: column;
