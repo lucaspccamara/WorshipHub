@@ -10,6 +10,6 @@ export const EScheduleStatus = Object.freeze({
   Criado: 0,
   ColetandoDisponibilidade: 1,
   AguardandoRepertorio: 2,
-  Concluído: 3,
-  Excluído: 10
+  Concluido: 3,
+  Excluido: 10
 });

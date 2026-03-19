@@ -82,9 +82,9 @@ namespace WorshipInfra.Repository
         private static string BuildMusicDetails(dynamic m)
         {
             var parts = new List<string>();
-            if (m.key != null) parts.Add($"Tom: {m.note_base}");
+            if (m.note_base != null) parts.Add($"Tom: {m.note_base}{(m.note_mode == "minor" ? "m" : string.Empty)}");
             if (m.bpm != null) parts.Add($"BPM: {m.bpm}");
-            if (m.tonality != null) parts.Add($"Tempo: {m.time_signature}");
+            if (m.time_signature != null) parts.Add($"Tempo: {m.time_signature}");
             if (m.duration_seconds != null)
             {
                 int secs = (int)m.duration_seconds;

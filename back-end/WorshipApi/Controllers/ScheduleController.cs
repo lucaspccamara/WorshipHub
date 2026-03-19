@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WorshipApi.Core;
 using WorshipApplication.Services;
@@ -196,6 +196,22 @@ namespace WorshipApi.Controllers
             try
             {
                 _scheduleService.SaveAssignments(id, dto);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("{id}/notify")]
+        public async Task<ActionResult> NotifyUpdate(
+            [FromServices] ScheduleService _scheduleService,
+            int id)
+        {
+            try
+            {
+                await _scheduleService.NotifyScheduleUpdateAsync(id);
                 return Ok();
             }
             catch (Exception ex)
