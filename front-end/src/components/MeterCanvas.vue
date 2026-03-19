@@ -64,8 +64,8 @@ function draw() {
   // O alvo visual do medidor
   const targetDb = Math.max(rmsDb, peakDb)
 
-  // Ballistics estilo DAW (Ajustado para suavidade no mobile)
-  const attack = 0.7 
+  // Ballistics estilo DAW
+  const attack = 1.1
   const release = 0.08
   if (targetDb > meterValue) {
     meterValue += (targetDb - meterValue) * attack
