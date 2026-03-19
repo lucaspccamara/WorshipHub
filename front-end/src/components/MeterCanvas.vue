@@ -86,20 +86,18 @@ function draw() {
   const width = canvas.value.width
   ctx.clearRect(0, 0, width, height)
 
-  const drawableHeight = height - (V_PADDING * 2)
-
   const normalizedDb = (meterValue + 60) / 66
   const normalized = Math.pow(Math.max(0, normalizedDb), 2)
-  const meterBarHeight = normalized * drawableHeight
+  const meterHeight = normalized * height
 
   // Desenha o gradiente de volume
   ctx.fillStyle = gradient
-  ctx.fillRect(0, height - V_PADDING - meterBarHeight, width, meterBarHeight)
+  ctx.fillRect(0, height - meterHeight, width, meterHeight)
 
   // Desenhar linha de Peak Hold
   const peakHoldNormDb = (peakHoldValue + 60) / 66
   const peakNorm = Math.pow(Math.max(0, peakHoldNormDb), 2)
-  const peakY = height - V_PADDING - (peakNorm * drawableHeight)
+  const peakY = height - (peakNorm * height)
 
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, peakY, width, 2)
@@ -110,7 +108,7 @@ function draw() {
 onMounted(() => {
   const c = canvas.value
   c.width = 14
-  c.height = 280
+  c.height = 260
 
   ctx = c.getContext('2d', { alpha: true })
 
