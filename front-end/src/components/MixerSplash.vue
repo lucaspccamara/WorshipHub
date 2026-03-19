@@ -3,7 +3,12 @@
     <canvas ref="canvasRef" class="splash-canvas" />
 
     <div class="splash-overlay">
-      <h1 class="splash-title">WorshipHub<span class="splash-accent">Mixer</span></h1>
+      <h1 
+        class="splash-title" 
+        :class="{ 'is-loading': isProcessing }"
+      >
+        WorshipHub<span class="splash-accent">Mixer</span>
+      </h1>
 
       <transition name="fade-slide" mode="out-in">
         <!-- BOTÃO (Quando não está carregando) -->
@@ -20,7 +25,12 @@
         </button>
 
         <!-- CARREGAMENTO (Quando o usuário já clicou) -->
-        <div v-else key="loader" class="loader-container">
+        <div 
+          v-else 
+          key="loader" 
+          class="loader-container"
+          :class="{ 'is-loading': isProcessing }"
+        >
           <p class="loading-stage">{{ loadingStage }}</p>
           <div class="progress-track">
             <div
@@ -367,6 +377,17 @@ onBeforeUnmount(() => {
   text-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
   margin: 0;
   user-select: none;
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.splash-title.is-loading {
+  transform: translateY(-80px); /* Move para cima no loading */
+}
+
+@media (max-width: 600px) {
+  .splash-title.is-loading {
+    transform: translateY(-110px); /* Mais espaço no mobile */
+  }
 }
 
 .splash-accent {
@@ -435,6 +456,18 @@ onBeforeUnmount(() => {
   width: 320px;
   text-align: center;
   margin-top: 10px;
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.loader-container.is-loading {
+  transform: translateY(80px); /* Move para baixo no loading */
+}
+
+@media (max-width: 600px) {
+  .loader-container.is-loading {
+    transform: translateY(110px); /* Mais espaço no mobile */
+    width: 280px;
+  }
 }
 
 .loading-stage {

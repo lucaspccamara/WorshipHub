@@ -258,7 +258,7 @@ export function useAudioMixer() {
 
         if (!meterNode) {
           analyser = audioContext.createAnalyser()
-          analyser.fftSize = 1024
+          analyser.fftSize = 2048 // Aumentado de 1024 para cobrir frames de 30fps (33ms) com folga
           gain.connect(analyser)
         }
 
