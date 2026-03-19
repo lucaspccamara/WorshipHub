@@ -45,53 +45,23 @@
     "order": 9
   },
   {
-    "name": "EG 5",
-    "file": "EG 5.m4a",
-    "order": 10
-  },
-  {
-    "name": "EG 6",
-    "file": "EG 6.m4a",
-    "order": 11
-  },
-  {
-    "name": "EG 7",
-    "file": "EG 7.m4a",
-    "order": 12
-  },
-  {
-    "name": "Piano",
-    "file": "Piano.m4a",
-    "order": 13
-  },
-  {
     "name": "Keys 1",
     "file": "Keys 1.m4a",
-    "order": 14
+    "order": 10
   },
   {
     "name": "Keys 2",
     "file": "Keys 2.m4a",
-    "order": 15
+    "order": 11
   },
   {
     "name": "Keys 3",
     "file": "Keys 3.m4a",
-    "order": 16
+    "order": 12
   },
   {
-    "name": "Keys 4",
-    "file": "Keys 4.m4a",
-    "order": 17
-  },
-  {
-    "name": "Synth Bass",
-    "file": "Synth Bass.m4a",
-    "order": 18
-  },
-  {
-    "name": "Synth Loop",
-    "file": "Synth Loop.m4a",
-    "order": 19
+    "name": "Backing Vocals",
+    "file": "BGVS.m4a",
+    "order": 13
   }
 ]

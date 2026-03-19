@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Click",
+    "file": "Click Track.m4a",
+    "order": 1
+  },
+  {
+    "name": "Guide",
+    "file": "Guide.m4a",
+    "order": 2
+  },
+  {
+    "name": "Drums",
+    "file": "Drums (Live).m4a",
+    "order": 3
+  },
+  {
+    "name": "Perc",
+    "file": "Perc.m4a",
+    "order": 4
+  },
+  {
+    "name": "Bass",
+    "file": "Bass.m4a",
+    "order": 5
+  },
+  {
+    "name": "EG 1",
+    "file": "EG 1.m4a",
+    "order": 6
+  },
+  {
+    "name": "EG 2",
+    "file": "EG 2.m4a",
+    "order": 7
+  },
+  {
+    "name": "EG 3",
+    "file": "EG 3.m4a",
+    "order": 8
+  },
+  {
+    "name": "Órgão",
+    "file": "Organ.m4a",
+    "order": 9
+  },
+  {
+    "name": "Rhodes",
+    "file": "Rhodes.m4a",
+    "order": 10
+  },
+  {
+    "name": "Keys 1",
+    "file": "Keys 1.m4a",
+    "order": 11
+  },
+  {
+    "name": "Keys 2",
+    "file": "Keys 2.m4a",
+    "order": 12
+  },
+  {
+    "name": "Keys 3",
+    "file": "Keys 3.m4a",
+    "order": 13
+  },
+  {
+    "name": "Keys 4",
+    "file": "Keys 4.m4a",
+    "order": 14
+  },
+  {
+    "name": "Keys 5",
+    "file": "Keys 5.m4a",
+    "order": 15
+  },
+  {
+    "name": "Vox FX",
+    "file": "Vox FX.m4a",
+    "order": 16
+  },
+  {
+    "name": "Backing Vocals",
+    "file": "BGVS.m4a",
+    "order": 17
+  }
+]

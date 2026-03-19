@@ -11,7 +11,7 @@
   },
   {
     "name": "Drums",
-    "file": "Drums.m4a",
+    "file": "Drums (Live).m4a",
     "order": 3
   },
   {
@@ -20,78 +20,73 @@
     "order": 4
   },
   {
+    "name": "Synth Bass",
+    "file": "Synth Bass.m4a",
+    "order": 5
+  },
+  {
     "name": "AG",
     "file": "AG.m4a",
-    "order": 5
+    "order": 6
   },
   {
     "name": "EG 1",
     "file": "EG 1.m4a",
-    "order": 6
+    "order": 7
   },
   {
     "name": "EG 2",
     "file": "EG 2.m4a",
-    "order": 7
+    "order": 8
   },
   {
     "name": "EG 3",
     "file": "EG 3.m4a",
-    "order": 8
-  },
-  {
-    "name": "EG 4",
-    "file": "EG 4.m4a",
     "order": 9
   },
   {
-    "name": "EG 5",
-    "file": "EG 5.m4a",
+    "name": "Piano 1",
+    "file": "Piano.m4a",
     "order": 10
   },
   {
-    "name": "EG 6",
-    "file": "EG 6.m4a",
+    "name": "Piano 2",
+    "file": "Piano 2.m4a",
     "order": 11
   },
   {
-    "name": "EG 7",
-    "file": "EG 7.m4a",
+    "name": "Electric Piano",
+    "file": "Electric Piano.m4a",
     "order": 12
-  },
-  {
-    "name": "Piano",
-    "file": "Piano.m4a",
-    "order": 13
   },
   {
     "name": "Keys 1",
     "file": "Keys 1.m4a",
+    "order": 13
+  },
+  {
+    "name": "Horns",
+    "file": "Horns.m4a",
     "order": 14
   },
   {
-    "name": "Keys 2",
-    "file": "Keys 2.m4a",
+    "name": "Loop",
+    "file": "Loop.m4a",
     "order": 15
-  },
-  {
-    "name": "Keys 3",
-    "file": "Keys 3.m4a",
-    "order": 16
-  },
-  {
-    "name": "Keys 4",
-    "file": "Keys 4.m4a",
-    "order": 17
-  },
-  {
-    "name": "Synth Bass",
-    "file": "Synth Bass.m4a",
-    "order": 18
   },
   {
     "name": "Synth Loop",
     "file": "Synth Loop.m4a",
-    "order": 19
+    "order": 16
+  },
+  {
+    "name": "Vox Chop",
+    "file": "Vox Chop.m4a",
+    "order": 17
+  },
+  {
+    "name": "Backing Vocals",
+    "file": "BGVS.m4a",
+    "order": 18
   }
 ]
