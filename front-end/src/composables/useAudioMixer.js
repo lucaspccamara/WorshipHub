@@ -44,9 +44,9 @@ async function ensureWorklet() {
     console.warn('AudioWorklet: Não suportado neste ambiente. Usando AnalyserNode.')
     return false
   }
-  
+
   if (workletLoaded) return workletLoaded
-  
+
   workletLoaded = (async () => {
     try {
       // Usando caminho absoluto da pasta PUBLIC para evitar problemas de asset do Vite no dev server
@@ -58,7 +58,7 @@ async function ensureWorklet() {
       return false
     }
   })()
-  
+
   return workletLoaded
 }
 
@@ -174,7 +174,7 @@ export function useAudioMixer() {
     if (tracks.value.length) resetMixer()
 
     // Garante que o processador de medidores esteja carregado
-    await ensureWorklet().catch(() => {})
+    await ensureWorklet().catch(() => { })
 
     isLoading.value = true
     loadingStage.value = 'fetching'
@@ -243,9 +243,9 @@ export function useAudioMixer() {
         // Tenta usar AudioWorkletNode se disponível e carregado (Exige HTTPS/Localhost)
         let meterNode = null
         let analyser = null
-        
-        const isWorkletReady = await workletLoaded 
-        
+
+        const isWorkletReady = await workletLoaded
+
         if (audioContext.audioWorklet && isWorkletReady) {
           try {
             meterNode = new AudioWorkletNode(audioContext, 'meter-processor')
@@ -271,7 +271,7 @@ export function useAudioMixer() {
           name: file.name,
           order: file.order,
           gain,
-          meterNode, 
+          meterNode,
           analyser, // Exportamos ambos para o MeterCanvas decidir qual usar
           db: 0,
           mute: false,
@@ -320,13 +320,13 @@ export function useAudioMixer() {
     // Busca os dados de TODAS as trilhas via Worker (Thread secundária)
     const trackNames = tracks.value.map(t => t.name)
     const results = await fetchSliceBatchFromWorker(trackNames, sliceIndex)
-    
+
     if (!isPlaying.value) return
 
     const durations = tracks.value.map((track) => {
       const match = results.find(r => r.trackName === track.name)
       const sliceData = match?.data
-      
+
       if (!sliceData) return 0
 
       // Reconstrói o AudioBuffer na thread principal (rápido)
@@ -382,7 +382,7 @@ export function useAudioMixer() {
     if (!isPlaying.value) return
 
     // Define o ponto de partida absoluto no tempo do AudioContext após os buffers estarem na RAM
-    const renderDelay = 0.2 
+    const renderDelay = 0.2
     expectedNextSliceTime = audioContext.currentTime + renderDelay
     playbackStartTime = expectedNextSliceTime - offset
 
@@ -390,7 +390,7 @@ export function useAudioMixer() {
     const durations = tracks.value.map((track) => {
       const match = results.find(r => r.trackName === track.name)
       const sliceData = match?.data
-      
+
       if (!sliceData) return 0
 
       // Reconstrói o AudioBuffer na thread principal (rápido)
@@ -434,7 +434,7 @@ export function useAudioMixer() {
   let lastUpdateTime = 0
   function updateTime() {
     if (!isPlaying.value) return
-    
+
     const now = performance.now()
     // Throttling: atualiza a reatividade do Vue ~16 vezes por segundo (a cada 62ms)
     // Isso é suficiente para o MiniPlayer mas poupa muita CPU no mobile

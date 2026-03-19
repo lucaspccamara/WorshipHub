@@ -25,9 +25,12 @@ let observer = null
 // Fallback para AnalyserNode caso Worklet falhe
 let dataArray = null 
 
-// Valores recebidos do Worklet
+// Valores recebidos do Worklet ou extraídos do Analyser
 let latestPeak = 0
 let latestRms = 0
+let lastPeakFallback = 0 // Para técnica de Peak Stretching no mobile
+
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
 function linearToDb(value) {
   if (value <= 0.001) return -60 
@@ -44,7 +47,7 @@ function draw() {
   if (props.meterNode) {
     // Valores já foram atualizados via onmessage
   } else if (props.analyser && dataArray) {
-    // Processamento tradicional (Fallback)
+    // Processamento de Fallback (Impactado pelo FPS da tela)
     props.analyser.getFloatTimeDomainData(dataArray)
     let sum = 0
     let peak = 0
@@ -53,7 +56,13 @@ function draw() {
       if (s > peak) peak = s
       if (i % 4 === 0) sum += s * s
     }
-    latestPeak = peak
+    
+    // TÉCNICA DE PEAK STRETCHING (Mobile Only)
+    // Se estivermos no mobile (geralmente 30fps), um pico pode ser rápido demais para o olho ou para o peakHold.
+    // Combinamos o pico atual com o anterior para "alargar" sua duração visual.
+    latestPeak = isMobile ? Math.max(peak, lastPeakFallback) : peak
+    lastPeakFallback = peak // Guarda para o próximo frame
+    
     latestRms = Math.sqrt(sum / (dataArray.length / 4))
   }
 
@@ -64,9 +73,10 @@ function draw() {
   // O alvo visual do medidor
   const targetDb = Math.max(rmsDb, peakDb)
 
-  // Ballistics estilo DAW
-  const attack = 1.1
-  const release = 0.08
+  // Ballistics adaptativa: No mobile, precisamos que a descida seja um pouco mais lenta
+  // para compensar o atraso de desenho e tornar o pico mais visível.
+  const attack = 1.0
+  const release = isMobile ? 0.05 : 0.08
   if (targetDb > meterValue) {
     meterValue += (targetDb - meterValue) * attack
   } else {

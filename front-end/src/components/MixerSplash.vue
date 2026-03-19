@@ -5,7 +5,7 @@
     <div class="splash-overlay">
       <h1 
         class="splash-title" 
-        :class="{ 'is-loading': isProcessing }"
+        :class="{ 'is-loading': hasStartedProcessing }"
       >
         WorshipHub<span class="splash-accent">Mixer</span>
       </h1>
@@ -29,7 +29,7 @@
           v-else 
           key="loader" 
           class="loader-container"
-          :class="{ 'is-loading': isProcessing }"
+          :class="{ 'is-loading': hasStartedProcessing }"
         >
           <p class="loading-stage">{{ loadingStage }}</p>
           <div class="progress-track">
@@ -60,6 +60,13 @@ defineEmits(['start'])
 
 const canvasRef = ref(null)
 const isHovering = ref(false)
+
+// Estado persistente: uma vez que começou a carregar, mantém a animação de "afastamento"
+// mesmo que isProcessing volte para false (durante a transição de saída do splash)
+const hasStartedProcessing = ref(false)
+watch(() => props.isProcessing, (val) => {
+  if (val) hasStartedProcessing.value = true
+})
 
 // === CONFIGURAÇÃO ===
 const PARTICLE_COUNT = 5000
@@ -248,7 +255,7 @@ function animate() {
 
   const positionAttr = particles.geometry.attributes.position
   const positions = positionAttr.array
-  const target = (isHovering.value || props.isProcessing) ? notePositions : spherePositions
+  const target = (isHovering.value || hasStartedProcessing.value) ? notePositions : spherePositions
 
   // Interpolar partículas para a posição alvo (morphing suave)
   for (let i = 0; i < positions.length; i++) {
@@ -257,7 +264,7 @@ function animate() {
   positionAttr.needsUpdate = true
 
   // Rotação condicional
-  const isMusicMode = isHovering.value || props.isProcessing
+  const isMusicMode = isHovering.value || hasStartedProcessing.value
   if (isMusicMode) {
     // Modo Nota: Travar X e Z, parar rotação Y
     particles.rotation.x += (0 - particles.rotation.x) * 0.08
