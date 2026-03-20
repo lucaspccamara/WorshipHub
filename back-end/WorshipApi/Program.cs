@@ -146,15 +146,26 @@ builder.Services.AddMvc(config =>
     config.Filters.Add(new AuthorizeFilter(policy));
 });
 
-builder.Services.AddRateLimiter(_ => _
-    .AddFixedWindowLimiter("BruteForceProtection", options =>
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = async (context, token) =>
     {
-        options.PermitLimit = 5;
-        options.Window = TimeSpan.FromMinutes(1);
-        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        options.QueueLimit = 0;
-    })
-);
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers["Retry-After"] = "300";
+        await context.HttpContext.Response.WriteAsync("Muitas tentativas. Aguarde 5 minutos e tente novamente.", token);
+    };
+
+    options.AddPolicy("BruteForceProtection", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
 
 var app = builder.Build();
 

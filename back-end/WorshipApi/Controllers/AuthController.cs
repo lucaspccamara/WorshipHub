@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
@@ -10,6 +10,13 @@ namespace WorshipApi.Controllers
     [Route("api/auths")]
     public class AuthController : ControllerBase
     {
+        private readonly bool _isProduction;
+
+        public AuthController(IWebHostEnvironment env)
+        {
+            _isProduction = env.IsProduction();
+        }
+
         [HttpPost("login")]
         [AllowAnonymous]
         [EnableRateLimiting("BruteForceProtection")]
@@ -28,7 +35,7 @@ namespace WorshipApi.Controllers
             Response.Cookies.Append("access_token", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // true em produção (requer HTTPS)
+                Secure = _isProduction,
                 SameSite = SameSiteMode.Strict,
                 Expires = DateTime.UtcNow.AddHours(6),
                 Path = "/"
@@ -65,7 +72,7 @@ namespace WorshipApi.Controllers
             Response.Cookies.Append("reset_password_token", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // true em produção (requer HTTPS)
+                Secure = _isProduction,
                 SameSite = SameSiteMode.Strict,
                 Expires = DateTime.UtcNow.AddMinutes(15),
                 Path = "/"
@@ -96,6 +103,7 @@ namespace WorshipApi.Controllers
 
         [HttpPost("change-password")]
         [Authorize]
+        [EnableRateLimiting("BruteForceProtection")]
         public ActionResult ChangePassword(
             [FromServices] AuthService _authService,
             [FromBody] ChangePasswordDTO changePasswordDTO)
