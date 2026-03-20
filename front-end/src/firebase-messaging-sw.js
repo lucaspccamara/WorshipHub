@@ -6,6 +6,18 @@ import { firebaseConfig } from "./firebase-config";
 // O VitePWA injetará o manifesto de precache aqui
 precacheAndRoute(self.__WB_MANIFEST);
 
+// Garante que o novo SW assuma o controle imediatamente ao ser instalado,
+// sem esperar o usuário fechar/reabrir o app.
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+// Após assumir o controle, reclama todos os clientes abertos para que
+// o App.vue detecte a atualização e dispare o reload.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 const firebaseApp = initializeApp(firebaseConfig);
 
 const messaging = getMessaging(firebaseApp);
