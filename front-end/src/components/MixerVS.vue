@@ -234,7 +234,7 @@ function resetDb(track) {
 async function startMixer() {
   const trackFiles = await fetchTracks(props.musicId)
   if (trackFiles.length > 0) {
-    loadTracks(trackFiles)
+    loadTracks(trackFiles, props.musicId)
   }
 }
 </script>

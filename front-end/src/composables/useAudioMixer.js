@@ -13,6 +13,7 @@ const tracks = ref([])
 const isPlaying = ref(false)
 const duration = ref(0)
 const currentTime = ref(0)
+const currentMusicId = ref(null)
 
 // Refs de Loading
 const loadingStage = ref('Iniciando Engine de Áudio...')
@@ -161,17 +162,20 @@ export function useAudioMixer() {
     loadProgress.value = 0
     isLoading.value = false
     loadingStage.value = 'Iniciando Engine de Áudio...'
+    currentMusicId.value = null
   }
 
   /**
    * --- CARREGAMENTO DINÂMICO ---
    * Recebe um array de tracks [{ name, url, order }] e processa em paralelo.
    */
-  async function loadTracks(trackFiles) {
+  async function loadTracks(trackFiles, musicId) {
     if (!trackFiles || trackFiles.length === 0) return
 
     // Limpar estado anterior (caso esteja trocando de música)
     if (tracks.value.length) resetMixer()
+
+    currentMusicId.value = musicId || null
 
     // Garante que o processador de medidores esteja carregado
     await ensureWorklet().catch(() => { })
@@ -518,6 +522,7 @@ export function useAudioMixer() {
     isPlaying,
     duration,
     currentTime,
+    currentMusicId,
     loadingStage,
     isLoading,
     loadProgress,

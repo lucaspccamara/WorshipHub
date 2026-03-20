@@ -45,7 +45,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+
 //import MusicDetails from './MusicDetails.vue'
 import MixerVS from './MixerVS.vue'
 //import ChordSheet from './ChordSheet.vue'
@@ -59,7 +60,8 @@ const props = defineProps({
   }
 })
 
-const { isLoading, tracks } = useAudioMixer()
+const { isLoading, tracks, currentMusicId, resetMixer, stop } = useAudioMixer()
+
 const tab = ref('mixer')
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
@@ -67,19 +69,33 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 const showContent = ref(false)
 
 import { watch } from 'vue'
+
+// Se já terminou de carregar antes de montar (ex: cache)
+if (!isLoading.value && tracks.value.length > 0 && currentMusicId.value === props.musicId) {
+  showContent.value = true
+}
+
 watch(isLoading, (loading, oldLoading) => {
-  if (oldLoading === true && loading === false) {
+  if (oldLoading === true && loading === false && currentMusicId.value === props.musicId) {
     // Sincroniza a revelação de ambos após o Splash
     setTimeout(() => {
       showContent.value = true
     }, 400)
   }
-}, { immediate: !isLoading.value && tracks.value.length > 0 })
+}, { immediate: !isLoading.value && tracks.value.length > 0 && currentMusicId.value === props.musicId })
 
-// Se já terminou de carregar antes de montar (ex: cache)
-if (!isLoading.value && tracks.value.length > 0) {
-  showContent.value = true
-}
+onMounted(() => {
+  // Garante que o mixer comece limpo ao abrir uma nova música
+  if (currentMusicId.value !== props.musicId) {
+    resetMixer()
+  }
+})
+
+onUnmounted(() => {
+  // Para o áudio ao fechar a janela, mas mantém as tracks carregadas para persistência inteligente
+  stop()
+})
+
 </script>
 
 <style scoped>
