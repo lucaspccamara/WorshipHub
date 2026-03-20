@@ -209,7 +209,7 @@ namespace WorshipApplication.Services
                     u.FcmToken,
                     "Repertório Liberado! ✨",
                     $"O repertório para a escala do dia {schedule.Date:dd/MM} já está disponível. Confira no app!",
-                    $"/schedules"
+                    $"/"
                 )).ToArray();
 
             await Task.WhenAll(tasks);
@@ -252,7 +252,7 @@ namespace WorshipApplication.Services
                     u.FcmToken,
                     "Escala Atualizada! 🗓️",
                     $"Houve uma alteração na escala do dia {schedule.Date:dd/MM}. Confira no app!",
-                    $"/schedules"
+                    $"/"
                 )).ToArray();
 
             await Task.WhenAll(tasks);
