@@ -31,15 +31,42 @@
                 <q-select
                   dense
                   outlined
+                  multiple
+                  use-chips
                   :options="membersByPosition[pos.value] || []"
                   option-value="id"
                   option-label="name"
                   emit-value
                   map-options
-                  :model-value="assignments[item.scheduleId][pos.value]"
+                  :model-value="assignments[item.scheduleId]?.[pos.value] || []"
                   @update:model-value="val => onSelect(item.scheduleId, pos.value, val)"
                   :placeholder="`Selecionar ${pos.label}`"
                 >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section avatar>
+                        <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.name }}</q-item-label>
+                        <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      :data-chip-id="`chip-${item.scheduleId}-${pos.value}-${scope.opt.id}`"
+                      removable
+                      dense
+                      :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                      :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                      :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
+                      @remove="scope.removeAtIndex(scope.index)"
+                      class="q-ma-xs"
+                    >
+                      {{ scope.opt.name }}
+                    </q-chip>
+                  </template>
                 </q-select>
               </div>
             </div>
@@ -68,15 +95,42 @@
                     <q-select
                       dense
                       outlined
+                      multiple
+                      use-chips
                       :options="membersByPosition[props.col.name] || []"
                       option-value="id"
                       option-label="name"
                       emit-value
                       map-options
-                      :model-value="assignments[props.row.scheduleId][props.col.name]"
+                      :model-value="assignments[props.row.scheduleId]?.[props.col.name] || []"
                       @update:model-value="val => onSelect(props.row.scheduleId, props.col.name, val)"
                       placeholder="Sel."
                     >
+                      <template v-slot:option="scope">
+                        <q-item v-bind="scope.itemProps">
+                          <q-item-section avatar>
+                            <span :class="availDotClass(getMemberAvailability(props.row.scheduleId, scope.opt.id))" class="avail-dot" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ scope.opt.name }}</q-item-label>
+                            <q-item-label caption>{{ availLabel(getMemberAvailability(props.row.scheduleId, scope.opt.id)) }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                      <template v-slot:selected-item="scope">
+                        <q-chip
+                          :data-chip-id="`chip-${props.row.scheduleId}-${props.col.name}-${scope.opt.id}`"
+                          removable
+                          dense
+                          :color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                          :text-color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                          :outlined="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false"
+                          @remove="scope.removeAtIndex(scope.index)"
+                          class="q-ma-xs"
+                        >
+                          {{ scope.opt.name }}
+                        </q-chip>
+                      </template>
                     </q-select>
                   </div>
                 </q-td>
@@ -95,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { Notify, useQuasar } from 'quasar'
 import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
@@ -120,15 +174,39 @@ const positionOptions = PositionOptions
 
 // data structures
 const schedules = ref([]) // [{ scheduleId, date, eventType, status }]
-const membersByPosition = ref({}) // { positionValue: [{id,name,available,...}] }
-const assignments = ref({}) // { scheduleId: { positionValue: memberId|null } }
+const membersByPosition = ref({}) // { positionValue: [{id,name,...}] }
+const assignments = ref({}) // { scheduleId: { positionValue: memberId[] } }
+const availabilityBySchedule = ref({}) // { scheduleId: { userId: bool|null } }
+
+// --- Availability helpers ---
+function getMemberAvailability(scheduleId, userId) {
+  const schedMap = availabilityBySchedule.value[scheduleId] ?? availabilityBySchedule.value[String(scheduleId)]
+  if (!schedMap) return undefined // not collected for this schedule
+  const id = Number(userId)
+  if (!(id in schedMap) && !(String(id) in schedMap)) return undefined
+  return schedMap[id] ?? schedMap[String(id)] // true | false | null
+}
+
+function availDotClass(avail) {
+  if (avail === true) return 'avail-dot--yes'
+  if (avail === false) return 'avail-dot--no'
+  if (avail === null) return 'avail-dot--pending'
+  return '' // undefined = availability not collected for this schedule
+}
+
+function availLabel(avail) {
+  if (avail === true) return 'Disponível'
+  if (avail === false) return 'Indisponível'
+  if (avail === null) return 'Não respondeu'
+  return ''
+}
 
 const tableColumns = computed(() => {
   const cols = [{ name: 'date', label: 'Data', align: 'left' }]
   positionOptions.forEach(p => cols.push({ name: p.value, label: p.label }))
   return cols
 })
-const tableRows = computed(() => schedules.value.map(s => ({ scheduleId: s.scheduleId, date: s.date })))
+const tableRows = computed(() => (schedules.value || []).map(s => ({ scheduleId: s.scheduleId, date: s.date })))
 
 function formatDate(d) {
   try { return new Date(d).toLocaleDateString(); } catch { return d }
@@ -175,7 +253,10 @@ async function load() {
     const dto = resp.data
 
     // schedules list
-    schedules.value = (dto.schedules || dto.Schedules || []).map(s => ({ scheduleId: s.scheduleId ?? s.ScheduleId, date: s.date ?? s.Date, eventType: s.eventType ?? s.EventType, status: s.status ?? s.Status }))
+    const parsedSchedules = dto.schedules || dto.Schedules || []
+    schedules.value = Array.isArray(parsedSchedules) 
+      ? parsedSchedules.map(s => ({ scheduleId: s.scheduleId ?? s.ScheduleId, date: s.date ?? s.Date, eventType: s.eventType ?? s.EventType, status: s.status ?? s.Status }))
+      : []
 
     // membersByPosition -> normalize and ensure arrays for all positions
     const raw = dto.membersByPosition || dto.MembersByPosition || {}
@@ -184,17 +265,31 @@ async function load() {
     positionOptions.forEach(p => { norm[String(p.value)] = [] })
 
     for (const k in raw) {
-      norm[k] = (raw[k] || []).map(m => ({
+      const arr = raw[k] || []
+      norm[k] = Array.isArray(arr) ? arr.map(m => ({
         id: m.id ?? m.Id,
         name: m.name ?? m.Name ?? `Usuário ${m.id ?? m.Id}`,
         position: m.position ?? m.Position,
         phoneNumber: m.phoneNumber ?? m.PhoneNumber,
         avatarUrl: m.avatarUrl ?? m.AvatarUrl,
         available: (m.available ?? m.Available) ?? null
-      }))
+      })) : []
     }
 
     membersByPosition.value = norm
+
+    // store per-schedule availability map
+    const rawAvail = dto.availabilityBySchedule || dto.AvailabilityBySchedule || {}
+    // normalize keys to numbers
+    const normAvail = {}
+    for (const sid in rawAvail) {
+      normAvail[Number(sid)] = {}
+      for (const uid in rawAvail[sid]) {
+        const v = rawAvail[sid][uid]
+        normAvail[Number(sid)][Number(uid)] = v === null ? null : Boolean(v)
+      }
+    }
+    availabilityBySchedule.value = normAvail
 
     // init assignments from currentAssignments (per schedule) if provided, else empty
     assignments.value = {}
@@ -203,8 +298,10 @@ async function load() {
       const sid = String(s.scheduleId)
       const map = {}
       positionOptions.forEach(p => {
-        const val = (cur[sid] && (cur[sid][p.value] ?? cur[sid][String(p.value)])) ?? null
-        map[p.value] = val
+        const raw = cur[sid] ?? cur[s.scheduleId]
+        const val = raw ? (raw[p.value] ?? raw[String(p.value)]) : null
+        // normalize: API may return array or null
+        map[p.value] = Array.isArray(val) ? val : (val != null ? [val] : [])
       })
       assignments.value[s.scheduleId] = map
     }
@@ -213,13 +310,13 @@ async function load() {
     for (const sid of Object.keys(assignments.value)) {
       const map = assignments.value[sid]
       for (const posKey of Object.keys(map)) {
-        const assignedId = map[posKey]
-        if (assignedId == null) continue
+        const assignedIds = map[posKey] || []
         const list = membersByPosition.value[String(posKey)] || []
-        if (!list.some(x => x.id === assignedId)) {
-          // add placeholder entry
-          list.push({ id: assignedId, name: `Usuário ${assignedId}`, position: Number(posKey), phoneNumber: '', avatarUrl: '', available: null })
-          membersByPosition.value[String(posKey)] = list
+        for (const assignedId of assignedIds) {
+          if (!list.some(x => x.id === assignedId)) {
+            list.push({ id: assignedId, name: `Usuário ${assignedId}`, position: Number(posKey), phoneNumber: '', avatarUrl: '', available: null })
+            membersByPosition.value[String(posKey)] = list
+          }
         }
       }
     }
@@ -230,41 +327,71 @@ async function load() {
   }
 }
 
-async function onSelect(scheduleId, position, newUserId) {
-  const prev = assignments.value[scheduleId][position]
-  if (prev === newUserId) return
+async function onSelect(scheduleId, position, newUserIds) {
+  // newUserIds is an array because q-select is multiple
+  const newIds = Array.isArray(newUserIds) ? newUserIds : (newUserIds != null ? [newUserIds] : [])
 
-  // find selected member
-  const list = membersByPosition.value[position] || []
-  const member = list.find(m => m.id === newUserId)
+  // Only warn about newly added members that are unavailable FOR THIS SPECIFIC SCHEDULE
+  const prev = assignments.value[scheduleId][position] || []
+  const added = newIds.filter(id => !prev.includes(id))
 
-  if (member && member.available === false) {
-    // confirm
-    const confirmed = await $q.dialog({
-      title: 'Confirmar escolha',
-      message: 'Este membro está marcado como indisponível. Deseja mesmo atribuir?',
-      cancel: true,
-      persistent: true,
-      ok: { label: 'Sim', color: 'primary' },
-      cancel: { label: 'Cancelar' }
-    }).onOk(() => true).onCancel(() => false).onDismiss(() => false)
+  const unavailableAdded = added.filter(id => getMemberAvailability(scheduleId, id) === false)
+
+  // Aceita provisoriamente a seleção para manter o Quasar em sincronia exata com o Vue.
+  // Como o modal é assíncrono, se não fizermos isso, o Quasar altera a UI internamente,
+  // mas o Vue ignora a reversão porque acha que o valor antigo não mudou.
+  assignments.value = { ...assignments.value, [scheduleId]: { ...assignments.value[scheduleId], [position]: newIds } }
+
+  if (unavailableAdded.length > 0) {
+    const list = membersByPosition.value[String(position)] || membersByPosition.value[position] || []
+    const name = (unavailableAdded || [])
+      .map(id => list.find(m => m.id === id)?.name ?? `Usuário ${id}`)
+      .join(', ')
+    const confirmed = await new Promise(resolve => {
+      $q.dialog({
+        title: 'Confirmar escolha',
+        message: `${name} está marcado como indisponível para esta data. Deseja mesmo atribuir?`,
+        cancel: true,
+        persistent: true,
+        ok: { label: 'Sim', color: 'primary' },
+        cancel: { label: 'Cancelar' }
+      })
+      .onOk(() => resolve(true))
+      .onCancel(() => resolve(false))
+      .onDismiss(() => resolve(false))
+    })
 
     if (!confirmed) {
-      // keep previous
+      // Reversão limpa usando a reatividade do Vue (o erro anterior ocorria pois
+      // o Quasar abortava a execução da função inteira ao rejeitar a Promise do Dialog)
+      await nextTick()
+      const filteredIds = newIds.filter(id => !unavailableAdded.includes(id))
+      const newAssignments = { ...assignments.value }
+      newAssignments[scheduleId] = { ...newAssignments[scheduleId] }
+      newAssignments[scheduleId][position] = filteredIds
+      assignments.value = newAssignments
       return
     }
   }
 
   // commit locally (save happens only when user clicks Salvar)
-  assignments.value = { ...assignments.value, [scheduleId]: { ...assignments.value[scheduleId], [position]: newUserId } }
+  assignments.value = { ...assignments.value, [scheduleId]: { ...assignments.value[scheduleId], [position]: newIds } }
 }
 
 async function save() {
   saving.value = true
   try {
-    const ids = schedules.value.map(s => s.scheduleId)
+    const ids = (schedules.value || []).map(s => s.scheduleId)
     for (const sid of ids) {
-      const payload = { assignments: assignments.value[sid] || {} }
+      // send { positionValue: [userId, ...] } — only positions with at least one member
+      const raw = assignments.value[sid] || {}
+      const payload = { assignments: {} }
+      for (const posKey of Object.keys(raw)) {
+        const arr = raw[posKey]
+        if (Array.isArray(arr) && arr.length > 0) {
+          payload.assignments[posKey] = arr
+        }
+      }
       await api.post(`schedules/${sid}/assignments`, payload)
     }
     if (props.showNotify) {
@@ -282,7 +409,7 @@ async function saveAndAdvance() {
   savingAdvance.value = true
   try {
     await save()
-    const ids = schedules.value.map(s => s.scheduleId)
+    const ids = (schedules.value || []).map(s => s.scheduleId)
     await api.post('schedules/transition', { scheduleIds: ids, newStatus: 2 })
     Notify.create({ type: 'positive', message: 'Escalas avançadas para aguardar repertório.' })
     emit('advanced', ids)
@@ -300,5 +427,23 @@ onMounted(load)
 .card-date { border: 1px solid var(--q-separator); padding: 8px; border-radius:6px; }
 @media (min-width: 600px) {
   .visible-xs { display: none; }
+}
+
+/* Availability indicator dot */
+.avail-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: transparent;
+  flex-shrink: 0;
+}
+.avail-dot--yes  { background: #4caf50; border-color: #388e3c; } /* green */
+.avail-dot--no   { background: #f44336; border-color: #c62828; } /* red */
+.avail-dot--pending { background: #9e9e9e; border-color: #616161; } /* gray */
+
+.q-item__section--avatar {
+  min-width: fit-content !important;
 }
 </style>

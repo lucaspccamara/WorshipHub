@@ -234,7 +234,7 @@ namespace WorshipApplication.Services
         public void SaveAssignments(int scheduleId, ScheduleAssignmentsDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
-            // repository expects position -> userId mapping
+            // repository expects position -> list of userIds mapping
             _repository.SaveAssignments(scheduleId, dto.Assignments);
         }
 

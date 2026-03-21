@@ -2,7 +2,7 @@ namespace WorshipDomain.DTO.Schedule
 {
     public class ScheduleAssignmentsDto
     {
-        // positionValue -> userId
-        public Dictionary<int, int?> Assignments { get; set; } = new();
+        // positionValue -> list of userIds
+        public Dictionary<int, List<int>> Assignments { get; set; } = new();
     }
 }

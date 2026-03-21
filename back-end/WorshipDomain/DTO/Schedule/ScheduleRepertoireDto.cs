@@ -7,8 +7,8 @@ namespace WorshipDomain.DTO.Schedule
         public int EventType { get; set; }
         public int Status { get; set; }
 
-        // assignments saved in DB: position -> userId
-        public Dictionary<int, int?> CurrentAssignments { get; set; } = new();
+        // assignments saved in DB: position -> list of userIds
+        public Dictionary<int, List<int>> CurrentAssignments { get; set; } = new();
 
         // members currently assigned (flatten)
         public List<AssignedMemberSimpleDto> AssignedMembers { get; set; } = new();
