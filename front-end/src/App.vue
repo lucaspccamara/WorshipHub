@@ -1,12 +1,14 @@
 <template>
   <div class="app-container">
     <AppTemplate/>
+    <InstallAppPrompt />
   </div>
 </template>
 
 <script setup>
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import AppTemplate from "./pages/AppTemplate.vue";
+import InstallAppPrompt from "./components/InstallAppPrompt.vue";
 
 // Quando um novo Service Worker está disponível e assumiu o controle
 // (graças ao skipWaiting + clients.claim no SW), esta callback é chamada.
