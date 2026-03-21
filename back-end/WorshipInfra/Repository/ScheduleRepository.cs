@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Schedule;
 using WorshipDomain.Entities;
@@ -99,7 +99,10 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             {
                 int pos = (int)a.position;
                 int? uid = a.user_id == null ? (int?)null : (int)a.user_id;
-                scheduleRepertoireDto.CurrentAssignments[pos] = uid;
+                if (!scheduleRepertoireDto.CurrentAssignments.ContainsKey(pos))
+                    scheduleRepertoireDto.CurrentAssignments[pos] = new List<int>();
+                if (uid.HasValue)
+                    scheduleRepertoireDto.CurrentAssignments[pos].Add(uid.Value);
             }
 
             // flatten assigned members (join user info)
@@ -228,7 +231,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
             // 2) members grouped by position (all active users)
             const string usersSql = @"
-                SELECT id, name, phone_number, avatar_url, position
+                SELECT id, name, avatar_url, position
                 FROM users
                 WHERE status = 1
                 ORDER BY name;";
@@ -248,10 +251,8 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                     {
                         Id = (int)u.id,
                         Name = (string)u.name,
-                        PhoneNumber = u.phone_number as string,
                         AvatarUrl = u.avatar_url as string,
-                        Position = posVal,
-                        Available = null
+                        Position = posVal
                     });
                 }
             }
@@ -275,6 +276,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             // Inject availability into membersByPos per schedule is not needed globally;
             // consumers expect members list per position, availability is separated per schedule.
             dto.MembersByPosition = membersByPos;
+            dto.AvailabilityBySchedule = availability;
 
             // 4) current assignments for the requested schedules
             const string assignSql = @"
@@ -282,14 +284,15 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 FROM schedules_users
                 WHERE schedule_id IN @Ids;";
             var assignRows = _dbConnection.Query(assignSql, new { Ids = ids }).ToList();
-            var assignments = new Dictionary<int, Dictionary<int, int?>>();
+            var assignments = new Dictionary<int, Dictionary<int, List<int>>>();
             foreach (var r in assignRows)
             {
                 int scheduleId = (int)r.schedule_id;
                 int pos = (int)r.position;
                 int? uid = r.user_id == null ? (int?)null : (int)r.user_id;
-                if (!assignments.ContainsKey(scheduleId)) assignments[scheduleId] = new Dictionary<int, int?>();
-                assignments[scheduleId][pos] = uid;
+                if (!assignments.ContainsKey(scheduleId)) assignments[scheduleId] = new Dictionary<int, List<int>>();
+                if (!assignments[scheduleId].ContainsKey(pos)) assignments[scheduleId][pos] = new List<int>();
+                if (uid.HasValue) assignments[scheduleId][pos].Add(uid.Value);
             }
 
             // Ensure every requested schedule has an entry (even empty)
@@ -297,7 +300,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             {
                 if (!assignments.ContainsKey(id))
                 {
-                    assignments[id] = new Dictionary<int, int?>();
+                    assignments[id] = new Dictionary<int, List<int>>();
                 }
             }
 
@@ -306,7 +309,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             return dto;
         }
 
-        public void SaveAssignments(int scheduleId, Dictionary<int, int?> assignments)
+        public void SaveAssignments(int scheduleId, Dictionary<int, List<int>> assignments)
         {
             _dbConnection.Open();
             using var tx = _dbConnection.BeginTransaction();
@@ -323,10 +326,11 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 foreach (var kv in assignments)
                 {
                     var position = kv.Key;
-                    var userId = kv.Value;
-                    if (userId.HasValue)
+                    var userIds = kv.Value;
+                    if (userIds == null) continue;
+                    foreach (var userId in userIds)
                     {
-                        _dbConnection.Execute(insertSql, new { UserId = userId.Value, ScheduleId = scheduleId, Position = position }, tx);
+                        _dbConnection.Execute(insertSql, new { UserId = userId, ScheduleId = scheduleId, Position = position }, tx);
                     }
                 }
 
