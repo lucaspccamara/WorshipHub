@@ -2,7 +2,7 @@
   <q-dialog v-model="showPrompt" position="bottom" seamless>
     <q-card style="width: 100%; border-radius: 16px 16px 0 0;" class="bg-primary text-white install-card">
       <div class="row items-center q-pa-md pb-0">
-        <q-icon name="get_app" size="3.5rem" class="q-mr-md" />
+        <q-icon name="fa-solid fa-download" size="3.5rem" class="q-mr-md" />
         <div class="col">
           <div class="text-h6 text-weight-bold" style="line-height: 1.2;">Instale o App</div>
           <div class="text-caption q-mt-xs text-weight-medium" v-if="!isIOS" style="opacity: 0.9;">
@@ -24,8 +24,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { isInstallPromptVisible } from '../composables/useUIState'
 
-const showPrompt = ref(false)
+const showPrompt = isInstallPromptVisible
 const deferredPrompt = ref(null)
 const isIOS = ref(false)
 
