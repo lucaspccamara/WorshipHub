@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using WorshipDomain.DTO.HomePage;
 using WorshipDomain.Entities;
 using WorshipDomain.Enums;
@@ -57,7 +57,11 @@ namespace WorshipInfra.Repository
 
                 // load musics for schedule (fallback to empty)
                 const string musicsSql = @"
-                    SELECT m.id, m.title, m.artist, m.note_base, m.note_mode, m.bpm, m.time_signature, m.duration_seconds, m.image_url
+                    SELECT m.id, m.title, m.artist, 
+                           COALESCE(sm.note_base, m.note_base) as note_base, 
+                           m.note_mode as note_mode, 
+                           COALESCE(sm.bpm, m.bpm) as bpm, 
+                           m.time_signature, m.duration_seconds, m.image_url
                     FROM schedules_musics sm
                     JOIN musics m ON m.id = sm.music_id
                     WHERE sm.schedule_id = @ScheduleId
@@ -69,7 +73,11 @@ namespace WorshipInfra.Repository
                     Id = (int)m.id,
                     Title = (string)m.title,
                     Artist = m.artist as string,
-                    Details = BuildMusicDetails(m),
+                    NoteBase = m.note_base as string,
+                    NoteMode = m.note_mode as string,
+                    Bpm = m.bpm as decimal?,
+                    TimeSignature = m.time_signature as string,
+                    DurationSeconds = m.duration_seconds as int?,
                     ImageUrl = m.image_url as string
                 }).ToList();
 
@@ -77,20 +85,6 @@ namespace WorshipInfra.Repository
             }
 
             return result;
-        }
-
-        private static string BuildMusicDetails(dynamic m)
-        {
-            var parts = new List<string>();
-            if (m.note_base != null) parts.Add($"Tom: {m.note_base}{(m.note_mode == "minor" ? "m" : string.Empty)}");
-            if (m.bpm != null) parts.Add($"BPM: {m.bpm}");
-            if (m.time_signature != null) parts.Add($"Tempo: {m.time_signature}");
-            if (m.duration_seconds != null)
-            {
-                int secs = (int)m.duration_seconds;
-                parts.Add($"Duração: {secs / 60}:{secs % 60:D2}");
-            }
-            return string.Join(' ', parts);
         }
     }
 }

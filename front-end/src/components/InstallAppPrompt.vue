@@ -9,7 +9,7 @@
             Acesso rápido e melhor experiência de uso na sua tela inicial.
           </div>
           <div class="text-caption q-mt-xs text-weight-medium" v-else style="opacity: 0.9;">
-            Para instalar, toque em <q-icon name="ios_share" size="sm" class="q-mx-xs" /> e selecione <br><strong>Adicionar à Tela de Início</strong>.
+            Para instalar, toque em <q-icon name="fa-solid fa-arrow-up-from-bracket" size="sm" class="q-mx-xs" /> e selecione <br><strong>Adicionar à Tela de Início</strong>.
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ onMounted(() => {
     if (!hasDismissed) {
       setTimeout(() => {
         showPrompt.value = true
-      }, 3000)
+      }, 1000)
     }
   })
 
@@ -74,7 +74,7 @@ onMounted(() => {
       // Delay de alguns segundos para não ser intrusivo logo no primeiro load
       setTimeout(() => {
         showPrompt.value = true
-      }, 3000)
+      }, 1000)
     }
   }
 })

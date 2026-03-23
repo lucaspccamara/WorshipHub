@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WorshipDomain.Entities
 {
@@ -16,5 +16,14 @@ namespace WorshipDomain.Entities
 
         [Column("order")]
         public int Order { get; set; }
+
+        [Column("note_base")]
+        public string? NoteBase { get; set; }
+
+        [Column("note_mode")]
+        public string? NoteMode { get; set; }
+
+        [Column("bpm")]
+        public decimal? Bpm { get; set; }
     }
 }
