@@ -76,20 +76,22 @@ export function useNotifications() {
     };
 
     // Listener para mensagens em PRIMEIRO PLANO (aba aberta e ativa)
-    onMessage(messaging, (payload) => {
-        const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
-        const body = payload.notification?.body || payload.data?.body || '';
+    if (messaging) {
+        onMessage(messaging, (payload) => {
+            const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
+            const body = payload.notification?.body || payload.data?.body || '';
 
-        // Em foreground, geralmente mostramos um Notify interno ou forçamos a Notificação de sistema
-        Notify.create({
-            type: 'info',
-            message: `<strong>${title}</strong><br>${body}`,
-            html: true,
-            position: 'top',
-            timeout: 5000,
-            actions: [{ label: 'Ver', color: 'white', handler: () => { router.push(payload.data?.url || '/') } }]
+            // Em foreground, geralmente mostramos um Notify interno ou forçamos a Notificação de sistema
+            Notify.create({
+                type: 'info',
+                message: `<strong>${title}</strong><br>${body}`,
+                html: true,
+                position: 'top',
+                timeout: 5000,
+                actions: [{ label: 'Ver', color: 'white', handler: () => { router.push(payload.data?.url || '/') } }]
+            });
         });
-    });
+    }
 
     const saveTokenToBackend = async (token, showNotify = true) => {
         try {

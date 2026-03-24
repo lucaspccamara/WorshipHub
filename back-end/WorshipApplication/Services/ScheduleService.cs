@@ -220,9 +220,9 @@ namespace WorshipApplication.Services
             return _repository.GetScheduleRepertoireDetails(scheduleId);
         }
 
-        public void SaveScheduleRepertoire(int scheduleId, IEnumerable<int> musicIds)
+        public void SaveScheduleRepertoire(int scheduleId, IEnumerable<ScheduleTrackInputDto> tracks)
         {
-            _repository.SaveScheduleRepertoire(scheduleId, musicIds);
+            _repository.SaveScheduleRepertoire(scheduleId, tracks);
         }
 
         public SchedulesAssignmentsDetailsDto? GetSchedulesAssignmentsDetails(IEnumerable<int> scheduleIds)

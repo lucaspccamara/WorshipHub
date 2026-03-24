@@ -20,23 +20,30 @@ self.addEventListener('activate', (event) => {
 
 const firebaseApp = initializeApp(firebaseConfig);
 
-const messaging = getMessaging(firebaseApp);
+let messaging;
+try {
+  messaging = getMessaging(firebaseApp);
+} catch (e) {
+  console.warn("Firebase Messaging is not supported in this browser SDK context.", e);
+}
 
-onBackgroundMessage(messaging, (payload) => {
-    // Tenta extrair do payload do Firebase (estrutura pode variar se vier 'notification' ou só 'data')
-    const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
-    const body = payload.notification?.body || payload.data?.body || 'Nova atualização no painel.';
+if (messaging) {
+  onBackgroundMessage(messaging, (payload) => {
+      // Tenta extrair do payload do Firebase (estrutura pode variar se vier 'notification' ou só 'data')
+      const title = payload.notification?.title || payload.data?.title || 'WorshipHub';
+      const body = payload.notification?.body || payload.data?.body || 'Nova atualização no painel.';
 
-    const notificationOptions = {
-        body: body,
-        icon: '/pwa-192x192.png',
-        badge: '/vite.svg',
-        tag: 'worship-push', // Evita duplicados em sequência
-        data: { url: payload.data?.url || '/' }
-    };
+      const notificationOptions = {
+          body: body,
+          icon: '/pwa-192x192.png',
+          badge: '/vite.svg',
+          tag: 'worship-push', // Evita duplicados em sequência
+          data: { url: payload.data?.url || '/' }
+      };
 
-    self.registration.showNotification(title, notificationOptions);
-});
+      self.registration.showNotification(title, notificationOptions);
+  });
+}
 
 self.addEventListener('notificationclick', function (event) {
     event.notification.close();

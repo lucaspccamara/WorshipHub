@@ -68,7 +68,12 @@
                 <q-item-section class="music-content">
                   <q-item-label class="music-title">{{ music.title }}</q-item-label>
                   <q-item-label class="music-artist">{{ music.artist }}</q-item-label>
-                  <q-item-label class="music-details">{{ music.details }}</q-item-label>
+                  <q-item-label class="music-details row">
+                    <span v-if="music.noteBase" class="q-mr-sm"><strong>Tom:</strong> {{ music.noteBase }}{{ music.noteMode === 'minor' ? 'm' : '' }}</span>
+                    <span v-if="music.bpm" class="q-mr-sm"><strong>BPM:</strong> {{ Math.round(music.bpm) }}</span>
+                    <span v-if="music.timeSignature" class="q-mr-sm"><strong>Tempo:</strong> {{ music.timeSignature }}</span>
+                    <span v-if="music.durationSeconds"><strong>Duração:</strong> {{ Math.floor(music.durationSeconds / 60) }}:{{ String(music.durationSeconds % 60).padStart(2, '0') }}</span>
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>

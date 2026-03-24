@@ -59,7 +59,7 @@ const checkAndShowPrompt = () => {
   }
 
   if (!hasDismissed) {
-    // Atraso de 4 segundos para evitar poluição visual imediata com outros possíveis alertas no login
+    // Atraso de 2 segundos para evitar poluição visual imediata com outros possíveis alertas no login
     setTimeout(() => {
       const currentPermissionAft = ('Notification' in window) ? Notification.permission : 'denied'
       if (authStore.isAuthenticated && currentPermissionAft === 'default') {
@@ -75,7 +75,7 @@ const checkAndShowPrompt = () => {
           })
         }
       }
-    }, 4000)
+    }, 2000)
   }
 }
 

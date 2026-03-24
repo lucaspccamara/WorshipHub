@@ -136,9 +136,9 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 m.title AS Title,
                 m.artist as Artist,
                 m.album AS Album,
-                m.note_base AS NoteBase,
+                COALESCE(sm.note_base, m.note_base) AS NoteBase,
                 m.note_mode AS NoteMode,
-                m.bpm AS Bpm,
+                COALESCE(sm.bpm, m.bpm) AS Bpm,
                 m.time_signature AS TimeSignature,
                 m.duration_seconds AS DurationSeconds,
                 m.video_url AS VideoUrl
@@ -161,7 +161,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             return scheduleRepertoireDto;
         }
 
-        public void SaveScheduleRepertoire(int scheduleId, IEnumerable<int> musicIds)
+        public void SaveScheduleRepertoire(int scheduleId, IEnumerable<ScheduleTrackInputDto> tracks)
         {
             var openedHere = false;
             try
@@ -179,14 +179,20 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                     _dbConnection.Execute(deleteSql, new { ScheduleId = scheduleId }, tx);
 
                     const string insertSql = @"
-                    INSERT INTO schedules_musics (schedule_id, music_id, `order`)
-                    VALUES (@ScheduleId, @MusicId, @Order);";
+                    INSERT INTO schedules_musics (schedule_id, music_id, note_base, bpm, `order`)
+                    VALUES (@ScheduleId, @MusicId, @NoteBase, @Bpm, @Order);";
 
                     int order = 0;
-                    foreach (var mid in musicIds ?? Enumerable.Empty<int>())
+                    foreach (var track in tracks ?? Enumerable.Empty<ScheduleTrackInputDto>())
                     {
                         order++;
-                        _dbConnection.Execute(insertSql, new { ScheduleId = scheduleId, MusicId = mid, Order = order }, tx);
+                        _dbConnection.Execute(insertSql, new { 
+                            ScheduleId = scheduleId, 
+                            MusicId = track.MusicId, 
+                            NoteBase = track.NoteBase,
+                            Bpm = track.Bpm,
+                            Order = order 
+                        }, tx);
                     }
 
                     tx.Commit();

@@ -1,4 +1,4 @@
-﻿namespace WorshipDomain.DTO.Music
+namespace WorshipDomain.DTO.Music
 {
     public class MusicOverviewDTO
     {
@@ -6,5 +6,8 @@
         public string Title { get; set; }
         public string Artist { get; set; }
         public string Album { get; set; }
+        public string? NoteBase { get; set; }
+        public string? NoteMode { get; set; }
+        public decimal? Bpm { get; set; }
     }
 }

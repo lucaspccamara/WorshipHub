@@ -154,12 +154,12 @@ namespace WorshipApi.Controllers
         [AuthorizeRoles(Role.Admin, Role.Leader, Role.Minister)]
         public ActionResult SaveRepertoire(
             [FromServices] ScheduleService _scheduleService,
-            [FromBody] int[] musicIds,
+            [FromBody] IEnumerable<ScheduleTrackInputDto> tracks,
             int id)
         {
             try
             {
-                _scheduleService.SaveScheduleRepertoire(id, musicIds ?? Array.Empty<int>());
+                _scheduleService.SaveScheduleRepertoire(id, tracks ?? Enumerable.Empty<ScheduleTrackInputDto>());
                 return Ok();
             }
             catch (Exception ex)

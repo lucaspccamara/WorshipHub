@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Music;
 using WorshipDomain.Entities;
@@ -18,7 +18,7 @@ namespace WorshipInfra.Repository
 
             var selector = builder.AddTemplate($@"
 SELECT SQL_CALC_FOUND_ROWS
-    id, title, artist, album
+    id, title, artist, album, note_base, note_mode, bpm
 FROM musics
 /**where**/
 /**orderby**/
@@ -42,13 +42,16 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
             using (var multiReader = _dbConnection.QueryMultiple(selector.RawSql, selector.Parameters))
             {
-                var musicList = multiReader.Read<(int Id, string Title, string Artist, string Album)>();
+                var musicList = multiReader.Read<(int Id, string Title, string Artist, string Album, string? NoteBase, string? NoteMode, decimal? Bpm)>();
                 musicOverviewDTO = musicList.Select(music => new MusicOverviewDTO
                 {
                     Id = music.Id,
                     Title = music.Title,
                     Artist = music.Artist,
-                    Album = music.Album
+                    Album = music.Album,
+                    NoteBase = music.NoteBase,
+                    NoteMode = music.NoteMode,
+                    Bpm = music.Bpm
                 });
 
                 count = multiReader.ReadSingle<int>();

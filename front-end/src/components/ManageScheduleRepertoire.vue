@@ -24,40 +24,103 @@
         </div>
 
         <div class="q-mb-md">
-          <div class="text-subtitle2 q-mb-xs">Selecionar músicas</div>
-          <q-select
-            v-model="selectedTracks"
-            dense
-            outlined
-            multiple
-            use-chips
-            stack-label
-            :options="availableTracksOptions"
-            option-value="id"
-            option-label="label"
-            map-options
-            emit-value
-            input-debounce="200"
-            filter
-            :filter-method="filterTracks"
-            placeholder="Pesquisar e selecionar músicas"
-          />
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="text-subtitle2">Músicas do Repertório</div>
+            <q-btn color="primary" icon="fa fa-plus" label="Adicionar Música" size="sm" @click="dialogMusicList = true" />
+          </div>
+
+          <q-list bordered separator class="rounded-borders">
+            <q-item v-for="(track, index) in schedule.repertoire" :key="index">
+              <q-item-section>
+                <q-item-label>{{ track.title }} <span class="text-caption text-grey" v-if="track.artist">— {{ track.artist }}</span></q-item-label>
+                <q-item-label caption>
+                  Tom: <strong>{{ formatKey(track.noteBase, track.noteMode) }}</strong> | BPM: <strong>{{ track.bpm || '--' }}</strong>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <div class="row q-gutter-xs">
+                  <q-btn flat dense round icon="fa fa-cog" color="primary" @click="openConfigTrack(index)" />
+                  <q-btn flat dense round icon="fa fa-trash" color="negative" @click="removeTrack(index)" />
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="schedule.repertoire.length === 0">
+              <q-item-section class="text-grey text-center q-pa-md">Nenhuma música adicionada</q-item-section>
+            </q-item>
+          </q-list>
         </div>
 
-        <div v-if="!hideFooter" class="row justify-end q-gutter-sm">
+        <div v-if="!hideFooter" class="row justify-end q-gutter-sm q-mt-md">
           <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
           <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
         </div>
       </div>
     </q-card-section>
+
+    <!-- Modal for Music List -->
+    <q-dialog v-model="dialogMusicList" maximized transition-show="slide-up" transition-hide="slide-down">
+      <q-card>
+        <q-bar class="card-header">
+          <div class="text-h6">Selecionar Música</div>
+          <q-space />
+          <q-btn dense flat icon="fa fa-close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-pa-none">
+          <MusicList selectable @selected="onMusicSelected" />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Modal for Config Track -->
+    <q-dialog v-model="dialogConfigTrack">
+      <q-card style="min-width: 300px">
+        <q-card-section>
+          <div class="text-h6">Configurar Música</div>
+          <div class="text-subtitle2">{{ editingTrack?.title }} <span class="text-caption text-grey" v-if="editingTrack?.artist">— {{ editingTrack?.artist }}</span></div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-col-gutter-md">
+            <div class="col-12">
+              <q-select
+                v-model="editNoteBase"
+                :options="noteOptions"
+                label="Tom (Nota)"
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </div>
+          </div>
+          <div class="row q-mt-md">
+            <div class="col-12">
+              <q-input
+                v-model.number="editBpm"
+                label="BPM"
+                type="number"
+                outlined
+                dense
+              />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="primary" v-close-popup />
+          <q-btn flat label="Confirmar" color="primary" @click="confirmConfigTrack" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-card>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Notify } from 'quasar'
 import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
+import MusicList from './MusicList.vue'
 
 const props = defineProps({
   scheduleId: { type: Number, required: true },
@@ -75,10 +138,24 @@ const saving = ref(false)
 const savingAdvance = ref(false)
 
 const schedule = ref({ date: null, assignedMembers: [], repertoire: [], currentAssignments: {} })
-const availableTracks = ref([])
-const selectedTracks = ref([])
 
-const availableTracksOptions = computed(() => availableTracks.value.map(t => ({ id: t.id, label: `${t.title} ${t.author ? ' — ' + t.author : ''}` })))
+const dialogMusicList = ref(false)
+const dialogConfigTrack = ref(false)
+const editingTrackIndex = ref(-1)
+const editingTrack = ref(null)
+
+const editNoteBase = ref('')
+const editNoteMode = ref('');
+const editBpm = ref('');
+
+const noteOptions = computed(() => {
+  const baseNotes = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+  const isMinor = editNoteMode.value === 'minor';
+  return baseNotes.map(n => ({
+    label: n + (isMinor ? 'm' : ''),
+    value: n
+  }));
+});
 
 function formatDate(d) {
   try { return new Date(d).toLocaleDateString(); } catch { return d }
@@ -87,10 +164,10 @@ function positionLabel(value) {
   const p = PositionOptions.find(x => x.value === Number(value))
   return p ? p.label : String(value)
 }
-
-function filterTracks(term, option) {
-  if (!term) return true
-  return option.label.toLowerCase().indexOf(term.toLowerCase()) !== -1
+function formatKey(base, mode) {
+  if (!base) return '--'
+  const isMinor = mode === 'minor' ? 'm' : ''
+  return `${base}${isMinor}`
 }
 
 async function load() {
@@ -101,11 +178,15 @@ async function load() {
     schedule.value = {
       date: dto.date ?? dto.Date,
       assignedMembers: (dto.assignedMembers || dto.AssignedMembers || []).map(m => ({ id: m.id ?? m.Id, name: m.name ?? m.Name, position: m.position ?? m.Position })),
-      repertoire: (dto.repertoire || dto.Repertoire || []).map(t => ({ id: t.id ?? t.Id, title: t.title ?? t.Title, author: t.author ?? t.Author }))
+      repertoire: (dto.repertoire || dto.Repertoire || []).map(t => ({ 
+        id: t.id ?? t.Id, 
+        title: t.title ?? t.Title, 
+        artist: t.artist ?? t.Artist,
+        noteBase: t.noteBase ?? t.NoteBase,
+        noteMode: t.noteMode ?? t.NoteMode,
+        bpm: t.bpm ?? t.Bpm
+      }))
     }
-    availableTracks.value = (dto.availableTracks || dto.AvailableTracks || []).map(t => ({ id: t.id ?? t.Id, title: t.title ?? t.Title, author: t.author ?? t.Author }))
-    // initialize selectedTracks with existing repertoire track ids
-    selectedTracks.value = schedule.value.repertoire.map(t => t.id)
   } catch (err) {
     console.error(err)
     Notify.create({ type: 'negative', message: 'Erro ao carregar repertório.' })
@@ -114,10 +195,61 @@ async function load() {
   }
 }
 
+function onMusicSelected(music) {
+  dialogMusicList.value = false;
+  editingTrackIndex.value = -1;
+  editingTrack.value = music;
+  editNoteBase.value = music.noteBase || music.NoteBase || '';
+  // Se vier vazio ou diferente de minor, setamos major como padrão visual ou mantemos
+  const mode = (music.noteMode || music.NoteMode || 'major').toLowerCase();
+  editNoteMode.value = mode === 'minor' ? 'minor' : 'major';
+  editBpm.value = music.bpm || music.Bpm || '';
+  dialogConfigTrack.value = true;
+}
+
+function openConfigTrack(index) {
+  editingTrackIndex.value = index;
+  const track = schedule.value.repertoire[index];
+  editingTrack.value = track;
+  editNoteBase.value = track.noteBase || '';
+  const mode = (track.noteMode || track.NoteMode || 'major').toLowerCase();
+  editNoteMode.value = mode === 'minor' ? 'minor' : 'major';
+  editBpm.value = track.bpm || '';
+  dialogConfigTrack.value = true;
+}
+
+function confirmConfigTrack() {
+  const configuredTrack = {
+    ...editingTrack.value,
+    id: editingTrack.value.id || editingTrack.value.Id,
+    title: editingTrack.value.title || editingTrack.value.Title,
+    artist: editingTrack.value.artist || editingTrack.value.Artist,
+    noteBase: editNoteBase.value,
+    bpm: editBpm.value ? Number(editBpm.value) : null // Ignoramos gravar editNoteMode, herda o original
+  };
+
+  if (editingTrackIndex.value >= 0) {
+    schedule.value.repertoire[editingTrackIndex.value] = configuredTrack;
+  } else {
+    schedule.value.repertoire.push(configuredTrack);
+  }
+  dialogConfigTrack.value = false;
+}
+
+function removeTrack(index) {
+  schedule.value.repertoire.splice(index, 1);
+}
+
 async function save() {
   saving.value = true
   try {
-    await api.post(`schedules/${props.scheduleId}/repertoire`, selectedTracks.value);
+    const payload = schedule.value.repertoire.map(t => ({
+      musicId: t.id,
+      noteBase: t.noteBase,
+      noteMode: t.noteMode,
+      bpm: t.bpm
+    }));
+    await api.post(`schedules/${props.scheduleId}/repertoire`, payload);
     if (props.showNotify) {
       Notify.create({ type: 'positive', message: 'Repertório salvo.' })
     }
@@ -134,7 +266,6 @@ async function saveAndAdvance() {
   savingAdvance.value = true
   try {
     await save()
-    // advance to next status (2 = awaiting repertoire release) - reuse existing transition route
     await api.post('schedules/transition', { scheduleIds: [props.scheduleId], newStatus: 3 })
     Notify.create({ type: 'positive', message: 'Escala avançada.' })
     emit('advanced', props.scheduleId)
