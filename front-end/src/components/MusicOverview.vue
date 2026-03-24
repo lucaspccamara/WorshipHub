@@ -24,11 +24,11 @@
     >
 
       <q-tab-panel name="details">
-        <!-- <MusicDetails /> -->
+        <MusicDetails :music-id="musicId" />
       </q-tab-panel>
 
       <q-tab-panel name="mixer" class="q-pa-none">
-        <MixerVS :musicId="musicId" :ready="showContent" />
+        <MixerVS :music-id="musicId" :ready="showContent" />
       </q-tab-panel>
 
       <q-tab-panel name="chords">
@@ -47,7 +47,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-//import MusicDetails from './MusicDetails.vue'
+import MusicDetails from './MusicDetails.vue'
 import MixerVS from './MixerVS.vue'
 //import ChordSheet from './ChordSheet.vue'
 import MiniPlayer from './MiniPlayer.vue'
@@ -62,7 +62,7 @@ const props = defineProps({
 
 const { isLoading, tracks, currentMusicId, resetMixer, stop } = useAudioMixer()
 
-const tab = ref('mixer')
+const tab = ref('details')
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
 // Estado unificado para revelação (Mixer + MiniPlayer)
