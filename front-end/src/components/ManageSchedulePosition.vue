@@ -29,6 +29,7 @@
               <div v-for="pos in positionOptions" :key="pos.value" class="q-mb-xs">
                 <div class="text-caption q-mb-xs">{{ pos.label }}</div>
                 <q-select
+                  :readonly="!canEdit"
                   dense
                   outlined
                   multiple
@@ -56,7 +57,7 @@
                   <template v-slot:selected-item="scope">
                     <q-chip
                       :data-chip-id="`chip-${item.scheduleId}-${pos.value}-${scope.opt.id}`"
-                      removable
+                      :removable="canEdit"
                       dense
                       :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
                       :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
@@ -93,6 +94,7 @@
                   </div>
                   <div v-else>
                     <q-select
+                      :readonly="!canEdit"
                       dense
                       outlined
                       multiple
@@ -120,7 +122,7 @@
                       <template v-slot:selected-item="scope">
                         <q-chip
                           :data-chip-id="`chip-${props.row.scheduleId}-${props.col.name}-${scope.opt.id}`"
-                          removable
+                          :removable="canEdit"
                           dense
                           :color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
                           :text-color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
@@ -140,7 +142,7 @@
         </div>
       </q-card-section>
 
-      <q-card-actions v-if="!hideFooter" align="right">
+      <q-card-actions v-if="!hideFooter && canEdit" align="right">
         <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
         <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
       </q-card-actions>
@@ -153,6 +155,11 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { Notify, useQuasar } from 'quasar'
 import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
+import { Role } from '../constants/Role'
+import { useAuthStore } from '../stores/authStore'
+
+const authStore = useAuthStore()
+const canEdit = computed(() => authStore.hasAnyRole([Role.Admin, Role.Leader]))
 
 const $q = useQuasar()
 

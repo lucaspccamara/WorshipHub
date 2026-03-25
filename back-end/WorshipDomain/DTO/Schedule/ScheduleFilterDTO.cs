@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace WorshipDomain.DTO.Schedule
 {
@@ -12,5 +12,7 @@ namespace WorshipDomain.DTO.Schedule
 
         [Required]
         public int? EventType { get; set; }
+
+        public int? MinisterId { get; set; }
     }
 }

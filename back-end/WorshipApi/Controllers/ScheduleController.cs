@@ -12,10 +12,23 @@ namespace WorshipApi.Controllers
     public class ScheduleController : ControllerBase
     {
         [HttpPost("list")]
+        [AuthorizeRoles(Role.Admin, Role.Leader, Role.Minister)]
         public ActionResult<ResultFilter<ScheduleOverviewDTO>> GetSchedules(
             [FromServices] ScheduleService _scheduleService,
             [FromBody] ApiRequest<ScheduleFilterDTO> request)
         {
+            var user = HttpContext.User;
+            var role = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (role == Role.Minister.ToString())
+            {
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(userId, out int parsedUserId))
+                {
+                    request.Filters.MinisterId = parsedUserId;
+                }
+            }
+
             var result = _scheduleService.GetListPaged(request);
 
             return Ok(result);
@@ -48,6 +61,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AuthorizeRoles(Role.Admin, Role.Leader)]
         public ActionResult Delete(
             [FromServices] ScheduleService _scheduleService,
             int id)
@@ -63,6 +77,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost("transition")]
+        [AuthorizeRoles(Role.Admin, Role.Leader, Role.Minister)]
         public async Task<ActionResult> Transition(
             [FromServices] ScheduleService _scheduleService,
             [FromBody] TransitionDto dto)
@@ -133,7 +148,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpGet("{id}/repertoire")]
-        [AuthorizeRoles(Role.Admin, Role.Leader)]
+        [AuthorizeRoles(Role.Admin, Role.Leader, Role.Minister)]
         public ActionResult GetRepertoire(
             [FromServices] ScheduleService _scheduleService,
             int id)
@@ -169,7 +184,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost("assignments/details")]
-        [AuthorizeRoles(Role.Admin, Role.Leader)]
+        [AuthorizeRoles(Role.Admin, Role.Leader, Role.Minister)]
         public ActionResult GetSchedulesAssignmentsDetails(
             [FromServices] ScheduleService _scheduleService,
             [FromBody] int[] scheduleIds)
@@ -187,6 +202,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost("{id}/assignments")]
+        [AuthorizeRoles(Role.Admin, Role.Leader)]
         public ActionResult SaveAssignments(
             [FromServices] ScheduleService _scheduleService,
             int id,
@@ -205,6 +221,7 @@ namespace WorshipApi.Controllers
         }
 
         [HttpPost("{id}/notify")]
+        [AuthorizeRoles(Role.Admin, Role.Leader)]
         public async Task<ActionResult> NotifyUpdate(
             [FromServices] ScheduleService _scheduleService,
             int id)
