@@ -55,6 +55,7 @@
 
     <q-card-actions align="right" class="q-pa-md bg-grey-1">
       <q-btn
+        v-if="canNotify"
         flat
         label="Notificar Alterações"
         icon="fa fa-paper-plane"
@@ -88,6 +89,11 @@ import { Notify, useQuasar } from 'quasar';
 import ManageSchedulePosition from './ManageSchedulePosition.vue';
 import ManageScheduleRepertoire from './ManageScheduleRepertoire.vue';
 import api from '../api';
+import { Role } from '../constants/Role';
+import { useAuthStore } from '../stores/authStore';
+
+const authStore = useAuthStore();
+const canNotify = computed(() => authStore.hasAnyRole([Role.Admin, Role.Leader]));
 
 const props = defineProps({
   scheduleId: { type: Number, required: true },

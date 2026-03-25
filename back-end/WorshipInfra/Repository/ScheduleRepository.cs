@@ -53,6 +53,9 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             else
                 builder.Where("event_type < 10");
 
+            if (request.Filters.MinisterId.HasValue)
+                builder.Where("EXISTS (SELECT 1 FROM schedules_users su WHERE su.schedule_id = schedules.id AND su.user_id = @ministerId AND su.position = 0)", new { ministerId = request.Filters.MinisterId.Value });
+
             builder.OrderBy(request.GetSorting("date"));
 
             IEnumerable<ScheduleOverviewDTO> scheduleOverviewDTO;
