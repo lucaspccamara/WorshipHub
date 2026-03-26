@@ -1,10 +1,11 @@
-﻿using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.Auth;
 using WorshipDomain.Entities;
+using WorshipDomain.Interfaces;
 using WorshipDomain.Repository;
 
 namespace WorshipApplication.Services
@@ -12,11 +13,13 @@ namespace WorshipApplication.Services
     public class AuthService : ServiceBase<int, User, IAuthRepository>
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEmailService _emailService;
         private readonly RsaSecurityKey _rsaSecurityKey;
 
-        public AuthService(IAuthRepository repository, IUserRepository userRepository, RsaSecurityKey rsaSecurityKey) : base(repository)
+        public AuthService(IAuthRepository repository, IUserRepository userRepository, IEmailService emailService, RsaSecurityKey rsaSecurityKey) : base(repository)
         {
             _userRepository = userRepository;
+            _emailService = emailService;
             _rsaSecurityKey = rsaSecurityKey;
         }
 
@@ -83,8 +86,10 @@ namespace WorshipApplication.Services
             user.ResetPasswordTokenCode = tokenHandler.WriteToken(token);
             _userRepository.Update(user);
 
-            // TODO: Enviar código por email
-            Console.WriteLine($"Código de verificação: {code}");
+            // Enviar código por e-mail via Brevo
+            await _emailService.SendPasswordResetEmailAsync(user.Email, user.Name, code);
+            
+            Console.WriteLine($"Código de verificação enviado para {email}: {code}");
         }
 
         public string VerifyResetCode(VerifyResetCodeDTO verifyResetCodeDTO)
