@@ -71,13 +71,8 @@
     <template v-slot:body="props">
       <q-tr 
         :props="props"
-        style="cursor: pointer;"
+        class="cursor-pointer row-hover"
         @click="openDialogProfile(props.row.id)"
-        @mousedown="startHold(props.row)"
-        @mouseup="clearHold"
-        @mouseleave="clearHold"
-        @touchstart="startHold(props.row)"
-        @touchend="clearHold"
       >
         <q-td key="name">{{ props.row.name }}</q-td>
         <q-td key="email">{{ props.row.email }}</q-td>
@@ -93,6 +88,9 @@
         <q-td key="status" class="text-center">
           <q-badge :color="getStatusColor(props.row.status)"
             :label="StatusBooleanOptions.find(status => status.value == props.row.status)?.label" />
+        </q-td>
+        <q-td key="action" class="text-right">
+          <q-btn flat round dense icon="fa fa-chevron-right" color="grey-5" size="sm" />
         </q-td>
       </q-tr>
     </template>
@@ -128,7 +126,6 @@ import { StatusBooleanOptions } from '../constants/StatusBooleanOptions';
 const dialogCreateUser = ref(false);
 const dialogEditUser = ref(false);
 const selectedUser = ref(0);
-const holdTimer = ref(null);
 let nome = ref('');
 let email = ref('');
 let status = ref(StatusBooleanOptions[0].value); // 'Ativo' by default
@@ -141,21 +138,9 @@ const columns = [
   {name: 'name', label: 'Nome', field: 'name', align: 'left', sortable: false},
   {name: 'email', label: 'Email', field: 'email', align: 'left', sortable: false},
   {name: 'hasPushNotification', label: 'Notificações', field: 'hasPushNotification', align: 'center', sortable: false},
-  {name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false}
+  {name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false},
+  {name: 'action', label: '', field: 'action', align: 'right', sortable: false}
 ];
-
-function startHold(row) {
-  holdTimer.value = setTimeout(() => {
-    openDialogProfile(row.id);
-  }, 500);
-}
-
-function clearHold() {
-  if (holdTimer.value) {
-    clearTimeout(holdTimer.value);
-    holdTimer.value = null;
-  }
-}
 
 function getStatusColor(status) {
   const foundStatus = StatusBooleanOptions.find(s => s.value === status);
@@ -198,3 +183,9 @@ onMounted(() => {
   getUsers();
 });
 </script>
+
+<style scoped>
+.row-hover:hover {
+  background-color: #f5f5f5 !important;
+}
+</style>
