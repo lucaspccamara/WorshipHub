@@ -54,7 +54,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Dependency Injection
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices();
 
 // Inicializar Google Firebase Admin SDK para envio de Push Notifications FCM
