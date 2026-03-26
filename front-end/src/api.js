@@ -43,6 +43,16 @@ const apiMethods = {
     }
   },
 
+  patch: async (resource, id, data) => {
+    try {
+      const url = id != null ? `/${resource}/${id}` : `/${resource}`;
+      const response = await api.patch(url, data);
+      return response;
+    } catch (error) {
+      throw new Error(error.response.data || error.message);
+    }
+  },
+
   // Outros métodos
   getPost: async (resource, data) => {
     try {

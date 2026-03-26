@@ -17,5 +17,8 @@ namespace WorshipDomain.Repository
         void UpdateStatus(IEnumerable<int> scheduleIds, int newStatus);
         List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetUsersToNotifyForTransition(IEnumerable<int> scheduleIds, int newStatus);
         List<(int Id, string PhoneNumber, string Name, string FcmToken, int? Position)> GetAssignedUsers(int scheduleId);
+        IEnumerable<Schedule> GetSchedulesStartingIn(int daysFromNow);
+        List<(int Id, string Name, string FcmToken, string Timezone)> GetPendingReminderUsers(int scheduleId);
+        void MarkUserReminderAsSent(int scheduleId, int userId);
     }
 }

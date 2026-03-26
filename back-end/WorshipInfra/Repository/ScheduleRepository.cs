@@ -390,5 +390,42 @@ SELECT FOUND_ROWS() AS TotalRecords;");
             var rows = _dbConnection.Query(sql, new { ScheduleId = scheduleId }).ToList();
             return rows.Select(r => ((int)r.id, (string)r.phone_number, (string)r.name, (string)r.fcm_token, (int?)r.position)).ToList();
         }
+
+        public IEnumerable<Schedule> GetSchedulesStartingIn(int daysFromNow)
+        {
+            var targetDate = DateTime.Today.AddDays(daysFromNow);
+            var sql = @"
+                SELECT id as Id, date as Date, event_type as EventType, status as Status 
+                FROM schedules 
+                WHERE status = @Status 
+                  AND DATE(date) = DATE(@TargetDate);";
+                  
+            return _dbConnection.Query<Schedule>(sql, new { 
+                Status = (int)ScheduleStatus.Completed, 
+                TargetDate = targetDate 
+            });
+        }
+
+        public List<(int Id, string Name, string FcmToken, string Timezone)> GetPendingReminderUsers(int scheduleId)
+        {
+            const string sql = @"
+                SELECT u.id, u.name, u.fcm_token, COALESCE(u.timezone, 'America/Sao_Paulo') as timezone
+                FROM schedules_users su
+                JOIN users u ON u.id = su.user_id
+                WHERE su.schedule_id = @ScheduleId 
+                  AND su.reminder_sent = 0;";
+
+            var rows = _dbConnection.Query(sql, new { ScheduleId = scheduleId }).ToList();
+            return rows.Select(r => ((int)r.id, (string)r.name, (string)r.fcm_token, (string)r.timezone)).ToList();
+        }
+
+        public void MarkUserReminderAsSent(int scheduleId, int userId)
+        {
+            const string sql = @"
+                UPDATE schedules_users 
+                SET reminder_sent = 1 
+                WHERE schedule_id = @ScheduleId AND user_id = @UserId;";
+            _dbConnection.Execute(sql, new { ScheduleId = scheduleId, UserId = userId });
+        }
     }
 }

@@ -87,7 +87,7 @@
             </div>
           </div>
         </div>
-        <div class="col-12 col-md-6" v-if="canEditRole">
+        <div class="col-12 col-md-4" v-if="canEditRole">
           <q-select
             v-model="form.role"
             :options="RoleOptions"
@@ -99,7 +99,28 @@
             :rules="[val => val !== null || 'Cargo é obrigatório']"
           />
         </div>
-        <div class="col-12 col-md-6" v-if="canEditRole">
+
+        <!-- Timezone — visível apenas no perfil próprio (sem userIdProp) -->
+        <div class="col-12 col-md-4" v-if="userIdProp === undefined">
+          <q-select
+            v-model="form.timezone"
+            :options="timezoneOptions"
+            emit-value
+            map-options
+            label="Fuso Horário"
+            filled
+            use-input
+            input-debounce="0"
+            @filter="filterTimezones"
+            popup-content-style="max-height: 220px;"
+          >
+            <template v-slot:hint>
+              Usado para enviar lembretes de escalas no seu horário local (12h)
+            </template>
+          </q-select>
+        </div>
+        
+        <div class="col-12 col-md-4" v-if="canEditRole">
           <q-toggle
             v-model="form.status"
             :label="form.status ? 'Status: Ativo' : 'Status: Inativo'"
@@ -172,10 +193,36 @@ const form = ref({
   position: [],
   avatarUrl: '',
   role: 2,
-  status: true
+  status: true,
+  timezone: 'America/Sao_Paulo'
 })
 
 const dialogChangePassword = ref(false);
+
+// Common IANA timezones — label shown to user, value sent to API
+const allTimezones = [
+  { label: 'Brasília (BRT, -03:00)', value: 'America/Sao_Paulo' },
+  { label: 'Manaus (AMT, -04:00)', value: 'America/Manaus' },
+  { label: 'Rio Branco (ACT, -05:00)', value: 'America/Rio_Branco' },
+  { label: 'Fernando de Noronha (FNT, -02:00)', value: 'America/Noronha' },
+  { label: 'Buenos Aires (ART, -03:00)', value: 'America/Argentina/Buenos_Aires' },
+  { label: 'Lisboa (WET/WEST, +00:00)', value: 'Europe/Lisbon' },
+  { label: 'Londres (GMT/BST, +00:00)', value: 'Europe/London' },
+  { label: 'Nova Iorque (EST/EDT, -05:00)', value: 'America/New_York' },
+  { label: 'Los Angeles (PST/PDT, -08:00)', value: 'America/Los_Angeles' },
+  { label: 'UTC', value: 'UTC' },
+];
+
+const timezoneOptions = ref(allTimezones);
+
+function filterTimezones(val, update) {
+  update(() => {
+    const q = val.toLowerCase();
+    timezoneOptions.value = allTimezones.filter(tz =>
+      tz.label.toLowerCase().includes(q) || tz.value.toLowerCase().includes(q)
+    );
+  });
+}
 
 async function loadUserProfile() {
   try {
@@ -190,7 +237,8 @@ async function loadUserProfile() {
       position: user.position || [],
       avatarUrl: user.avatarUrl || defaultAvatar,
       role: user.role,
-      status: user.status
+      status: user.status,
+      timezone: user.timezone || 'America/Sao_Paulo'
     });
 
     if (!avatarOptions.includes(form.value.avatarUrl)) {
@@ -209,13 +257,17 @@ async function submitForm() {
   if (!isValid) return
 
   try {
-    await api.put('users/profile', form.value.id, form.value).then(() => {
-      Notify.create({ type: 'positive', message: 'Perfil atualizado com sucesso!' })
-      formRef.value.resetValidation();
-    }).finally(() => {
-      emit('updateUsersList');
-      emit('closeDialog');
-    });
+    await api.put('users/profile', form.value.id, form.value);
+
+    // Se é o próprio perfil, também atualiza o timezone separadamente
+    if (props.userIdProp === undefined) {
+      await api.patch(`users/${form.value.id}/timezone`, null, { timezone: form.value.timezone });
+    }
+
+    Notify.create({ type: 'positive', message: 'Perfil atualizado com sucesso!' });
+    formRef.value.resetValidation();
+    emit('updateUsersList');
+    emit('closeDialog');
   } catch (err) {
     Notify.create({ type: 'negative', message: 'Erro ao atualizar perfil.' })
   }

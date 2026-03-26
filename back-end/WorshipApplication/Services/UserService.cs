@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.User;
@@ -33,7 +33,8 @@ namespace WorshipApplication.Services
                 Position = user.Position.Split(",").Select(int.Parse).ToList(),
                 Role = user.Role,
                 AvatarUrl = user.AvatarUrl,
-                Status = user.Status
+                Status = user.Status,
+                Timezone = user.Timezone ?? "America/Sao_Paulo"
             };
         }
 
@@ -61,6 +62,19 @@ namespace WorshipApplication.Services
             user.Status = profile.Status;
 
             _repository.Update(user);
+            return new NoContentResult();
+        }
+
+        public ActionResult UpdateTimezone(int userId, string timezone)
+        {
+            if (string.IsNullOrWhiteSpace(timezone))
+                return new BadRequestObjectResult("Timezone é obrigatório.");
+
+            // Validate timezone is a known IANA identifier
+            try { TimeZoneInfo.FindSystemTimeZoneById(timezone); }
+            catch { return new BadRequestObjectResult($"Timezone inválido: {timezone}"); }
+
+            _repository.UpdateTimezone(userId, timezone);
             return new NoContentResult();
         }
     }

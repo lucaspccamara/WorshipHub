@@ -77,5 +77,11 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                 userCreationDTO.Password
             });
         }
+
+        public void UpdateTimezone(int userId, string timezone)
+        {
+            var sql = @"UPDATE users SET timezone = @Timezone WHERE id = @Id;";
+            _dbConnection.Execute(sql, new { Timezone = timezone, Id = userId });
+        }
     }
 }
