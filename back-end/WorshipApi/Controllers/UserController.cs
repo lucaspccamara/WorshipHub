@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WorshipApi.Core;
 using WorshipApplication.Services;
 using WorshipDomain.Core.Entities;
@@ -49,6 +49,15 @@ namespace WorshipApi.Controllers
 
             _userService.UpdateProfile(userProfileDTO);
             return NoContent();
+        }
+
+        [HttpPatch("{id}/timezone")]
+        public ActionResult UpdateTimezone(
+            [FromServices] UserService _userService,
+            [FromRoute] int id,
+            [FromBody] UpdateTimezoneDTO dto)
+        {
+            return _userService.UpdateTimezone(id, dto.Timezone);
         }
     }
 }

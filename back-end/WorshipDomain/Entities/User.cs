@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using WorshipDomain.Enums;
 
 namespace WorshipDomain.Entities
@@ -35,8 +35,10 @@ namespace WorshipDomain.Entities
 
         [Column("reset_password_token_code")]
         public string ResetPasswordTokenCode { get; set; }
-        
         [Column("fcm_token")]
         public string FcmToken { get; set; }
+
+        [Column("timezone")]
+        public string Timezone { get; set; } = "America/Sao_Paulo";
     }
 }

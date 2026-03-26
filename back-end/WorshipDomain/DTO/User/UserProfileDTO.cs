@@ -1,4 +1,4 @@
-﻿using WorshipDomain.Enums;
+using WorshipDomain.Enums;
 
 namespace WorshipDomain.DTO.User
 {
@@ -12,5 +12,6 @@ namespace WorshipDomain.DTO.User
         public List<int> Position { get; set; }
         public bool Status { get; set; }
         public string AvatarUrl { get; set; }
+        public string Timezone { get; set; } = "America/Sao_Paulo";
     }
 }

@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using WorshipApplication.Services;
+using WorshipApplication.Workers;
 
 namespace WorshipApplication
 {
@@ -14,6 +15,9 @@ namespace WorshipApplication
             services.AddScoped<ScheduleService>();
             services.AddScoped<UserService>();
             services.AddScoped<FcmNotificationService>();
+
+            // Background Workers
+            services.AddHostedService<EventReminderWorker>();
 
             return services;
         }
