@@ -50,7 +50,7 @@
 import { ref } from "vue";
 import { Notify } from 'quasar';
 import api from "../api";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useKeyboardStatus } from '../composables/useKeyboardStatus';
 
@@ -58,6 +58,7 @@ const { isKeyboardOpen } = useKeyboardStatus()
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const email = ref("");
 const password = ref("");
 const isPwd = ref(true);
@@ -72,7 +73,8 @@ const login = async () => {
     const userResponse = await api.get('auths/me');
     authStore.setUser(userResponse.data);
 
-    router.push({ path: '/' });
+    const redirectPath = route.query.redirect || '/';
+    router.push({ path: redirectPath });
   } catch (error) {
     Notify.create({
       message: error.message,
