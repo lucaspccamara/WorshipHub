@@ -1,46 +1,65 @@
 <template>
   <div class="card-header">
-    <span class="text-h6 header-label">Escalas</span>
-    <q-btn
-      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader])"
-      class="float-right left-icon"
-      label="Cadastrar"
-      icon="fa fa-square-plus"
-      color="primary"
-      no-caps
-      @click="openDialogCreateSchedule"
-    />
-    <q-btn
-      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.Criado"
-      class="float-right q-mr-md"
-      label="Iniciar Coleta"
-      icon="fa fa-list-check"
-      color="primary"
-      no-caps
-      @click="startCollecting"
-      :disable="selectedRows.length===0"
-    />
-
-    <q-btn
-      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
-      class="float-right q-mr-md"
-      label="Solicitar Repertório"
-      icon="fa fa-paper-plane"
-      color="secondary"
-      no-caps
-      @click="startWaitingRepertoire"
-      :disable="selectedRows.length===0"
-    />
-    <q-btn
-      v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
-      class="float-right q-mr-md"
-      label="Escalar Membros"
-      icon="fa fa-people-group"
-      color="secondary"
-      no-caps
-      @click="openDialogManageSchedulePosition"
-      :disable="selectedRows.length===0"
-    />
+    <div class="text-h6 header-label">Escalas</div>
+    
+    <div class="row q-gutter-sm justify-end">
+      <div>
+        <q-btn-dropdown
+          v-if="authStore.hasAnyRole([Role.Admin, Role.Leader]) && selectedRows.length > 0 && (selectedRows[0].status === EScheduleStatus.Criado || selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade)"
+          color="secondary"
+          label="Ações"
+          icon="fa fa-bolt"
+          no-caps
+        >
+          <q-list class="q-py-sm">
+            <q-item
+              clickable v-close-popup
+              v-if="selectedRows[0].status === EScheduleStatus.Criado"
+              @click="startCollecting"
+            >
+              <q-item-section avatar min-width="auto" class="q-pr-sm">
+                <q-icon name="fa fa-list-check" color="primary" size="sm" />
+              </q-item-section>
+              <q-item-section>Iniciar Coleta</q-item-section>
+            </q-item>
+            
+            <q-item
+              clickable v-close-popup
+              v-if="selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+              @click="startWaitingRepertoire"
+            >
+              <q-item-section avatar min-width="auto" class="q-pr-sm">
+                <q-icon name="fa fa-paper-plane" color="secondary" size="sm" />
+              </q-item-section>
+              <q-item-section>Solicitar Repertório</q-item-section>
+            </q-item>
+            
+            <q-item
+              clickable v-close-popup
+              v-if="selectedRows[0].status === EScheduleStatus.ColetandoDisponibilidade"
+              @click="openDialogManageSchedulePosition"
+            >
+              <q-item-section avatar min-width="auto" class="q-pr-sm">
+                <q-icon name="fa fa-people-group" color="secondary" size="sm" />
+              </q-item-section>
+              <q-item-section>Escalar Membros</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </div>
+      
+      <div>
+        <q-btn
+          v-if="authStore.hasAnyRole([Role.Admin, Role.Leader])"
+          class="float-right left-icon"
+          label="Cadastrar"
+          icon="fa fa-square-plus"
+          color="primary"
+          no-caps
+          @click="openDialogCreateSchedule"
+        />
+      </div>
+    </div>
   </div>
 
   <q-card class="card-content q-ma-md">
@@ -158,7 +177,7 @@
     />
   </q-dialog>
 
-  <q-dialog v-model="dialogRepertoire" persistent class="lg-dialog">
+  <q-dialog v-model="dialogRepertoire" maximized transition-show="slide-up" transition-hide="slide-down">
     <ManageScheduleRepertoire
       :schedule-id="editingSelectedScheduleById[0]"
       @released="onRepertoireReleased"
@@ -166,7 +185,7 @@
     />
   </q-dialog>
 
-  <q-dialog v-model="dialogManageCompletedSchedule" persistent class="lg-dialog">
+  <q-dialog v-model="dialogManageCompletedSchedule" maximized transition-show="slide-up" transition-hide="slide-down">
     <ManageCompletedSchedule
       :schedule-id="selectedScheduleId"
       :schedule-date="selectedScheduleDate"

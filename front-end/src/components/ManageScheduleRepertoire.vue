@@ -1,12 +1,12 @@
 <template>
-  <q-card>
-    <q-bar v-if="!hideHeader" class="card-header">
-      <div class="text-h6">Repertório</div>
+  <q-card class="column full-height bg-white">
+    <div v-if="!hideHeader" class="col-auto row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
+      <div class="text-subtitle1 text-weight-bold q-ml-sm">Repertório</div>
       <q-space />
       <q-btn dense flat icon="fa fa-close" v-close-popup />
-    </q-bar>
+    </div>
 
-    <q-card-section>
+    <q-card-section class="col overflow-auto">
       <div v-if="loading" class="row items-center justify-center q-pa-lg">
         <q-spinner-dots color="primary" />
       </div>
@@ -49,13 +49,15 @@
             </q-item>
           </q-list>
         </div>
-
-        <div v-if="!hideFooter" class="row justify-end q-gutter-sm q-mt-md">
-          <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-          <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
-        </div>
       </div>
     </q-card-section>
+
+    <q-separator v-if="!hideFooter" />
+
+    <q-card-actions v-if="!hideFooter" align="right" class="col-auto bg-white q-pa-md">
+      <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
+      <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
+    </q-card-actions>
 
     <!-- Modal for Music List -->
     <q-dialog v-model="dialogMusicList" maximized transition-show="slide-up" transition-hide="slide-down">
