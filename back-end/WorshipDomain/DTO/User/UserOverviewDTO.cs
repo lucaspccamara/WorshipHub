@@ -1,4 +1,4 @@
-﻿namespace WorshipDomain.DTO.User
+namespace WorshipDomain.DTO.User
 {
     public class UserOverviewDTO
     {
@@ -6,5 +6,6 @@
         public string Name { get; set; }
         public string Email { get; set; }
         public bool Status { get; set; }
+        public bool HasPushNotification { get; set; }
     }
 }

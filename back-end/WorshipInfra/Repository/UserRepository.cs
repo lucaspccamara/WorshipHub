@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using WorshipDomain.Core.Entities;
 using WorshipDomain.DTO.User;
 using WorshipDomain.Entities;
@@ -18,7 +18,7 @@ namespace WorshipInfra.Repository
 
             var selector = builder.AddTemplate($@"
 SELECT SQL_CALC_FOUND_ROWS
-    id, name, email, status
+    id, name, email, status, CASE WHEN fcm_token IS NOT NULL AND fcm_token != '' THEN TRUE ELSE FALSE END AS HasPushNotification
 FROM users
 /**where**/
 /**orderby**/
@@ -44,13 +44,14 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
             using (var multiReader = _dbConnection.QueryMultiple(selector.RawSql, selector.Parameters))
             {
-                var usersList = multiReader.Read<(int Id, string Name, string Email, bool Status)>();
+                var usersList = multiReader.Read<(int Id, string Name, string Email, bool Status, bool HasPushNotification)>();
                 userOverviewDTO = usersList.Select(user => new UserOverviewDTO
                 {
                     Id = user.Id,
                     Name = user.Name,
                     Email = user.Email,
-                    Status = user.Status
+                    Status = user.Status,
+                    HasPushNotification = user.HasPushNotification
                 });
 
                 count = multiReader.ReadSingle<int>();

@@ -1,5 +1,5 @@
 <template>
-  <q-card v-if="!hideSearch" class="card-content q-ma-md">
+  <q-card v-if="!hideSearch" class="q-ma-md">
     <q-card-section>
       <q-form>
         <div class="row q-col-gutter-md">

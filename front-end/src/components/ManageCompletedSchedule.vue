@@ -1,14 +1,11 @@
 <template>
-  <q-card class="bg-white overflow-hidden" style="min-width: 90vw; max-width: 95vw; height: 90vh; display: flex; flex-direction: column;">
-    <q-bar class="bg-primary text-white q-py-lg">
-      <q-icon name="fa fa-calendar-check" size="xs" class="q-mr-sm" />
-      <div class="text-h6 text-weight-bold">Gerenciar Escala Concluída</div>
+  <q-card class="column full-height">
+    <div class="row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
+      <q-icon name="fa fa-calendar-check" size="xs" class="q-ml-sm q-mr-sm text-primary" />
+      <div class="text-subtitle1 text-weight-bold">Gerenciar Escala <span class="text-weight-regular text-grey-7 q-ml-sm">{{ formattedDate }}</span></div>
       <q-space />
-      <div class="text-subtitle1 q-mr-md">{{ formattedDate }}</div>
-      <q-btn dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </q-bar>
+      <q-btn dense flat icon="fa fa-close" v-close-popup />
+    </div>
 
     <q-tabs
       v-model="tab"
@@ -68,7 +65,6 @@
         <q-tooltip>Notificar membros sobre as mudanças</q-tooltip>
       </q-btn>
       
-      <q-btn label="Fechar" color="grey-7" flat v-close-popup no-caps :disable="savingAll" />
       <q-btn 
         label="Salvar Alterações" 
         icon="fa fa-save"

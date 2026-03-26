@@ -81,6 +81,15 @@
       >
         <q-td key="name">{{ props.row.name }}</q-td>
         <q-td key="email">{{ props.row.email }}</q-td>
+        <q-td key="hasPushNotification" class="text-center">
+          <q-icon 
+            :name="props.row.hasPushNotification ? 'fa fa-bell' : 'fa fa-bell-slash'" 
+            :color="props.row.hasPushNotification ? 'positive' : 'grey-5'" 
+            size="sm" 
+          >
+            <q-tooltip>{{ props.row.hasPushNotification ? 'Notificações Ativas' : 'Notificações Inativas' }}</q-tooltip>
+          </q-icon>
+        </q-td>
         <q-td key="status" class="text-center">
           <q-badge :color="getStatusColor(props.row.status)"
             :label="StatusBooleanOptions.find(status => status.value == props.row.status)?.label" />
@@ -131,6 +140,7 @@ const rows = ref([]);
 const columns = [
   {name: 'name', label: 'Nome', field: 'name', align: 'left', sortable: false},
   {name: 'email', label: 'Email', field: 'email', align: 'left', sortable: false},
+  {name: 'hasPushNotification', label: 'Notificações', field: 'hasPushNotification', align: 'center', sortable: false},
   {name: 'status', label: 'Status', field: 'status', align: 'center', sortable: false}
 ];
 

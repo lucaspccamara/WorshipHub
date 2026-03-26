@@ -1,148 +1,496 @@
 <template>
-  <q-card>
-    <q-bar v-if="!hideHeader" class="card-header">
-      <div class="text-h6">Organização da Escala</div>
+  <q-card class="column full-height bg-white">
+    <div v-if="!hideHeader" class="col-auto row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
+      <div class="text-subtitle1 text-weight-bold q-ml-sm">Organização da Escala</div>
       <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </q-bar>
+      <q-btn dense flat icon="fa fa-close" v-close-popup />
+    </div>
 
-    <q-card class="q-pa-sm" flat>
-      <q-card-section class="q-pt-none">
-        <div v-if="!hideHeader" class="text-subtitle2 q-mb-sm">Escala</div>
+    <q-card class="col column q-pa-none" flat>
+      <q-card-section class="col overflow-auto q-pa-sm q-pt-none">
 
         <div v-if="loading" class="row items-center justify-center q-pa-lg">
           <q-spinner-dots size="30px" color="primary" />
         </div>
 
         <div v-else>
-          <!-- Mobile-first: lista por schedule (cada schedule -> uma linha de data) -->
-          <div class="visible-xs block q-pa-xs" v-if="$q.screen.lt.md">
-            <div v-for="item in schedules" :key="item.scheduleId" class="q-mb-sm card-date">
-              <div class="row items-center q-mb-xs">
-                <div class="text-subtitle1">{{ formatDate(item.date) }}</div>
-                <q-space />
-                <q-badge v-if="hasAnyResponse()" color="primary" align="top" label="Respostas" />
-              </div>
-
-              <div v-for="pos in positionOptions" :key="pos.value" class="q-mb-xs">
-                <div class="text-caption q-mb-xs">{{ pos.label }}</div>
-                <q-select
-                  :readonly="!canEdit"
-                  dense
-                  outlined
-                  multiple
-                  use-chips
-                  :options="membersByPosition[pos.value] || []"
-                  option-value="id"
-                  option-label="name"
-                  emit-value
-                  map-options
-                  :model-value="assignments[item.scheduleId]?.[pos.value] || []"
-                  @update:model-value="val => onSelect(item.scheduleId, pos.value, val)"
-                  :placeholder="`Selecionar ${pos.label}`"
-                >
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section avatar>
-                        <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label>{{ scope.opt.name }}</q-item-label>
-                        <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                  <template v-slot:selected-item="scope">
-                    <q-chip
-                      :data-chip-id="`chip-${item.scheduleId}-${pos.value}-${scope.opt.id}`"
-                      :removable="canEdit"
-                      dense
-                      :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
-                      :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
-                      :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
-                      @remove="scope.removeAtIndex(scope.index)"
-                      class="q-ma-xs"
-                    >
-                      {{ scope.opt.name }}
-                    </q-chip>
-                  </template>
-                </q-select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Desktop/tablet: tabela com positions no header -->
-          <div v-else class="q-mt-sm">
-            <q-table
-              flat
-              :rows="tableRows"
-              :columns="tableColumns"
-              row-key="scheduleId"
-              dense
-              bordered
-              separator="cell"
-              :pagination="{ rowsPerPage: 0 }"
-              hide-bottom
+          <!-- TABS ROW -->
+          <q-tabs
+            v-model="tab"
+            dense
+            class="text-grey"
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+            narrow-indicator
+            outside-arrows
+            mobile-arrows
+          >
+            <q-tab name="geral" label="Visão Geral" />
+            <q-tab
+              v-for="s in schedules"
+              :key="'tab-' + s.scheduleId"
+              :name="String(s.scheduleId)"
+              :label="formatDate(s.date)"
             >
-              <template v-slot:body-cell="props">
-                <q-td :props="props">
-                  <div v-if="props.col.name === 'date'">
-                    <div class="text-weight-bold">{{ formatDate(props.row.date) }}</div>
-                    <div v-if="hasAnyResponse()" class="text-caption text-positive">Respostas</div>
-                  </div>
-                  <div v-else>
-                    <q-select
-                      :readonly="!canEdit"
-                      dense
-                      outlined
-                      multiple
-                      use-chips
-                      :options="membersByPosition[props.col.name] || []"
-                      option-value="id"
-                      option-label="name"
-                      emit-value
-                      map-options
-                      :model-value="assignments[props.row.scheduleId]?.[props.col.name] || []"
-                      @update:model-value="val => onSelect(props.row.scheduleId, props.col.name, val)"
-                      placeholder="Sel."
-                    >
-                      <template v-slot:option="scope">
-                        <q-item v-bind="scope.itemProps">
-                          <q-item-section avatar>
-                            <span :class="availDotClass(getMemberAvailability(props.row.scheduleId, scope.opt.id))" class="avail-dot" />
+              <q-badge v-if="scheduleWarnings.some(w => w.scheduleId === s.scheduleId)" color="orange" floating transparent>!</q-badge>
+            </q-tab>
+          </q-tabs>
+
+          <q-separator />
+
+          <q-tab-panels v-model="tab" animated class="bg-transparent">
+            <!-- ABA GERAL -->
+            <q-tab-panel name="geral" class="q-pa-sm">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-expansion-item
+                    icon="fa fa-chart-bar"
+                    label="Frequência de Escalação"
+                    header-class="bg-grey-1 text-subtitle2 text-weight-bold"
+                    class="overflow-hidden bg-white"
+                    style="border: 1px solid var(--q-separator); border-radius: 4px;"
+                  >
+                    <q-separator />
+                    <div class="q-pa-sm" style="max-height: 300px; overflow-y: auto;">
+                      <div v-if="memberFrequency.length > 0" class="row q-gutter-xs">
+                        <q-chip
+                          v-for="mf in memberFrequency"
+                          :key="mf.id"
+                          dense
+                          color="blue-1"
+                          text-color="primary"
+                        >
+                          {{ mf.name }}
+                          <q-badge color="primary" align="middle" class="q-ml-xs">{{ mf.count }}</q-badge>
+                        </q-chip>
+                      </div>
+                      <div v-else class="text-grey q-pa-sm text-center">Ninguém escalado ainda.</div>
+                    </div>
+                  </q-expansion-item>
+                </div>
+                
+                <div class="col-12 col-md-6">
+                  <q-expansion-item
+                    icon="fa fa-exclamation-triangle"
+                    label="Alertas e Pendências"
+                    header-class="bg-grey-1 text-subtitle2 text-weight-bold"
+                    class="overflow-hidden bg-white"
+                    style="border: 1px solid var(--q-separator); border-radius: 4px;"
+                  >
+                    <q-separator />
+                    <div class="q-pa-xs" style="max-height: 300px; overflow-y: auto;">
+                      <q-list dense v-if="scheduleWarnings.length > 0">
+                        <q-item v-for="(w, idx) in scheduleWarnings" :key="idx">
+                          <q-item-section avatar min-width="auto" class="q-pr-sm">
+                            <q-icon :name="w.type === 'conflict' ? 'fa fa-times-circle' : 'fa fa-info-circle'" :color="w.type === 'conflict' ? 'negative' : 'warning'" size="xs" />
                           </q-item-section>
                           <q-item-section>
-                            <q-item-label>{{ scope.opt.name }}</q-item-label>
-                            <q-item-label caption>{{ availLabel(getMemberAvailability(props.row.scheduleId, scope.opt.id)) }}</q-item-label>
+                            <q-item-label :class="w.type === 'conflict' ? 'text-negative text-weight-bold' : 'text-grey-8'">{{ w.message }}</q-item-label>
                           </q-item-section>
                         </q-item>
-                      </template>
-                      <template v-slot:selected-item="scope">
-                        <q-chip
-                          :data-chip-id="`chip-${props.row.scheduleId}-${props.col.name}-${scope.opt.id}`"
-                          :removable="canEdit"
-                          dense
-                          :color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
-                          :text-color="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
-                          :outlined="getMemberAvailability(props.row.scheduleId, scope.opt.id) === false"
-                          @remove="scope.removeAtIndex(scope.index)"
-                          class="q-ma-xs"
+                      </q-list>
+                      <div v-else class="text-green q-pa-sm text-center"><q-icon name="fa fa-check" /> Tudo certo por aqui!</div>
+                    </div>
+                  </q-expansion-item>
+                </div>
+              </div>
+
+              <!-- ESCALA GERAL - LOUVOR -->
+              <div class="text-subtitle2 text-primary q-mt-lg q-mb-sm"><q-icon name="fa fa-music" /> Escala Geral - Equipe de Louvor</div>
+              
+              <!-- Desktop Louvor Geral -->
+              <div class="visible-md block" v-if="$q.screen.gt.sm">
+                <q-markup-table flat bordered dense separator="cell">
+                  <thead>
+                    <tr>
+                      <th class="text-left bg-grey-3">Data</th>
+                      <th v-for="col in worshipPositions" :key="'gth-w-'+col.value" class="text-left bg-grey-2">{{ col.label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sched in schedules" :key="'gtr-w-'+sched.scheduleId">
+                      <td class="text-weight-bold bg-grey-1" style="vertical-align: middle;">{{ formatDate(sched.date) }}</td>
+                      <td v-for="col in worshipPositions" :key="'gtd-w-'+sched.scheduleId+'-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
+                        <q-select
+                          :readonly="!canEdit"
+                          dense outlined multiple use-chips
+                          :options="membersByPosition[col.value] || []"
+                          option-value="id" option-label="name" emit-value map-options
+                          :model-value="assignments[sched.scheduleId]?.[col.value] || []"
+                          @update:model-value="val => onSelect(sched.scheduleId, col.value, val)"
+                          placeholder="Sel."
                         >
-                          {{ scope.opt.name }}
-                        </q-chip>
-                      </template>
-                    </q-select>
-                  </div>
-                </q-td>
-              </template>
-            </q-table>
-          </div>
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <span :class="availDotClass(getMemberAvailability(sched.scheduleId, scope.opt.id))" class="avail-dot" />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.name }}</q-item-label>
+                                <q-item-label caption>{{ availLabel(getMemberAvailability(sched.scheduleId, scope.opt.id)) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                          <template v-slot:selected-item="scope">
+                            <q-chip
+                              :removable="canEdit" dense
+                              :color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                              :text-color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                              :outlined="getMemberAvailability(sched.scheduleId, scope.opt.id) === false"
+                              @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                            >
+                              {{ scope.opt.name }}
+                            </q-chip>
+                          </template>
+                        </q-select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </div>
+
+              <!-- Mobile Louvor Geral -->
+              <div class="visible-xs block" v-else>
+                <q-card v-for="sched in schedules" :key="'gm-w-'+sched.scheduleId" flat bordered class="q-mb-md">
+                  <q-card-section class="bg-grey-2 q-py-xs">
+                    <div class="text-weight-bold text-primary">{{ formatDate(sched.date) }}</div>
+                  </q-card-section>
+                  <q-card-section class="q-pa-sm">
+                    <div v-for="pos in worshipPositions" :key="'gm-w-'+sched.scheduleId+'-'+pos.value" class="q-mb-sm">
+                      <div class="text-caption q-mb-xs">{{ pos.label }}</div>
+                      <q-select
+                        :readonly="!canEdit"
+                        dense outlined multiple use-chips
+                        :options="membersByPosition[pos.value] || []"
+                        option-value="id" option-label="name" emit-value map-options
+                        :model-value="assignments[sched.scheduleId]?.[pos.value] || []"
+                        @update:model-value="val => onSelect(sched.scheduleId, pos.value, val)"
+                        :placeholder="`Selecionar ${pos.label}`"
+                      >
+                        <template v-slot:option="scope">
+                          <q-item v-bind="scope.itemProps">
+                            <q-item-section avatar>
+                              <span :class="availDotClass(getMemberAvailability(sched.scheduleId, scope.opt.id))" class="avail-dot" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ scope.opt.name }}</q-item-label>
+                              <q-item-label caption>{{ availLabel(getMemberAvailability(sched.scheduleId, scope.opt.id)) }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </template>
+                        <template v-slot:selected-item="scope">
+                          <q-chip
+                            :removable="canEdit" dense
+                            :color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                            :text-color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                            :outlined="getMemberAvailability(sched.scheduleId, scope.opt.id) === false"
+                            @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                          >
+                            {{ scope.opt.name }}
+                          </q-chip>
+                        </template>
+                      </q-select>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+
+              <!-- ESCALA GERAL - PRODUÇÃO -->
+              <div class="text-subtitle2 text-secondary q-mt-lg q-mb-sm"><q-icon name="fa fa-video" /> Escala Geral - Equipe de Produção</div>
+              
+              <!-- Desktop Produção Geral -->
+              <div class="visible-md block" v-if="$q.screen.gt.sm">
+                <q-markup-table flat bordered dense separator="cell">
+                  <thead>
+                    <tr>
+                      <th class="text-left bg-grey-3">Data</th>
+                      <th v-for="col in productionPositions" :key="'gth-p-'+col.value" class="text-left bg-grey-2">{{ col.label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sched in schedules" :key="'gtr-p-'+sched.scheduleId">
+                      <td class="text-weight-bold bg-grey-1" style="vertical-align: middle;">{{ formatDate(sched.date) }}</td>
+                      <td v-for="col in productionPositions" :key="'gtd-p-'+sched.scheduleId+'-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
+                        <q-select
+                          :readonly="!canEdit"
+                          dense outlined multiple use-chips
+                          :options="membersByPosition[col.value] || []"
+                          option-value="id" option-label="name" emit-value map-options
+                          :model-value="assignments[sched.scheduleId]?.[col.value] || []"
+                          @update:model-value="val => onSelect(sched.scheduleId, col.value, val)"
+                          placeholder="Sel."
+                        >
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <span :class="availDotClass(getMemberAvailability(sched.scheduleId, scope.opt.id))" class="avail-dot" />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.name }}</q-item-label>
+                                <q-item-label caption>{{ availLabel(getMemberAvailability(sched.scheduleId, scope.opt.id)) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                          <template v-slot:selected-item="scope">
+                            <q-chip
+                              :removable="canEdit" dense
+                              :color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                              :text-color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                              :outlined="getMemberAvailability(sched.scheduleId, scope.opt.id) === false"
+                              @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                            >
+                              {{ scope.opt.name }}
+                            </q-chip>
+                          </template>
+                        </q-select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </div>
+
+              <!-- Mobile Produção Geral -->
+              <div class="visible-xs block" v-else>
+                <q-card v-for="sched in schedules" :key="'gm-p-'+sched.scheduleId" flat bordered class="q-mb-md">
+                  <q-card-section class="bg-grey-2 q-py-xs">
+                    <div class="text-weight-bold text-secondary">{{ formatDate(sched.date) }}</div>
+                  </q-card-section>
+                  <q-card-section class="q-pa-sm">
+                    <div v-for="pos in productionPositions" :key="'gm-p-'+sched.scheduleId+'-'+pos.value" class="q-mb-sm">
+                      <div class="text-caption q-mb-xs">{{ pos.label }}</div>
+                      <q-select
+                        :readonly="!canEdit"
+                        dense outlined multiple use-chips
+                        :options="membersByPosition[pos.value] || []"
+                        option-value="id" option-label="name" emit-value map-options
+                        :model-value="assignments[sched.scheduleId]?.[pos.value] || []"
+                        @update:model-value="val => onSelect(sched.scheduleId, pos.value, val)"
+                        :placeholder="`Selecionar ${pos.label}`"
+                      >
+                        <template v-slot:option="scope">
+                          <q-item v-bind="scope.itemProps">
+                            <q-item-section avatar>
+                              <span :class="availDotClass(getMemberAvailability(sched.scheduleId, scope.opt.id))" class="avail-dot" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ scope.opt.name }}</q-item-label>
+                              <q-item-label caption>{{ availLabel(getMemberAvailability(sched.scheduleId, scope.opt.id)) }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </template>
+                        <template v-slot:selected-item="scope">
+                          <q-chip
+                            :removable="canEdit" dense
+                            :color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                            :text-color="getMemberAvailability(sched.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                            :outlined="getMemberAvailability(sched.scheduleId, scope.opt.id) === false"
+                            @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                          >
+                            {{ scope.opt.name }}
+                          </q-chip>
+                        </template>
+                      </q-select>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+
+            </q-tab-panel>
+
+            <!-- ABAS DAS ESCALAS -->
+            <q-tab-panel v-for="item in schedules" :key="'panel-' + item.scheduleId" :name="String(item.scheduleId)" class="q-pa-sm">
+              <div class="text-body1 text-weight-bold q-mb-md">Escala de {{ formatDate(item.date) }}</div>
+
+              <!-- EQUIPE DE LOUVOR -->
+              <div class="text-subtitle2 text-primary q-mb-sm"><q-icon name="fa fa-music" /> Equipe de Louvor</div>
+              
+              <!-- Desktop Louvor -->
+              <div class="visible-md block" v-if="$q.screen.gt.sm">
+                <q-markup-table flat bordered dense separator="cell">
+                  <thead>
+                    <tr>
+                      <th v-for="col in worshipPositions" :key="'th-w-'+col.value" class="text-left bg-grey-2">{{ col.label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td v-for="col in worshipPositions" :key="'td-w-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
+                        <q-select
+                          :readonly="!canEdit"
+                          dense outlined multiple use-chips
+                          :options="membersByPosition[col.value] || []"
+                          option-value="id" option-label="name" emit-value map-options
+                          :model-value="assignments[item.scheduleId]?.[col.value] || []"
+                          @update:model-value="val => onSelect(item.scheduleId, col.value, val)"
+                          placeholder="Sel."
+                        >
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.name }}</q-item-label>
+                                <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                          <template v-slot:selected-item="scope">
+                            <q-chip
+                              :removable="canEdit" dense
+                              :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                              :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                              :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
+                              @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                            >
+                              {{ scope.opt.name }}
+                            </q-chip>
+                          </template>
+                        </q-select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </div>
+
+              <!-- Mobile Louvor -->
+              <div class="visible-xs block" v-else>
+                <div v-for="pos in worshipPositions" :key="'m-w-'+pos.value" class="q-mb-sm">
+                  <div class="text-caption q-mb-xs">{{ pos.label }}</div>
+                  <q-select
+                    :readonly="!canEdit"
+                    dense outlined multiple use-chips
+                    :options="membersByPosition[pos.value] || []"
+                    option-value="id" option-label="name" emit-value map-options
+                    :model-value="assignments[item.scheduleId]?.[pos.value] || []"
+                    @update:model-value="val => onSelect(item.scheduleId, pos.value, val)"
+                    :placeholder="`Selecionar ${pos.label}`"
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.name }}</q-item-label>
+                          <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected-item="scope">
+                      <q-chip
+                        :removable="canEdit" dense
+                        :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                        :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                        :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
+                        @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                      >
+                        {{ scope.opt.name }}
+                      </q-chip>
+                    </template>
+                  </q-select>
+                </div>
+              </div>
+
+              <!-- EQUIPE DE PRODUÇÃO -->
+              <div class="text-subtitle2 text-secondary q-mt-lg q-mb-sm"><q-icon name="fa fa-video" /> Equipe de Produção</div>
+              
+              <!-- Desktop Produção -->
+              <div class="visible-md block" v-if="$q.screen.gt.sm">
+                <q-markup-table flat bordered dense separator="cell">
+                  <thead>
+                    <tr>
+                      <th v-for="col in productionPositions" :key="'th-p-'+col.value" class="text-left bg-grey-2">{{ col.label }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td v-for="col in productionPositions" :key="'td-p-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
+                        <q-select
+                          :readonly="!canEdit"
+                          dense outlined multiple use-chips
+                          :options="membersByPosition[col.value] || []"
+                          option-value="id" option-label="name" emit-value map-options
+                          :model-value="assignments[item.scheduleId]?.[col.value] || []"
+                          @update:model-value="val => onSelect(item.scheduleId, col.value, val)"
+                          placeholder="Sel."
+                        >
+                          <template v-slot:option="scope">
+                            <q-item v-bind="scope.itemProps">
+                              <q-item-section avatar>
+                                <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label>{{ scope.opt.name }}</q-item-label>
+                                <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                          <template v-slot:selected-item="scope">
+                            <q-chip
+                              :removable="canEdit" dense
+                              :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                              :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                              :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
+                              @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                            >
+                              {{ scope.opt.name }}
+                            </q-chip>
+                          </template>
+                        </q-select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </div>
+
+              <!-- Mobile Produção -->
+              <div class="visible-xs block" v-else>
+                <div v-for="pos in productionPositions" :key="'m-p-'+pos.value" class="q-mb-sm">
+                  <div class="text-caption q-mb-xs">{{ pos.label }}</div>
+                  <q-select
+                    :readonly="!canEdit"
+                    dense outlined multiple use-chips
+                    :options="membersByPosition[pos.value] || []"
+                    option-value="id" option-label="name" emit-value map-options
+                    :model-value="assignments[item.scheduleId]?.[pos.value] || []"
+                    @update:model-value="val => onSelect(item.scheduleId, pos.value, val)"
+                    :placeholder="`Selecionar ${pos.label}`"
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <span :class="availDotClass(getMemberAvailability(item.scheduleId, scope.opt.id))" class="avail-dot" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.name }}</q-item-label>
+                          <q-item-label caption>{{ availLabel(getMemberAvailability(item.scheduleId, scope.opt.id)) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected-item="scope">
+                      <q-chip
+                        :removable="canEdit" dense
+                        :color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'red-1' : undefined"
+                        :text-color="getMemberAvailability(item.scheduleId, scope.opt.id) === false ? 'negative' : undefined"
+                        :outlined="getMemberAvailability(item.scheduleId, scope.opt.id) === false"
+                        @remove="scope.removeAtIndex(scope.index)" class="q-ma-xs"
+                      >
+                        {{ scope.opt.name }}
+                      </q-chip>
+                    </template>
+                  </q-select>
+                </div>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
         </div>
       </q-card-section>
 
-      <q-card-actions v-if="!hideFooter && canEdit" align="right">
+      <q-separator v-if="!hideFooter && canEdit" />
+      
+      <q-card-actions v-if="!hideFooter && canEdit" align="right" class="col-auto bg-white q-pa-md">
         <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
         <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
       </q-card-actions>
@@ -178,6 +526,7 @@ const loading = ref(false)
 const saving = ref(false)
 const savingAdvance = ref(false)
 const positionOptions = PositionOptions
+const tab = ref('geral')
 
 // data structures
 const schedules = ref([]) // [{ scheduleId, date, eventType, status }]
@@ -208,12 +557,72 @@ function availLabel(avail) {
   return ''
 }
 
-const tableColumns = computed(() => {
-  const cols = [{ name: 'date', label: 'Data', align: 'left' }]
-  positionOptions.forEach(p => cols.push({ name: p.value, label: p.label }))
-  return cols
+const worshipPositions = computed(() => positionOptions.filter(p => p.value < 50))
+const productionPositions = computed(() => positionOptions.filter(p => p.value >= 50))
+
+const memberFrequency = computed(() => {
+  const counts = {} // { userId: { name: '', count: 0 } }
+  for (const s of schedules.value) {
+    const raw = assignments.value[s.scheduleId] || {}
+    const membersInSchedule = new Set()
+    
+    for (const posKey in raw) {
+      const arr = raw[posKey] || []
+      for (const id of arr) {
+        if (!counts[id]) {
+          let name = `Usuário ${id}`
+          const list = membersByPosition.value[posKey] || []
+          const found = list.find(m => m.id === id)
+          if (found) name = found.name
+          counts[id] = { id, name, count: 0 }
+        }
+        membersInSchedule.add(id)
+      }
+    }
+    
+    // Increment only once per schedule
+    membersInSchedule.forEach(id => {
+      counts[id].count++
+    })
+  }
+  return Object.values(counts).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
 })
-const tableRows = computed(() => (schedules.value || []).map(s => ({ scheduleId: s.scheduleId, date: s.date })))
+
+const scheduleWarnings = computed(() => {
+  const warnings = []
+  for (const s of schedules.value) {
+    const raw = assignments.value[s.scheduleId] || {}
+    const dateStr = formatDate(s.date)
+    
+    // Check conflicts
+    for (const posKey in raw) {
+      const arr = raw[posKey] || []
+      for (const id of arr) {
+        if (getMemberAvailability(s.scheduleId, id) === false) {
+          let mName = id
+          const list = membersByPosition.value[posKey] || []
+          const found = list.find(m => m.id === id)
+          if (found) mName = found.name
+          const pName = positionOptions.find(p => String(p.value) === String(posKey))?.label || posKey
+          warnings.push({ type: 'conflict', message: `${mName} está escalado como ${pName} em ${dateStr}, mas marcou Indisponível.`, scheduleId: s.scheduleId })
+        }
+      }
+    }
+    
+    // Check empty positions
+    const emptyPos = []
+    for (const pos of positionOptions) {
+      const arr = raw[pos.value] || []
+      if (arr.length === 0) {
+        emptyPos.push(pos.label)
+      }
+    }
+    if (emptyPos.length > 0) {
+      warnings.push({ type: 'empty', message: `Posições não preenchidas em ${dateStr}: ${emptyPos.join(', ')}.`, scheduleId: s.scheduleId })
+    }
+  }
+  return warnings
+})
 
 function formatDate(d) {
   try { return new Date(d).toLocaleDateString(); } catch { return d }
