@@ -88,7 +88,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login');
+    next({ path: '/login', query: { redirect: to.fullPath } });
   } else if (to.meta.roles && !authStore.hasAnyRole(to.meta.roles)) {
     next('/');
   } else if (to.path === '/login' && authStore.isAuthenticated) {
