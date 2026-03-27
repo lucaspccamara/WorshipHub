@@ -1,11 +1,10 @@
 <template>
   <q-card>
-    <div class="card-header">
-      <span class="text-h6 header-label">Cadastrar Usuário</span>
-      <q-btn class="float-right" dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </div>
+    <AppSectionHeader 
+      title="Cadastrar Usuário" 
+      icon="fa fa-user-plus" 
+      show-close 
+    />
     
     <q-card class="q-pa-sm">
       <q-form @submit.prevent="submitForm" ref="formRef">
@@ -89,6 +88,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Notify } from 'quasar';
+import AppSectionHeader from './AppSectionHeader.vue';
 import api from '../api';
 import { PositionOptions } from '../constants/PositionOptions';
 

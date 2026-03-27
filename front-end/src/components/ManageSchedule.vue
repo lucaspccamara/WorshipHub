@@ -1,13 +1,11 @@
 <template>
   <q-card>
     <form @submit.prevent="createEvents">
-      <q-bar class="card-header">
-        <span>Gerenciar Escala</span>
-        <q-space />
-        <q-btn dense flat icon="fa fa-close" v-close-popup>
-          <q-tooltip>Fechar</q-tooltip>
-        </q-btn>
-      </q-bar>
+      <AppSectionHeader 
+        title="Gerenciar Escala" 
+        icon="fa fa-calendar-days" 
+        show-close 
+      />
 
       <div class="row">
         
@@ -60,6 +58,7 @@
 import api from '../api';
 import { ref } from 'vue';
 import { Notify } from 'quasar';
+import AppSectionHeader from './AppSectionHeader.vue';
 import { EventTypes } from '../constants/EventTypes';
 
 const selectedDate = ref(null);

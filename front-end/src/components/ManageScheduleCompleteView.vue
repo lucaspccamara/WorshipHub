@@ -1,11 +1,11 @@
 <template>
   <q-card class="column full-height">
-    <div class="row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
-      <q-icon name="fa fa-calendar-check" size="xs" class="q-ml-sm q-mr-sm text-primary" />
-      <div class="text-subtitle1 text-weight-bold">Gerenciar Escala <span class="text-weight-regular text-grey-7 q-ml-sm">{{ formattedDate }}</span></div>
-      <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup />
-    </div>
+    <AppSectionHeader 
+      title="Gerenciar Escala" 
+      :subtitle="formattedSubtitle" 
+      icon="fa fa-calendar-check" 
+      show-close 
+    />
 
     <q-tabs
       v-model="tab"
@@ -26,7 +26,7 @@
       <div v-show="tab === 'members'" class="absolute-full q-pa-md overflow-auto">
         <ManageSchedulePosition 
           ref="membersRef"
-          :schedule-ids="[scheduleId]" 
+          :schedule-ids="ids" 
           :show-transition="false"
           :hide-header="true"
           :hide-footer="true"
@@ -38,7 +38,7 @@
       <div v-show="tab === 'repertoire'" class="absolute-full q-pa-md overflow-auto">
         <ManageScheduleRepertoire 
           ref="repertoireRef"
-          :schedule-id="scheduleId" 
+          :schedule-ids="ids" 
           :show-transition="false"
           :hide-header="true"
           :hide-footer="true"
@@ -66,7 +66,7 @@
       </q-btn>
       
       <q-btn 
-        label="Salvar Alterações" 
+        :label="advanceLabel" 
         icon="fa fa-save"
         color="primary" 
         unelevated
@@ -82,18 +82,22 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Notify, useQuasar } from 'quasar';
+import AppSectionHeader from './AppSectionHeader.vue';
 import ManageSchedulePosition from './ManageSchedulePosition.vue';
 import ManageScheduleRepertoire from './ManageScheduleRepertoire.vue';
 import api from '../api';
 import { Role } from '../constants/Role';
+import { EScheduleStatus } from '../constants/ScheduleStatus';
 import { useAuthStore } from '../stores/authStore';
 
 const authStore = useAuthStore();
 const canNotify = computed(() => authStore.hasAnyRole([Role.Admin, Role.Leader]));
 
 const props = defineProps({
-  scheduleId: { type: Number, required: true },
-  scheduleDate: { type: String, required: false }
+  scheduleId: { type: Number, required: false },
+  scheduleIds: { type: Array, required: false },
+  scheduleDate: { type: String, required: false },
+  status: { type: Number, required: false }
 });
 
 const emit = defineEmits(['updateScheduleList']);
@@ -106,7 +110,19 @@ const savingAll = ref(false);
 const membersRef = ref(null);
 const repertoireRef = ref(null);
 
-const formattedDate = computed(() => {
+const ids = computed(() => {
+  if (props.scheduleIds && props.scheduleIds.length > 0) return props.scheduleIds;
+  if (props.scheduleId) return [props.scheduleId];
+  return [];
+});
+
+const advanceLabel = computed(() => {
+  if (props.status === EScheduleStatus.AguardandoRepertorio) return 'Salvar e Liberar Escala';
+  return 'Salvar Alterações';
+});
+
+const formattedSubtitle = computed(() => {
+  if (ids.value.length > 1) return `Múltiplas Escalas (${ids.value.length})`;
   if (!props.scheduleDate) return '';
   try {
     const [year, month, day] = props.scheduleDate.split('/');
@@ -133,7 +149,14 @@ async function saveAll() {
     
     if (promises.length > 0) {
       await Promise.all(promises);
-      Notify.create({ type: 'positive', message: 'Todas as alterações foram salvas.' });
+      
+      if (props.status === EScheduleStatus.AguardandoRepertorio) {
+        await api.post('schedules/transition', { scheduleIds: ids.value, newStatus: EScheduleStatus.Concluido });
+        Notify.create({ type: 'positive', message: 'Escalas liberadas com sucesso.' });
+        emit('updateScheduleList');
+      } else {
+        Notify.create({ type: 'positive', message: 'Todas as alterações foram salvas.' });
+      }
     }
   } catch (err) {
     console.error(err);
@@ -144,9 +167,13 @@ async function saveAll() {
 }
 
 async function sendNotification() {
+  const msg = ids.value.length > 1 
+    ? `Deseja enviar uma notificação manual para todos os membros das ${ids.value.length} escalas selecionadas?`
+    : 'Deseja enviar uma notificação manual para todos os membros desta escala informando sobre as alterações?';
+
   $q.dialog({
     title: 'Confirmar Notificação',
-    message: 'Deseja enviar uma notificação manual para todos os membros desta escala informando sobre as alterações?',
+    message: msg,
     cancel: true,
     persistent: true,
     ok: { label: 'Sim, Notificar', color: 'secondary', unelevated: true },
@@ -154,7 +181,11 @@ async function sendNotification() {
   }).onOk(async () => {
     notifying.value = true;
     try {
-      await api.post(`schedules/${props.scheduleId}/notify`);
+      if (ids.value.length > 1) {
+        await api.post(`schedules/notify-batch`, { scheduleIds: ids.value });
+      } else {
+        await api.post(`schedules/${ids.value[0]}/notify`);
+      }
       Notify.create({ type: 'positive', message: 'Notificações enviadas com sucesso.' });
     } catch (err) {
       console.error(err);

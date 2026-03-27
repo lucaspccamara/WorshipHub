@@ -1,11 +1,10 @@
 <template>
-  <q-card class="column">
-    <q-bar class="card-header">
-      <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </q-bar>
+  <q-card class="column no-wrap overflow-hidden" style="max-height: 100vh;">
+    <AppSectionHeader 
+      title="Visão Geral da Música" 
+      icon="fa-solid fa-compact-disc" 
+      show-close 
+    />
 
     <q-tabs v-model="tab" dense>
       <q-tab name="details" label="Detalhes" />
@@ -47,6 +46,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import AppSectionHeader from './AppSectionHeader.vue';
 
 import MusicDetails from './MusicDetails.vue'
 import MixerVS from './MixerVS.vue'

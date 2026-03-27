@@ -1,14 +1,11 @@
 <template>
   <q-card>
     <form @submit.prevent="save">
-      <q-bar class="card-header">
-        <span class="text-h6 header-label" v-if="scheduleId == 0">Cadastrar Escala</span>
-        <span class="text-h6 header-label" v-else>Editar Escala</span>
-        <q-space />
-        <q-btn dense flat icon="fa fa-close" v-close-popup>
-          <q-tooltip>Fechar</q-tooltip>
-        </q-btn>
-      </q-bar>
+      <AppSectionHeader 
+        :title="scheduleId == 0 ? 'Cadastrar Escala' : 'Editar Escala'" 
+        icon="fa fa-calendar-days" 
+        show-close 
+      />
 
       <div class="row">
         <q-card-section :class="['col-12', scheduleId > 0 ? 'col-12' : 'col-md-5 column-left' ]">
@@ -83,13 +80,11 @@
 
   <q-dialog v-model="showMobileEventsDialog" full-width>
     <q-card class="scrolling-dialog">
-      <q-bar class="card-header">
-        <div class="text-h6">Eventos Selecionados</div>
-        <q-space />
-        <q-btn dense flat icon="fa fa-close" v-close-popup>
-          <q-tooltip>Fechar</q-tooltip>
-        </q-btn>
-      </q-bar>
+      <AppSectionHeader 
+        title="Eventos Selecionados" 
+        icon="fa fa-list-ul" 
+        show-close 
+      />
 
       <q-separator />
 
@@ -134,6 +129,7 @@
 import api from '../api';
 import { onMounted, ref } from 'vue';
 import { Notify, useQuasar } from 'quasar';
+import AppSectionHeader from './AppSectionHeader.vue';
 import { EventTypes } from '../constants/EventTypes';
 
 const emit = defineEmits(['updateScheduleList', 'closeDialog']);

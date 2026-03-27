@@ -1,8 +1,9 @@
 <template>
-  <div class="card-header">
-    <span class="text-h6 header-label">Minhas Disponibilidades</span>
-    <q-btn class="float-right" dense color="primary" icon="fa fa-refresh" @click="load" />
-  </div>
+  <AppSectionHeader title="Minhas Disponibilidades" icon="fa fa-thumbs-up">
+    <template #actions>
+      <q-btn dense flat color="primary" icon="fa fa-refresh" @click="load" />
+    </template>
+  </AppSectionHeader>
 
   <div v-if="loading" class="row items-center justify-center q-pa-md">
     <q-spinner-dots size="30px" />
@@ -16,7 +17,7 @@
     <!-- mobile-first: cartão por evento (telinha pequena) -->
     <div v-for="item in items" :key="item.id" class="q-mb-md">
       <q-card>
-        <q-card-section class="row items-center justify-center card-header">
+        <q-card-section class="row items-center justify-center bg-grey-1 text-dark" style="border-bottom: 1px solid var(--q-separator)">
           <div class="text-h6">{{ item.date }}</div>
         </q-card-section>
 
@@ -49,6 +50,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import AppSectionHeader from '../components/AppSectionHeader.vue';
 import api from '../api'
 import { Notify, Dialog } from 'quasar'
 import { EventTypes } from '../constants/EventTypes'

@@ -257,5 +257,14 @@ namespace WorshipApplication.Services
 
             await Task.WhenAll(tasks);
         }
+
+        public async Task NotifySchedulesUpdateAsync(IEnumerable<int> scheduleIds)
+        {
+            if (scheduleIds == null) return;
+            foreach (var id in scheduleIds)
+            {
+                await NotifyScheduleUpdateAsync(id);
+            }
+        }
     }
 }

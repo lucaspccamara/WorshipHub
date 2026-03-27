@@ -1,9 +1,7 @@
 <template>
+  <AppSectionHeader title="Configurações do Sistema" icon="fa fa-cog" />
   <q-page class="q-pa-md">
     <div class="row q-col-gutter-md">
-      <div class="col-12">
-        <div class="text-h6 q-mb-md">Configurações do Sistema</div>
-      </div>
 
       <!-- Seção de Notificações -->
       <div class="col-12 col-md-6">
@@ -51,6 +49,7 @@
 </template>
 
 <script setup>
+import AppSectionHeader from '../components/AppSectionHeader.vue';
 import { useNotifications } from '../composables/useNotifications';
 
 const { isSupported, permissionGranted, requestPermission } = useNotifications();

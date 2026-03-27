@@ -1,10 +1,9 @@
 <template>
-  <div class="card-header">
-    <span class="text-h6 header-label">Músicas</span>
-    <q-btn v-if="hasRole" class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="editMusic(0)">
-      Cadastrar
-    </q-btn>
-  </div>
+  <AppSectionHeader title="Músicas" icon="fa-solid fa-music">
+    <template #actions>
+      <q-btn v-if="hasRole" color="primary" icon="fa fa-square-plus" no-caps label="Cadastrar" @click="editMusic(0)" />
+    </template>
+  </AppSectionHeader>
 
   <MusicList
     ref="musicListRef"
@@ -28,6 +27,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import AppSectionHeader from '../components/AppSectionHeader.vue';
 import MusicList from '../components/MusicList.vue';
 import ManageMusic from '../components/ManageMusic.vue';
 import MusicOverview from '../components/MusicOverview.vue';

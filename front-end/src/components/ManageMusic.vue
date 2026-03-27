@@ -1,13 +1,10 @@
 <template>
   <q-card>
-    <q-bar class="card-header">
-      <span class="text-h6 header-label" v-if="musicId == 0">Cadastrar Música</span>
-      <span class="text-h6 header-label" v-else>Editar Música</span>
-      <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </q-bar>
+    <AppSectionHeader 
+      :title="musicId == 0 ? 'Cadastrar Música' : 'Editar Música'" 
+      icon="fa-solid fa-music" 
+      show-close 
+    />
     
     <q-card class="q-pa-sm">
       <q-form @submit.prevent="submitForm" ref="formRef">
@@ -133,6 +130,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Notify } from 'quasar';
+import AppSectionHeader from './AppSectionHeader.vue';
 import api from '../api';
 import { NoteBaseOptions, NoteModeOptions } from '../constants/NoteOptions';
 import { TimeSignatureOptions } from '../constants/TimeSignatureOptions';

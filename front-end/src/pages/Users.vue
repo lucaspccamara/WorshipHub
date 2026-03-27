@@ -1,10 +1,9 @@
 <template>
-  <div class="card-header">
-    <span class="text-h6 header-label">Usuários</span>
-    <q-btn class="float-right left-icon" color="primary" icon="fa fa-square-plus" no-caps @click="opendialogCreateUser">
-      Cadastrar
-    </q-btn>
-  </div>
+  <AppSectionHeader title="Usuários" icon="fa-solid fa-users">
+    <template #actions>
+      <q-btn color="primary" icon="fa fa-square-plus" no-caps label="Cadastrar" @click="opendialogCreateUser" />
+    </template>
+  </AppSectionHeader>
 
   <q-card class="card-content q-ma-md">
     <q-card-section>
@@ -117,6 +116,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import AppSectionHeader from '../components/AppSectionHeader.vue';
 import api from '../api';
 import CreateUser from '../components/CreateUser.vue';
 import Profile from '../components/Profile.vue';

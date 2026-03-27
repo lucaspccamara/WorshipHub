@@ -1,54 +1,81 @@
 <template>
   <q-card class="column full-height bg-white">
-    <div v-if="!hideHeader" class="col-auto row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
-      <div class="text-subtitle1 text-weight-bold q-ml-sm">Repertório</div>
-      <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup />
-    </div>
+    <AppSectionHeader 
+      v-if="!hideHeader" 
+      title="Repertório" 
+      icon="fa fa-music" 
+      show-close 
+    />
 
-    <q-card-section class="col overflow-auto">
+    <q-card-section class="col overflow-auto q-pa-none">
       <div v-if="loading" class="row items-center justify-center q-pa-lg">
         <q-spinner-dots color="primary" />
       </div>
 
       <div v-else>
-        <div v-if="!hideHeader" class="q-mb-md">
-          <div class="text-subtitle2">Escala: {{ formatDate(schedule.date) }}</div>
-          <div class="text-caption">Membros escalados:</div>
-          <div class="row q-gutter-sm q-mt-sm">
-            <q-chip v-for="m in schedule.assignedMembers" :key="m.id" dense>
-              {{ m.name }} — {{ positionLabel(m.position) }}
-            </q-chip>
-            <div v-if="!schedule.assignedMembers || schedule.assignedMembers.length === 0" class="text-caption">Nenhum membro atribuído ainda.</div>
-          </div>
+        <!-- TABS for multiple schedules -->
+        <div v-if="ids.length > 1" class="bg-grey-1">
+          <q-tabs
+            v-model="tab"
+            dense
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+            narrow-indicator
+          >
+            <q-tab
+              v-for="s in schedulesData"
+              :key="s.id"
+              :name="String(s.id)"
+              :label="formatDate(s.date)"
+            />
+          </q-tabs>
+          <q-separator />
         </div>
 
-        <div class="q-mb-md">
-          <div class="row items-center justify-between q-mb-sm">
-            <div class="text-subtitle2">Músicas do Repertório</div>
-            <q-btn color="primary" icon="fa fa-plus" label="Adicionar Música" size="sm" @click="dialogMusicList = true" />
-          </div>
+        <q-tab-panels v-model="tab" animated class="bg-transparent">
+          <q-tab-panel v-for="s in schedulesData" :key="'panel-' + s.id" :name="String(s.id)" class="q-pa-md">
+            
+            <div v-if="!hideHeader" class="q-mb-md">
+              <div class="text-subtitle2">Escala: {{ formatDate(s.date) }}</div>
+              <div class="text-caption">Membros escalados:</div>
+              <div class="row q-gutter-sm q-mt-sm">
+                <q-chip v-for="m in s.assignedMembers" :key="m.id" dense>
+                  {{ m.name }} — {{ positionLabel(m.position) }}
+                </q-chip>
+                <div v-if="!s.assignedMembers || s.assignedMembers.length === 0" class="text-caption text-grey">Nenhum membro atribuído ainda.</div>
+              </div>
+            </div>
 
-          <q-list bordered separator class="rounded-borders">
-            <q-item v-for="(track, index) in schedule.repertoire" :key="index">
-              <q-item-section>
-                <q-item-label>{{ track.title }} <span class="text-caption text-grey" v-if="track.artist">— {{ track.artist }}</span></q-item-label>
-                <q-item-label caption>
-                  Tom: <strong>{{ formatKey(track.noteBase, track.noteMode) }}</strong> | BPM: <strong>{{ track.bpm || '--' }}</strong>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <div class="row q-gutter-xs">
-                  <q-btn flat dense round icon="fa fa-cog" color="primary" @click="openConfigTrack(index)" />
-                  <q-btn flat dense round icon="fa fa-trash" color="negative" @click="removeTrack(index)" />
-                </div>
-              </q-item-section>
-            </q-item>
-            <q-item v-if="schedule.repertoire.length === 0">
-              <q-item-section class="text-grey text-center q-pa-md">Nenhuma música adicionada</q-item-section>
-            </q-item>
-          </q-list>
-        </div>
+            <div class="q-mb-md">
+              <div class="row items-center justify-between q-mb-sm">
+                <div class="text-subtitle2">Músicas do Repertório</div>
+                <q-btn color="primary" icon="fa fa-plus" label="Adicionar Música" size="sm" @click="dialogMusicList = true" />
+              </div>
+
+              <q-list bordered separator class="rounded-borders">
+                <q-item v-for="(track, index) in s.repertoire" :key="index">
+                  <q-item-section>
+                    <q-item-label>{{ track.title }} <span class="text-caption text-grey" v-if="track.artist">— {{ track.artist }}</span></q-item-label>
+                    <q-item-label caption>
+                      Tom: <strong>{{ formatKey(track.noteBase, track.noteMode) }}</strong> | BPM: <strong>{{ track.bpm || '--' }}</strong>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <div class="row q-gutter-xs">
+                      <q-btn flat dense round icon="fa fa-cog" color="primary" @click="openConfigTrack(index)" />
+                      <q-btn flat dense round icon="fa fa-trash" color="negative" @click="removeTrack(index)" />
+                    </div>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="s.repertoire.length === 0">
+                  <q-item-section class="text-grey text-center q-pa-md">Nenhuma música adicionada</q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+
+          </q-tab-panel>
+        </q-tab-panels>
       </div>
     </q-card-section>
 
@@ -56,17 +83,17 @@
 
     <q-card-actions v-if="!hideFooter" align="right" class="col-auto bg-white q-pa-md">
       <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-      <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
+      <q-btn v-if="showTransition" color="secondary" :label="advanceLabel" @click="saveAndAdvance" :loading="savingAdvance" />
     </q-card-actions>
 
     <!-- Modal for Music List -->
     <q-dialog v-model="dialogMusicList" maximized transition-show="slide-up" transition-hide="slide-down">
       <q-card>
-        <q-bar class="card-header">
-          <div class="text-h6">Selecionar Música</div>
-          <q-space />
-          <q-btn dense flat icon="fa fa-close" v-close-popup />
-        </q-bar>
+        <AppSectionHeader 
+          title="Selecionar Música" 
+          icon="fa-solid fa-music" 
+          show-close 
+        />
         <q-card-section class="q-pa-none">
           <MusicList selectable @selected="onMusicSelected" />
         </q-card-section>
@@ -120,12 +147,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Notify } from 'quasar'
+import AppSectionHeader from './AppSectionHeader.vue';
 import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
+import { EScheduleStatus } from '../constants/ScheduleStatus'
 import MusicList from './MusicList.vue'
 
 const props = defineProps({
-  scheduleId: { type: Number, required: true },
+  scheduleId: { type: Number, required: false },
+  scheduleIds: { type: Array, required: false },
   showTransition: { type: Boolean, default: true },
   hideHeader: { type: Boolean, default: false },
   hideFooter: { type: Boolean, default: false },
@@ -139,7 +169,18 @@ const loading = ref(false)
 const saving = ref(false)
 const savingAdvance = ref(false)
 
-const schedule = ref({ date: null, assignedMembers: [], repertoire: [], currentAssignments: {} })
+const nextStatus = computed(() => EScheduleStatus.Concluido)
+const advanceLabel = computed(() => 'Salvar e Concluir Escala')
+
+const ids = computed(() => {
+  if (props.scheduleIds && props.scheduleIds.length > 0) return props.scheduleIds;
+  if (props.scheduleId) return [props.scheduleId];
+  return [];
+});
+
+const tab = ref('');
+const schedulesData = ref([]); // [{ id, date, assignedMembers: [], repertoire: [] }]
+const currentSchedule = computed(() => schedulesData.value.find(s => String(s.id) === tab.value));
 
 const dialogMusicList = ref(false)
 const dialogConfigTrack = ref(false)
@@ -173,25 +214,40 @@ function formatKey(base, mode) {
 }
 
 async function load() {
+  if (ids.value.length === 0) return;
   loading.value = true
   try {
-    const r = await api.get(`schedules/${props.scheduleId}/repertoire`);
-    const dto = r.data
-    schedule.value = {
-      date: dto.date ?? dto.Date,
-      assignedMembers: (dto.assignedMembers || dto.AssignedMembers || []).map(m => ({ id: m.id ?? m.Id, name: m.name ?? m.Name, position: m.position ?? m.Position })),
-      repertoire: (dto.repertoire || dto.Repertoire || []).map(t => ({ 
-        id: t.id ?? t.Id, 
-        title: t.title ?? t.Title, 
-        artist: t.artist ?? t.Artist,
-        noteBase: t.noteBase ?? t.NoteBase,
-        noteMode: t.noteMode ?? t.NoteMode,
-        bpm: t.bpm ?? t.Bpm
-      }))
+    const results = [];
+    for (const sid of ids.value) {
+      const r = await api.get(`schedules/${sid}/repertoire`);
+      const dto = r.data;
+      results.push({
+        id: sid,
+        date: dto.date ?? dto.Date,
+        assignedMembers: (dto.assignedMembers || dto.AssignedMembers || []).map(m => ({ 
+          id: m.id ?? m.Id, 
+          name: m.name ?? m.Name, 
+          position: m.position ?? m.Position 
+        })),
+        repertoire: (dto.repertoire || dto.Repertoire || []).map(t => ({ 
+          id: t.id ?? t.Id, 
+          title: t.title ?? t.Title, 
+          artist: t.artist ?? t.Artist,
+          noteBase: t.noteBase ?? t.NoteBase,
+          noteMode: t.noteMode ?? t.NoteMode,
+          bpm: t.bpm ?? t.Bpm
+        }))
+      });
+    }
+    // Sort by date
+    results.sort((a, b) => new Date(a.date) - new Date(b.date));
+    schedulesData.value = results;
+    if (results.length > 0) {
+      tab.value = String(results[0].id);
     }
   } catch (err) {
     console.error(err)
-    Notify.create({ type: 'negative', message: 'Erro ao carregar repertório.' })
+    Notify.create({ type: 'negative', message: 'Erro ao carregar repertórios.' })
   } finally {
     loading.value = false
   }
@@ -210,8 +266,9 @@ function onMusicSelected(music) {
 }
 
 function openConfigTrack(index) {
+  if (!currentSchedule.value) return;
   editingTrackIndex.value = index;
-  const track = schedule.value.repertoire[index];
+  const track = currentSchedule.value.repertoire[index];
   editingTrack.value = track;
   editNoteBase.value = track.noteBase || '';
   const mode = (track.noteMode || track.NoteMode || 'major').toLowerCase();
@@ -221,6 +278,7 @@ function openConfigTrack(index) {
 }
 
 function confirmConfigTrack() {
+  if (!currentSchedule.value) return;
   const configuredTrack = {
     ...editingTrack.value,
     id: editingTrack.value.id || editingTrack.value.Id,
@@ -231,34 +289,37 @@ function confirmConfigTrack() {
   };
 
   if (editingTrackIndex.value >= 0) {
-    schedule.value.repertoire[editingTrackIndex.value] = configuredTrack;
+    currentSchedule.value.repertoire[editingTrackIndex.value] = configuredTrack;
   } else {
-    schedule.value.repertoire.push(configuredTrack);
+    currentSchedule.value.repertoire.push(configuredTrack);
   }
   dialogConfigTrack.value = false;
 }
 
 function removeTrack(index) {
-  schedule.value.repertoire.splice(index, 1);
+  if (!currentSchedule.value) return;
+  currentSchedule.value.repertoire.splice(index, 1);
 }
 
 async function save() {
   saving.value = true
   try {
-    const payload = schedule.value.repertoire.map(t => ({
-      musicId: t.id,
-      noteBase: t.noteBase,
-      noteMode: t.noteMode,
-      bpm: t.bpm
-    }));
-    await api.post(`schedules/${props.scheduleId}/repertoire`, payload);
-    if (props.showNotify) {
-      Notify.create({ type: 'positive', message: 'Repertório salvo.' })
+    for (const s of schedulesData.value) {
+      const payload = s.repertoire.map(t => ({
+        musicId: t.id,
+        noteBase: t.noteBase,
+        noteMode: t.noteMode,
+        bpm: t.bpm
+      }));
+      await api.post(`schedules/${s.id}/repertoire`, payload);
     }
-    emit('saved', props.scheduleId)
+    if (props.showNotify) {
+      Notify.create({ type: 'positive', message: 'Alterações salvas com sucesso.' })
+    }
+    emit('saved', ids.value)
   } catch (err) {
     console.error(err)
-    Notify.create({ type: 'negative', message: 'Erro ao salvar repertório.' })
+    Notify.create({ type: 'negative', message: 'Erro ao salvar algumas alterações.' })
   } finally {
     saving.value = false
   }
@@ -268,9 +329,9 @@ async function saveAndAdvance() {
   savingAdvance.value = true
   try {
     await save()
-    await api.post('schedules/transition', { scheduleIds: [props.scheduleId], newStatus: 3 })
-    Notify.create({ type: 'positive', message: 'Escala avançada.' })
-    emit('advanced', props.scheduleId)
+    await api.post('schedules/transition', { scheduleIds: ids.value, newStatus: nextStatus.value })
+    Notify.create({ type: 'positive', message: 'Escalas avançadas com sucesso.' })
+    emit('advanced', ids.value)
   } catch (err) {
     console.error(err)
     Notify.create({ type: 'negative', message: 'Erro ao avançar.' })

@@ -1,10 +1,11 @@
 <template>
   <q-card class="column full-height bg-white">
-    <div v-if="!hideHeader" class="col-auto row items-center q-pa-sm bg-white text-dark" style="border-bottom: 1px solid var(--q-separator)">
-      <div class="text-subtitle1 text-weight-bold q-ml-sm">Organização da Escala</div>
-      <q-space />
-      <q-btn dense flat icon="fa fa-close" v-close-popup />
-    </div>
+    <AppSectionHeader 
+      v-if="!hideHeader" 
+      title="Organização da Escala" 
+      icon="fa-solid fa-people-group" 
+      show-close 
+    />
 
     <q-card class="col column q-pa-none" flat>
       <q-card-section class="col overflow-auto q-pa-sm q-pt-none">
@@ -114,6 +115,7 @@
                       <td v-for="col in worshipPositions" :key="'gtd-w-'+sched.scheduleId+'-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
                         <q-select
                           :readonly="!canEdit"
+                          :ref="el => setSelectRef(sched.scheduleId, col.value, el)"
                           dense outlined multiple use-chips
                           :options="membersByPosition[col.value] || []"
                           option-value="id" option-label="name" emit-value map-options
@@ -161,6 +163,7 @@
                       <div class="text-caption q-mb-xs">{{ pos.label }}</div>
                       <q-select
                         :readonly="!canEdit"
+                        :ref="el => setSelectRef(sched.scheduleId, pos.value, el)"
                         dense outlined multiple use-chips
                         :options="membersByPosition[pos.value] || []"
                         option-value="id" option-label="name" emit-value map-options
@@ -214,6 +217,7 @@
                       <td v-for="col in productionPositions" :key="'gtd-p-'+sched.scheduleId+'-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
                         <q-select
                           :readonly="!canEdit"
+                          :ref="el => setSelectRef(sched.scheduleId, col.value, el)"
                           dense outlined multiple use-chips
                           :options="membersByPosition[col.value] || []"
                           option-value="id" option-label="name" emit-value map-options
@@ -261,6 +265,7 @@
                       <div class="text-caption q-mb-xs">{{ pos.label }}</div>
                       <q-select
                         :readonly="!canEdit"
+                        :ref="el => setSelectRef(sched.scheduleId, pos.value, el)"
                         dense outlined multiple use-chips
                         :options="membersByPosition[pos.value] || []"
                         option-value="id" option-label="name" emit-value map-options
@@ -318,6 +323,7 @@
                       <td v-for="col in worshipPositions" :key="'td-w-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
                         <q-select
                           :readonly="!canEdit"
+                          :ref="el => setSelectRef(item.scheduleId, col.value, el)"
                           dense outlined multiple use-chips
                           :options="membersByPosition[col.value] || []"
                           option-value="id" option-label="name" emit-value map-options
@@ -360,6 +366,7 @@
                   <div class="text-caption q-mb-xs">{{ pos.label }}</div>
                   <q-select
                     :readonly="!canEdit"
+                    :ref="el => setSelectRef(item.scheduleId, pos.value, el)"
                     dense outlined multiple use-chips
                     :options="membersByPosition[pos.value] || []"
                     option-value="id" option-label="name" emit-value map-options
@@ -409,6 +416,7 @@
                       <td v-for="col in productionPositions" :key="'td-p-'+col.value" style="vertical-align: top; min-width: 130px; padding: 4px;">
                         <q-select
                           :readonly="!canEdit"
+                          :ref="el => setSelectRef(item.scheduleId, col.value, el)"
                           dense outlined multiple use-chips
                           :options="membersByPosition[col.value] || []"
                           option-value="id" option-label="name" emit-value map-options
@@ -451,6 +459,7 @@
                   <div class="text-caption q-mb-xs">{{ pos.label }}</div>
                   <q-select
                     :readonly="!canEdit"
+                    :ref="el => setSelectRef(item.scheduleId, pos.value, el)"
                     dense outlined multiple use-chips
                     :options="membersByPosition[pos.value] || []"
                     option-value="id" option-label="name" emit-value map-options
@@ -492,7 +501,7 @@
       
       <q-card-actions v-if="!hideFooter && canEdit" align="right" class="col-auto bg-white q-pa-md">
         <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-        <q-btn v-if="showTransition" color="secondary" label="Salvar e Avançar" @click="saveAndAdvance" :loading="savingAdvance" />
+        <q-btn v-if="showTransition" color="secondary" :label="advanceLabel" @click="saveAndAdvance" :loading="savingAdvance" />
       </q-card-actions>
     </q-card>
   </q-card>
@@ -501,9 +510,11 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { Notify, useQuasar } from 'quasar'
+import AppSectionHeader from './AppSectionHeader.vue';
 import api from '../api'
 import { PositionOptions } from '../constants/PositionOptions'
 import { Role } from '../constants/Role'
+import { EScheduleStatus } from '../constants/ScheduleStatus'
 import { useAuthStore } from '../stores/authStore'
 
 const authStore = useAuthStore()
@@ -527,6 +538,11 @@ const saving = ref(false)
 const savingAdvance = ref(false)
 const positionOptions = PositionOptions
 const tab = ref('geral')
+
+const selectRefs = ref({})
+function setSelectRef(sid, pos, el) {
+  if (el) selectRefs.value[`${sid}-${pos}`] = el
+}
 
 // data structures
 const schedules = ref([]) // [{ scheduleId, date, eventType, status }]
@@ -559,6 +575,20 @@ function availLabel(avail) {
 
 const worshipPositions = computed(() => positionOptions.filter(p => p.value < 50))
 const productionPositions = computed(() => positionOptions.filter(p => p.value >= 50))
+
+const nextStatus = computed(() => {
+  if (schedules.value.length === 0) return EScheduleStatus.AguardandoRepertorio;
+  const current = schedules.value[0].status;
+  if (current === EScheduleStatus.Criado) return EScheduleStatus.ColetandoDisponibilidade;
+  if (current === EScheduleStatus.ColetandoDisponibilidade) return EScheduleStatus.AguardandoRepertorio;
+  return EScheduleStatus.AguardandoRepertorio;
+});
+
+const advanceLabel = computed(() => {
+  if (nextStatus.value === EScheduleStatus.ColetandoDisponibilidade) return 'Salvar e Iniciar Coleta';
+  if (nextStatus.value === EScheduleStatus.AguardandoRepertorio) return 'Salvar e Solicitar Repertório';
+  return 'Salvar e Avançar';
+});
 
 const memberFrequency = computed(() => {
   const counts = {} // { userId: { name: '', count: 0 } }
@@ -628,32 +658,6 @@ function formatDate(d) {
   try { return new Date(d).toLocaleDateString(); } catch { return d }
 }
 
-function hasAnyResponse() {
-  for (const posKey in membersByPosition.value) {
-    const list = membersByPosition.value[posKey] || []
-    if (list.some(x => x.available !== undefined && x.available !== null)) return true
-  }
-  return false
-}
-
-function memberResponded(memberId) {
-  for (const posKey in membersByPosition.value) {
-    const list = membersByPosition.value[posKey] || []
-    const found = list.find(x => x.id === memberId)
-    if (found) return found.available === true
-  }
-  return false
-}
-
-function isMemberUnavailable(memberId) {
-  for (const posKey in membersByPosition.value) {
-    const list = membersByPosition.value[posKey] || []
-    const found = list.find(x => x.id === memberId)
-    if (found) return found.available === false
-  }
-  return false
-}
-
 async function load() {
   loading.value = true
   try {
@@ -670,9 +674,11 @@ async function load() {
 
     // schedules list
     const parsedSchedules = dto.schedules || dto.Schedules || []
-    schedules.value = Array.isArray(parsedSchedules) 
+    const list = Array.isArray(parsedSchedules) 
       ? parsedSchedules.map(s => ({ scheduleId: s.scheduleId ?? s.ScheduleId, date: s.date ?? s.Date, eventType: s.eventType ?? s.EventType, status: s.status ?? s.Status }))
       : []
+    list.sort((a, b) => new Date(a.date) - new Date(b.date));
+    schedules.value = list;
 
     // membersByPosition -> normalize and ensure arrays for all positions
     const raw = dto.membersByPosition || dto.MembersByPosition || {}
@@ -753,11 +759,6 @@ async function onSelect(scheduleId, position, newUserIds) {
 
   const unavailableAdded = added.filter(id => getMemberAvailability(scheduleId, id) === false)
 
-  // Aceita provisoriamente a seleção para manter o Quasar em sincronia exata com o Vue.
-  // Como o modal é assíncrono, se não fizermos isso, o Quasar altera a UI internamente,
-  // mas o Vue ignora a reversão porque acha que o valor antigo não mudou.
-  assignments.value = { ...assignments.value, [scheduleId]: { ...assignments.value[scheduleId], [position]: newIds } }
-
   if (unavailableAdded.length > 0) {
     const list = membersByPosition.value[String(position)] || membersByPosition.value[position] || []
     const name = (unavailableAdded || [])
@@ -778,20 +779,30 @@ async function onSelect(scheduleId, position, newUserIds) {
     })
 
     if (!confirmed) {
-      // Reversão limpa usando a reatividade do Vue (o erro anterior ocorria pois
-      // o Quasar abortava a execução da função inteira ao rejeitar a Promise do Dialog)
       await nextTick()
       const filteredIds = newIds.filter(id => !unavailableAdded.includes(id))
       const newAssignments = { ...assignments.value }
       newAssignments[scheduleId] = { ...newAssignments[scheduleId] }
       newAssignments[scheduleId][position] = filteredIds
       assignments.value = newAssignments
+      
+      const el = selectRefs.value[`${scheduleId}-${position}`]
+      if (el) {
+        if (typeof el.hidePopup === 'function') el.hidePopup()
+        if (typeof el.blur === 'function') el.blur()
+      }
       return
     }
   }
 
   // commit locally (save happens only when user clicks Salvar)
   assignments.value = { ...assignments.value, [scheduleId]: { ...assignments.value[scheduleId], [position]: newIds } }
+  
+  const el = selectRefs.value[`${scheduleId}-${position}`]
+  if (el) {
+    if (typeof el.hidePopup === 'function') el.hidePopup()
+    if (typeof el.blur === 'function') el.blur()
+  }
 }
 
 async function save() {
@@ -826,8 +837,8 @@ async function saveAndAdvance() {
   try {
     await save()
     const ids = (schedules.value || []).map(s => s.scheduleId)
-    await api.post('schedules/transition', { scheduleIds: ids, newStatus: 2 })
-    Notify.create({ type: 'positive', message: 'Escalas avançadas para aguardar repertório.' })
+    await api.post('schedules/transition', { scheduleIds: ids, newStatus: nextStatus.value })
+    Notify.create({ type: 'positive', message: 'Escalas avançadas com sucesso.' })
     emit('advanced', ids)
   } catch {
     Notify.create({ type: 'negative', message: 'Erro ao avançar escalas.' })

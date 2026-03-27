@@ -236,5 +236,23 @@ namespace WorshipApi.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPost("notify-batch")]
+        [AuthorizeRoles(Role.Admin, Role.Leader)]
+        public async Task<ActionResult> NotifyBatch(
+            [FromServices] ScheduleService _scheduleService,
+            [FromBody] NotifyBatchDto dto)
+        {
+            if (dto == null || dto.ScheduleIds == null) return BadRequest();
+            try
+            {
+                await _scheduleService.NotifySchedulesUpdateAsync(dto.ScheduleIds);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

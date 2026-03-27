@@ -1,11 +1,10 @@
 <template>
   <q-card>
-    <div class="card-header">
-      <span class="text-h6 header-label">Alterar Senha</span>
-      <q-btn class="float-right" dense flat icon="fa fa-close" v-close-popup>
-        <q-tooltip>Fechar</q-tooltip>
-      </q-btn>
-    </div>
+    <AppSectionHeader 
+      title="Alterar Senha" 
+      icon="fa fa-key" 
+      show-close 
+    />
 
     <q-card class="q-pa-sm">
       <q-form @submit.prevent="submitPasswordChange" ref="formRef">
@@ -82,6 +81,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Notify } from 'quasar'
+import AppSectionHeader from './AppSectionHeader.vue';
 import api from '../api'
 
 const emit = defineEmits(['closeDialog']);
