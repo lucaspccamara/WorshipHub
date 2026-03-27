@@ -28,7 +28,8 @@ Antes do WorshipHub, esses processos costumam acontecer de forma fragmentada —
 - **Mixer de Áudio**: player multi-track para que músicos ouçam as faixas separadas de cada música (base, vocal, instrumento, etc.)
 - **Notificações Push**: alertas automáticos via Firebase Cloud Messaging quando a escala avança de status
 - **Gestão de Usuários**: cadastro, papéis, posições (instrumento/função) e controle de acesso por role
-- **Recuperação de Senha**: fluxo via e-mail com código de verificação temporário
+- **Recuperação de Senha**: fluxo via e-mail (Brevo API) com código de verificação temporário
+- **Lembretes Automáticos**: notificações push enviadas aos membros escalados exatamente 2 dias antes do evento, às 12:00h do horário local do usuário
 
 ### Principais Casos de Uso
 
@@ -52,6 +53,7 @@ Antes do WorshipHub, esses processos costumam acontecer de forma fragmentada —
 | **Música** (`Music`) | Entidade com tom, BPM, cifra, link de referência, e múltiplas faixas de áudio para o mixer |
 | **Mixer** | Player multi-track integrado ao front-end para estudo individual das faixas de cada música |
 | **FCM Token** | Token de dispositivo armazenado no perfil do usuário, usado para enviar notificações push |
+| **Fuso Horário** (`Timezone`) | Identificador IANA (ex: `America/Sao_Paulo`) usado para disparar lembretes no horário local correto |
 | **Role** | Papel do usuário no sistema: Admin, Leader, Minister, Member |
 
 ---
@@ -72,16 +74,16 @@ A comunicação entre front-end e back-end é feita via **REST API HTTP**, com J
 ### Visão Geral das Camadas
 
 ```
-┌──────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────┐
 │                   FRONT-END                       │
 │     Vue 3 + Quasar + Vite + Pinia (PWA)           │
 │                                                   │
 │  pages/ ─── components/ ─── composables/          │
 │  stores/ ─── router/ ─── api.js (Axios)           │
-└────────────────────┬─────────────────────────────┘
+└────────────────────┬──────────────────────────────┘
                      │ HTTP REST (Cookie HttpOnly JWT)
                      ▼
-┌──────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────┐
 │                BACK-END (Clean Arch)              │
 │                                                   │
 │  ┌─────────────────────────────────────────────┐  │
@@ -90,21 +92,22 @@ A comunicação entre front-end e back-end é feita via **REST API HTTP**, com J
 │  └──────────────────┬──────────────────────────┘  │
 │                     │                             │
 │  ┌──────────────────▼──────────────────────────┐  │
-│  │  WorshipApplication (Application Layer)    │  │
+│  │  WorshipApplication (Application Layer)     │  │
 │  │  Services / Business Rules                  │  │
 │  └──────────────────┬──────────────────────────┘  │
 │                     │                             │
 │  ┌──────────────────▼──────────────────────────┐  │
-│  │  WorshipDomain (Domain Layer)              │  │
-│  │  Entities / Enums / Interfaces / DTOs      │  │
+│  │  WorshipDomain (Domain Layer)               │  │
+│  │  Entities / Enums / Interfaces / DTOs       │  │
+│  │  (IEmailService, BrevoSettings)             │  │
 │  └──────────────────┬──────────────────────────┘  │
 │                     │                             │
 │  ┌──────────────────▼──────────────────────────┐  │
-│  │  WorshipInfra (Infrastructure Layer)       │  │
-│  │  Repositories / Database / Dapper          │  │
+│  │  WorshipInfra (Infrastructure Layer)        │  │
+│  │  Repositories / Database / Dapper           │  │
 │  └──────────────────┬──────────────────────────┘  │
 │                     │                             │
-└─────────────────────┼────────────────────────────┘
+└─────────────────────┼─────────────────────────────┘
                       │
          ┌────────────▼────────────┐
          │       MySQL 8.0         │
@@ -118,12 +121,12 @@ A comunicação entre front-end e back-end é feita via **REST API HTTP**, com J
 #### 🔵 WorshipApi (API Layer)
 - **Responsabilidade**: Ponto de entrada HTTP. Recebe requisições, autentica (JWT), autoriza (Role-based) e delega para a Application.
 - **Componentes**: `Controllers/` (AuthController, ScheduleController, MusicController, UserController, NotificationController), `Program.cs` (configuração do DI, CORS, rate limiting, JWT)
-- **Dependências externas**: Firebase Admin SDK (FCM)
+- **Dependências externas**: Firebase Admin SDK (FCM), Brevo Mail API
 - **Não contém** lógica de negócio nem acesso a banco
 
 #### 🟢 WorshipApplication (Application Layer)
 - **Responsabilidade**: Orquestra os casos de uso. Contém as regras de negócio da aplicação (quando enviar notificação, validar transições de status, etc.)
-- **Componentes**: `Services/` (AuthService, ScheduleService, MusicService, UserService, FcmNotificationService)
+- **Componentes**: `Services/` (AuthService, ScheduleService, MusicService, UserService, FcmNotificationService, BrevoEmailService), `Workers/` (EventReminderWorker)
 - **Depende de**: WorshipDomain (interfaces e entidades)
 - **Não depende de**: banco de dados diretamente (usa interfaces do Domain)
 
@@ -181,6 +184,7 @@ WorshipHub/
 | Banco de dados | MySQL 8.0 | Persistência de todos os dados do sistema |
 | Proxy reverso | Nginx (Alpine) | Serve o front-end estático e roteia para a API |
 | Notificações Push | Firebase Cloud Messaging (FCM) | Envio de push notifications para os membros |
+| Envio de E-mail | Brevo (API v3) | Recuperação de senha e e-mails transacionais |
 | Autenticação | JWT com chaves RSA assimétricas | Token armazenado em Cookie HttpOnly |
 | CI/CD | GitHub Actions | Build, push de imagem Docker e deploy na VPS |
 | Hospedagem | VPS (servidor próprio) + Docker | Containers MySQL, API e Nginx |
@@ -195,16 +199,16 @@ WorshipHub/
        │
        │ push para main
        ▼
-┌─────────────────────────────────────────────┐
-│               VPS Linux                     │
-│                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │  Nginx   │  │WorshipApi│  │  MySQL   │  │
-│  │ :80/:443 │─▶│  (API)   │─▶│  :3306   │  │
-│  │  +dist/  │  │  :8080   │  │          │  │
-│  └──────────┘  └──────────┘  └──────────┘  │
-│                      │                     │
-└──────────────────────┼─────────────────────┘
+┌──────────────────────────────────────────────┐
+│               VPS Linux                      │
+│                                              │
+│  ┌──────────┐   ┌──────────┐  ┌──────────┐   │
+│  │  Nginx   │   │WorshipApi│  │  MySQL   │   │
+│  │ :80/:443 │─▶│  (API)   │─▶│  :3306   │   │
+│  │  +dist/  │   │  :8080   │  │          │   │
+│  └──────────┘   └──────────┘  └──────────┘   │
+│                      │                       │
+└──────────────────────┼───────────────────────┘
                        │
                [ Firebase FCM ]
                (push notifications)

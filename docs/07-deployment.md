@@ -123,6 +123,11 @@ AllowedOrigins__0=https://worshiphub.ipflamengo.com.br
 
 # Autenticação JWT
 JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+
+# E-mail (Brevo)
+BrevoSettings__ApiKey=SUA_CHAVE_AQUI
+BrevoSettings__SenderEmail=email@email.com.br
+BrevoSettings__SenderName=WorshipHub
 ```
 
 > ⚠️ O arquivo `infra/.env` **não é versionado** (está no `.gitignore`). Deve ser criado e mantido manualmente na VPS.

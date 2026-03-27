@@ -124,6 +124,8 @@ npm install
 | `ConnectionStrings.mysql` | Connection string do MySQL | ✅ | `server=127.0.0.1;user=root;database=whdatabase;password=senha;` |
 | `JWT_PRIVATE_KEY` | Chave RSA privada para assinar JWT | ✅ | `-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----` |
 | `JWT_PUBLIC_KEY` | Chave RSA pública para validar JWT | ✅ | `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----` |
+| `BrevoSettings.ApiKey` | Chave de API do Brevo v3 | ✅ | `SUA_CHAVE_AQUI` |
+| `BrevoSettings.SenderEmail` | E-mail remetente do sistema | ✅ | `email@email.com.br` |
 | `AllowedOrigins` | Origens permitidas pelo CORS | ✅ | `["http://localhost:5173"]` |
 
 #### Back-end — Arquivo de serviço Firebase
@@ -157,6 +159,9 @@ npm install
 | `ConnectionStrings__mysql` | Connection string para a API no Docker | ✅ | `server=mysql;user=...` |
 | `AllowedOrigins__0` | Domínio permitido pelo CORS | ✅ | `https://seudominio.com` |
 | `JWT_PRIVATE_KEY` | Chave RSA privada | ✅ | `"-----BEGIN PRIVATE KEY..."` |
+| `BrevoSettings__ApiKey` | Chave de API do Brevo (produção) | ✅ | `SUA_CHAVE_AQUI` |
+| `BrevoSettings__SenderEmail` | E-mail remetente do sistema | ✅ | `email@email.com.br` |
+| `BrevoSettings__SenderName` | Nome remetente do sistema | ✅ | `WorshipHub` |
 
 ---
 

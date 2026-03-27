@@ -56,7 +56,7 @@
               <div 
                 class="fader-overlay"
                 @mousedown="startDrag($event, track)"
-                @touchstart.prevent="startDrag($event, track)"
+                @touchstart.prevent="handleTouchStart($event, track)"
                 @dblclick="resetDb(track)"
               ></div>
             </div>
@@ -177,6 +177,19 @@ function ratioToDb(ratio) {
 let dragInitialY = 0
 let dragInitialDb = 0
 let currentDragTrack = null
+let lastTap = 0
+function handleTouchStart(event, track) {
+  const now = Date.now()
+  const DOUBLE_TAP_DELAY = 300
+  
+  if (now - lastTap < DOUBLE_TAP_DELAY) {
+    resetDb(track)
+    lastTap = 0
+  } else {
+    lastTap = now
+    startDrag(event, track)
+  }
+}
 
 function startDrag(event, track) {
   currentDragTrack = track

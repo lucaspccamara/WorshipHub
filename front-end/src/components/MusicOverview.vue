@@ -20,7 +20,8 @@
       v-model="tab" 
       :animated="!isMobile" 
       keep-alive
-      class="col"
+      class="col overflow-hidden"
+      style="max-width: 100vw;"
     >
 
       <q-tab-panel name="details">

@@ -116,13 +116,12 @@ Na VPS, confirme que a chave pública correspondente está em `~/.ssh/authorized
 
 **10. O código de recuperação de senha não chega por e-mail.**
 
-O envio de e-mail **ainda não foi implementado**. O código é apenas exibido no console da API:
-```
-Console.WriteLine($"Código de verificação: {code}");
-```
-Veja o terminal do `dotnet run` para obter o código durante o desenvolvimento.
+Verifique se:
+1. A **ApiKey** do Brevo está configurada corretamente no `appsettings.json`
+2. O e-mail remetente em `BrevoSettings.SenderEmail` é um remetente autenticado no painel do Brevo
+3. O domínio `ipfalamengo.com.br` está com os registros DKIM/SPF validados no Brevo
 
-> ⚠️ `TODO: implementar envio de e-mail em AuthService.RequestPasswordResetCode()`
+Durante o desenvolvimento, se a `ApiKey` estiver em branco, o código continuará sendo exibido apenas no console da API para facilitar o teste local sem gastar cota de e-mail.
 
 ---
 
@@ -167,6 +166,8 @@ Apenas usuários com `Role = Admin` ou `Role = Leader` podem criar novos usuári
 | **FCM** | Firebase Cloud Messaging — serviço de push notifications do Google | Usado para alertar membros sobre mudanças de status de escalas |
 | **FCM Token** | Identificador único do dispositivo para receber notificações FCM | Salvo no campo `fcm_token` do usuário no banco |
 | **JWT** | JSON Web Token — formato de token de autenticação | Usado para autenticar usuários; assinado com RSA e transportado via Cookie |
+| **Brevo** | Serviço de e-mail transacional (API v3) | Usado para enviar códigos de recuperação de senha e notificações por e-mail |
+| **IANA Timezone** | Padrão de identificação de fusos horários (ex: `America/Sao_Paulo`) | Usado para garantir que lembretes de escala sejam enviados no horário local correto do usuário |
 | **RSA** | Algoritmo de criptografia assimétrica | Par de chaves pública/privada usado para assinar e verificar o JWT |
 | **Cookie HttpOnly** | Cookie inacessível via JavaScript — protege contra XSS | Mecanismo de transporte do token JWT no WorshipHub |
 | **Dapper** | Micro-ORM leve para .NET — executa SQL com mapeamento de objetos | Usado em toda a camada `WorshipInfra` para acesso ao MySQL |

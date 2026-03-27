@@ -33,8 +33,9 @@
 | DTOs | sufixo `DTO` ou `Dto` (ambos em uso) | `ScheduleCreationDTO`, `ScheduleRepertoireDto` |
 | Enums | `PascalCase` (tipo e valores) | `ScheduleStatus.Created` |
 | Controllers | sufixo `Controller` | `ScheduleController` |
-| Serviços | sufixo `Service` | `ScheduleService` |
+| Serviços | sufixo `Service` | `ScheduleService`, `BrevoEmailService` |
 | Repositórios | sufixo `Repository` | `ScheduleRepository` |
+| Workers | sufixo `Worker` | `EventReminderWorker` |
 
 #### Banco de Dados (MySQL)
 

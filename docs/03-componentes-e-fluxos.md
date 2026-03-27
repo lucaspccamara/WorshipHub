@@ -128,6 +128,7 @@ MusicOverview → abre MixerVS (ou MixerSplash)
 | GET | `/users` | Lista usuários |
 | POST | `/users` | Cria novo usuário |
 | PUT | `/users/{id}` | Atualiza usuário |
+| PATCH | `/users/{id}/timezone` | Atualiza fuso horário do usuário |
 | PUT | `/users/{id}/fcm-token` | Atualiza token de notificação push |
 
 ---
@@ -141,6 +142,14 @@ MusicOverview → abre MixerVS (ou MixerSplash)
 
 ---
 
+### Módulo: Lembretes Automáticos
+
+**Localização back-end**: `WorshipApplication/Workers/EventReminderWorker.cs`
+
+**Responsabilidade**: Serviço em segundo plano (`BackgroundService`) que roda a cada 1 hora. Ele identifica escalas concluídas que ocorrerão em exatamente 2 dias e envia lembretes via Push para os membros escalados, respeitando o fuso horário local de cada um (o disparo ocorre a partir das 12h do horário local do usuário).
+
+---
+
 ## Fluxos Principais
 
 ### FLUXO 1 — Login e Autenticação
@@ -150,17 +159,17 @@ MusicOverview → abre MixerVS (ou MixerSplash)
 **Saída**: Cookie HttpOnly com JWT válido por 6 horas
 
 ```
-Usuário                  Front-end                    API
-   │                        │                           │
-   │── insere credenciais ──▶│                           │
-   │                        │── POST /auths/login ──────▶│
-   │                        │                           │
-   │                        │                   BCrypt.Verify()
-   │                        │                   GenerateJWT (RSA, 6h)
-   │                        │                           │
-   │                        │◀── 200 OK + Set-Cookie ───│
-   │                        │    (access_token httpOnly)│
-   │◀── redireciona para / ─│                           │
+Usuário                  Front-end                       API
+   │                         │                             │
+   │── insere credenciais ──▶│                            │
+   │                         │── POST /auths/login ──────▶│
+   │                         │                             │
+   │                         │                   BCrypt.Verify()
+   │                         │                   GenerateJWT (RSA, 6h)
+   │                         │                             │
+   │                         │◀── 200 OK + Set-Cookie ─────│
+   │                         │    (access_token httpOnly)  │
+   │◀── redireciona para / ─│                              │
 ```
 
 > ⚠️ **Regra de negócio**: O token JWT é transportado SOMENTE via Cookie HttpOnly. O front-end nunca acessa o token diretamente (proteção contra XSS). O Axios envia o cookie automaticamente via `withCredentials: true`.
@@ -252,13 +261,28 @@ Leader/Admin               Front-end                    API
 **Entrada**: e-mail cadastrado
 
 ```
-1. Usuário acessa /request-password-reset-code → informa e-mail
+1. Usuário acessa `/request-password-reset-code` → informa e-mail
 2. API gera código 6 dígitos + JWT temporário (10 min) → salva no usuário
-3. Código exibido no console da API (TODO: envio por e-mail)
-4. Usuário acessa /verify-reset-code → informa e-mail + código
+3. API envia e-mail real via **Brevo API v3** com o código e instruções
+4. Usuário acessa `/verify-reset-code` → informa e-mail + código
 5. API valida JWT e código → emite token de reset (15 min)
-6. Usuário acessa /reset-password → informa nova senha + token
-7. API valida token → atualiza senha (BCrypt) → limpa reset_token
-```
+6. Usuário acessa `/reset-password` → informa nova senha + token
+7. API valida token → atualiza senha (BCrypt) → limpa `reset_token`
 
-> ⚠️ **Ponto de atenção**: O envio de e-mail ainda não está implementado. O código é exibido apenas no console da API (`Console.WriteLine`). Isso está marcado como `TODO` no `AuthService.cs`.
+---
+
+### FLUXO 7 — Lembrete de Escala (2 dias antes)
+
+**Atores**: Sistema (Automático), Member (Recebe)
+**Agendamento**: Execução horária
+
+```
+1. EventReminderWorker inicia ciclo de verificação (hora em hora)
+2. Busca escalas com Status: Concluido para a data: Hoje + 2 dias
+3. Para cada escala, lista membros cujas posições foram preenchidas
+4. Verifica na tabela schedules_users se reminder_sent == 0
+5. Converte UTC atual para o Timezone do usuário (ex: America/Sao_Paulo)
+6. Se localHour >= 12:
+   a. Envia Push Notification via FCM Service
+   b. Marca reminder_sent = 1 para esse usuário específico na escala
+```

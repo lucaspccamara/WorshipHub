@@ -1,12 +1,12 @@
 <template>
-  <div class="q-pa-md row justify-center">
+  <div class="q-pa-md row justify-center overflow-hidden">
     <div v-if="loading" class="col-12 flex flex-center q-pa-xl">
       <q-spinner-dots size="40px" color="primary" />
     </div>
 
-    <div v-else-if="music" class="col-12 col-md-10 col-lg-8" style="max-width: 900px;">
+    <div v-else-if="music" class="col-12 col-md-10 col-lg-8">
       <!-- CABEÇALHO / CAPA E METADADOS -->
-      <div class="row q-col-gutter-lg q-mb-lg align-items-center">
+      <div class="row q-mb-md items-center no-wrap-sm">
         
         <!-- Album Art / Vinyl Scene -->
         <div class="col-12 col-sm-5 col-md-5 flex flex-center animate-slide-up stagger-1">
@@ -27,9 +27,9 @@
 
         <div class="col-12 col-sm-7 col-md-7 column justify-center animate-slide-up stagger-2">
           <div class="text-h4 text-weight-bold q-mb-xs title-text">{{ music.title }}</div>
-          <div class="text-h6 text-grey-8 q-mb-md">{{ music.artist || 'Artista Desconhecido' }}</div>
+          <div class="text-h6 text-grey-8 q-mb-md wrap-text" :title="music.artist">{{ music.artist || 'Artista Desconhecido' }}</div>
           
-          <q-chip v-if="music.album" class="q-ml-none q-mb-lg album-chip" color="primary" text-color="white" icon="fa-solid fa-compact-disc">
+          <q-chip v-if="music.album" class="q-ml-none q-mb-md album-chip" color="primary" text-color="white" icon="fa-solid fa-compact-disc">
             {{ music.album }}
           </q-chip>
 
@@ -287,9 +287,34 @@ onMounted(() => {
   transform: scale(1.01);
 }
 
-/* Title Font */
-.title-text {
+/* Title, Artist and Album Wrap handling */
+.title-text, .wrap-text {
   letter-spacing: -0.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding-right: 16px; /* Folga de segurança */
+  white-space: normal; /* Garante a quebra de linha */
+  max-width: 100%;
+}
+
+.album-chip {
+  max-width: 100%;
+  overflow: hidden; /* Importante para o ellipsis no child */
+}
+
+:deep(.album-chip .q-chip__content) {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .title-text {
+    font-size: 1.5rem; /* Reduz um pouco no mobile para caber mais nome */
+    line-height: 2rem;
+  }
 }
 
 /* Base animations */

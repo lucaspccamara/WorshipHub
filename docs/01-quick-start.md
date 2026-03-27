@@ -48,11 +48,18 @@ Edite o arquivo `appsettings.Development.json` com as suas credenciais locais:
   },
   "JWT_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
   "JWT_PUBLIC_KEY": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+  "BrevoSettings": {
+    "ApiKey": "SUA_CHAVE_AQUI",
+    "SenderEmail": "email@email.com.br",
+    "SenderName": "WorshipHub"
+  },
   "AllowedOrigins": [
     "http://localhost:5173"
   ]
 }
 ```
+
+> 💡 **Recuperação de Senha**: O sistema usa o **Brevo API v3** para enviar e-mails. Sem a `ApiKey`, o código de recuperação será exibido apenas no terminal da API.
 
 > ⚠️ As chaves RSA (`JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`) devem ser um par gerado localmente. Veja como gerar no arquivo `04-setup-e-desenvolvimento.md`.
 
@@ -90,7 +97,7 @@ VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXX
 VITE_FIREBASE_VAPID_KEY=sua_vapid_key
 ```
 
-> ⚠️ As variáveis do Firebase são necessárias para as notificações push funcionarem. Sem elas, o app funciona, mas sem notificações.
+> ⚠️ As variáveis do Firebase são necessárias para as notificações push funcionarem. Sem elas (e sem o arquivo `firebase-service-account.json` no back-end), o app funciona, mas sem notificações.
 
 Instale as dependências:
 
@@ -202,8 +209,8 @@ Sistema disponível em: `http://localhost`
 ## ✅ Checklist Final de Onboarding
 
 - [ ] Repositório clonado
-- [ ] `appsettings.Development.json` configurado com connection string e chaves RSA
-- [ ] `firebase-service-account.json` colocado em `back-end/WorshipApi/` (opcional para notificações)
+- [ ] `appsettings.Development.json` configurado com connection string, chaves RSA e Brevo ApiKey
+- [ ] `firebase-service-account.json` colocado em `back-end/WorshipApi/` (necessário para notificações push)
 - [ ] `.env.development` do front-end configurado
 - [ ] Banco MySQL rodando e acessível
 - [ ] API rodando em `http://localhost:5255`
