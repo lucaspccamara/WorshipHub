@@ -36,8 +36,8 @@ namespace WorshipApplication.Services
                 {
                     Notification = new WebpushNotification()
                     {
-                        Icon = "/pwa-192x192.png",
-                        Badge = "/vite.svg",
+                        Icon = "/logo-512x512.png",
+                        Badge = "/logo-notification.svg",
                         Tag = "worship-push",
                         Renotify = true
                     }

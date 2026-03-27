@@ -29,13 +29,19 @@
           <q-btn
             v-if="scheduleId == 0"
             color="primary"
+            unelevated
+            no-caps
             label="Adicionar Evento"
+            icon="fa fa-plus"
             @click="addEvent()"
           />
           <q-btn
             v-else
             color="primary"
+            unelevated
+            no-caps
             label="Salvar"
+            icon="fa fa-save"
             type="submit"
           />
           <q-btn
@@ -71,7 +77,15 @@
           </q-card-section>
           
           <q-card-actions class="card-footer position-absolute">
-            <q-btn color="primary" type="submit" label="Cadastrar Escala" class="align-right-bottom q-ma-md" />
+            <q-btn 
+              color="primary" 
+              type="submit" 
+              unelevated
+              no-caps
+              label="Cadastrar Escala" 
+              icon="fa fa-calendar-check"
+              class="align-right-bottom q-ma-md" 
+            />
           </q-card-actions>
         </div>
       </div>
@@ -117,7 +131,10 @@
           v-if="isMobile"
           class="full-width q-mt-md"
           color="primary"
+          unelevated
+          no-caps
           label="Cadastrar Escala"
+          icon="fa fa-calendar-check"
           @click="save()"
         />
       </q-card-actions>

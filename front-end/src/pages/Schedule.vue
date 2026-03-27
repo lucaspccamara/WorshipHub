@@ -197,7 +197,7 @@
       :schedule-ids="selectedScheduleIds"
       :schedule-date="selectedScheduleDate"
       :status="selectedScheduleStatus"
-      @updateScheduleList="getSchedule"
+      @updateScheduleList="() => { getSchedule(); dialogManageCompletedSchedule = false; }"
     />
   </q-dialog>
 </template>
@@ -390,12 +390,17 @@ async function finishSchedule() {
 }
 
 function onSavedPosition(id) {
+  dialogPosition.value = false
   getSchedule()
 }
 function onAdvanced(id) {
+  dialogPosition.value = false
+  dialogRepertoire.value = false
+  dialogManageCompletedSchedule.value = false
   getSchedule()
 }
 function onRepertoireReleased(id) {
+  dialogRepertoire.value = false
   getSchedule()
 }
 

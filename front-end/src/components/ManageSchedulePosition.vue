@@ -500,8 +500,26 @@
       <q-separator v-if="!hideFooter && canEdit" />
       
       <q-card-actions v-if="!hideFooter && canEdit" align="right" class="col-auto bg-white q-pa-md">
-        <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-        <q-btn v-if="showTransition" color="secondary" :label="advanceLabel" @click="saveAndAdvance" :loading="savingAdvance" />
+        <q-btn
+          flat
+          color="secondary"
+          label="Salvar"
+          icon="fa fa-save"
+          no-caps
+          @click="save"
+          :loading="saving"
+        />
+        <q-btn
+          v-if="showTransition"
+          unelevated
+          color="primary"
+          :label="advanceLabel"
+          :icon="nextStatus === EScheduleStatus.ColetandoDisponibilidade ? 'fa fa-list-check' : 'fa fa-paper-plane'"
+          no-caps
+          class="q-px-md"
+          @click="saveAndAdvance"
+          :loading="savingAdvance"
+        />
       </q-card-actions>
     </q-card>
   </q-card>
@@ -824,9 +842,10 @@ async function save() {
     if (props.showNotify) {
       Notify.create({ type: 'positive', message: 'Atribuições salvas.' })
     }
-    //emit('saved', ids)
+    emit('saved', ids)
   } catch (err) {
     Notify.create({ type: 'negative', message: 'Erro ao salvar.' })
+    throw err
   } finally {
     saving.value = false
   }

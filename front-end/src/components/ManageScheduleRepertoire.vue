@@ -82,8 +82,26 @@
     <q-separator v-if="!hideFooter" />
 
     <q-card-actions v-if="!hideFooter" align="right" class="col-auto bg-white q-pa-md">
-      <q-btn color="primary" label="Salvar" @click="save" :loading="saving" />
-      <q-btn v-if="showTransition" color="secondary" :label="advanceLabel" @click="saveAndAdvance" :loading="savingAdvance" />
+      <q-btn
+        flat
+        color="secondary"
+        label="Salvar"
+        icon="fa fa-save"
+        no-caps
+        @click="save"
+        :loading="saving"
+      />
+      <q-btn
+        v-if="showTransition"
+        unelevated
+        color="primary"
+        :label="advanceLabel"
+        icon="fa fa-paper-plane"
+        no-caps
+        class="q-px-md"
+        @click="saveAndAdvance"
+        :loading="savingAdvance"
+      />
     </q-card-actions>
 
     <!-- Modal for Music List -->
@@ -318,8 +336,8 @@ async function save() {
     }
     emit('saved', ids.value)
   } catch (err) {
-    console.error(err)
     Notify.create({ type: 'negative', message: 'Erro ao salvar algumas alterações.' })
+    throw err
   } finally {
     saving.value = false
   }

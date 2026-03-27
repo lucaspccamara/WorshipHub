@@ -402,7 +402,7 @@ SELECT FOUND_ROWS() AS TotalRecords;");
                   
             return _dbConnection.Query<Schedule>(sql, new { 
                 Status = (int)ScheduleStatus.Completed, 
-                TargetDate = targetDate 
+                TargetDate = targetDate.ToString("yyyy-MM-dd") 
             });
         }
 

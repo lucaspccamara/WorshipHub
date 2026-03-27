@@ -65,15 +65,26 @@
         <q-tooltip>Notificar membros sobre as mudanças</q-tooltip>
       </q-btn>
       
+      <q-btn
+        v-if="status === EScheduleStatus.AguardandoRepertorio"
+        label="Salvar"
+        icon="fa fa-save"
+        flat
+        color="secondary"
+        no-caps
+        :loading="savingAll && !advancing"
+        @click="saveAll(false)"
+      />
+
       <q-btn 
         :label="advanceLabel" 
-        icon="fa fa-save"
+        :icon="status === EScheduleStatus.AguardandoRepertorio ? 'fa fa-paper-plane' : 'fa fa-save'"
         color="primary" 
         unelevated
         no-caps 
         class="q-px-md"
-        :loading="savingAll"
-        @click="saveAll"
+        :loading="savingAll && advancing"
+        @click="saveAll(true)"
       />
     </q-card-actions>
   </q-card>
@@ -106,6 +117,7 @@ const $q = useQuasar();
 const tab = ref('members');
 const notifying = ref(false);
 const savingAll = ref(false);
+const advancing = ref(false);
 
 const membersRef = ref(null);
 const repertoireRef = ref(null);
@@ -136,8 +148,9 @@ function onSaved() {
   emit('updateScheduleList');
 }
 
-async function saveAll() {
+async function saveAll(advance = true) {
   savingAll.value = true;
+  advancing.value = advance;
   try {
     const promises = [];
     if (membersRef.value) {
@@ -150,17 +163,17 @@ async function saveAll() {
     if (promises.length > 0) {
       await Promise.all(promises);
       
-      if (props.status === EScheduleStatus.AguardandoRepertorio) {
+      if (advance && props.status === EScheduleStatus.AguardandoRepertorio) {
         await api.post('schedules/transition', { scheduleIds: ids.value, newStatus: EScheduleStatus.Concluido });
         Notify.create({ type: 'positive', message: 'Escalas liberadas com sucesso.' });
-        emit('updateScheduleList');
       } else {
         Notify.create({ type: 'positive', message: 'Todas as alterações foram salvas.' });
       }
+      emit('updateScheduleList');
     }
   } catch (err) {
     console.error(err);
-    Notify.create({ type: 'negative', message: 'Erro ao salvar algumas alterações.' });
+    // Notification is already shown by children
   } finally {
     savingAll.value = false;
   }
