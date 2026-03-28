@@ -31,6 +31,9 @@ RUN dotnet publish -c Release -o /app/publish \
 # =========================
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
 
+# Instala tzdata para suporte a fusos horários IANA (ex: America/Sao_Paulo)
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 COPY --from=build /app/publish .
