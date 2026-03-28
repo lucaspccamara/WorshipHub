@@ -15,7 +15,7 @@
       <q-btn no-caps unelevated :ripple="false" to="/">
         <q-toolbar-title class="row items-center">
           <q-avatar size="32px">
-            <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" alt="Logo" />
+            <img src="/logo-transparent.svg" alt="Logo" />
           </q-avatar>
           <span class="q-ml-sm text-subtitle1">WorshipHub</span>
         </q-toolbar-title>

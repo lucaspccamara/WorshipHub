@@ -29,6 +29,10 @@ namespace WorshipApplication.Workers
         {
             _logger.LogInformation("EventReminderWorker iniciado.");
 
+            // Aguarda a inicialização completa do banco de dados em ambientes Docker
+            _logger.LogInformation("EventReminderWorker aguardando 30s antes da primeira verificação...");
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+
             using var timer = new PeriodicTimer(CheckInterval);
 
             // Executa imediatamente na inicialização e depois a cada CheckInterval
