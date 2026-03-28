@@ -80,22 +80,34 @@ namespace WorshipApplication.Workers
                     if (stoppingToken.IsCancellationRequested) break;
 
                     // Converter hora atual UTC para o timezone do usuário
-                    if (!TryGetLocalHour(user.Timezone, out int localHour))
+                    TimeZoneInfo userTz;
+                    try
+                    {
+                        userTz = TimeZoneInfo.FindSystemTimeZoneById(user.Timezone);
+                    }
+                    catch
                     {
                         _logger.LogWarning(
                             "Timezone inválido '{Tz}' para o usuário {Id}. Usando 'America/Sao_Paulo'.",
                             user.Timezone, user.Id);
-
-                        TryGetLocalHour("America/Sao_Paulo", out localHour);
+                        userTz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
                     }
 
+                    var userLocalNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userTz);
+                    var userToday = userLocalNow.Date;
+
+                    // Valida que a escala é EXATAMENTE daqui a 2 dias no fuso do usuário
+                    var daysUntil = (schedule.Date.Date - userToday).Days;
+                    if (daysUntil != 2)
+                        continue;
+
                     // Só envia se for >= 12:00 no horário do membro
-                    if (localHour < 12)
+                    if (userLocalNow.Hour < 12)
                         continue;
 
                     _logger.LogInformation(
-                        "Enviando lembrete para usuário {UserId} (escala {ScheduleId}) — local hour: {Hour}h.",
-                        user.Id, schedule.Id, localHour);
+                        "Enviando lembrete para usuário {UserId} (escala {ScheduleId}) — local hour: {Hour}h, tz: {Tz}.",
+                        user.Id, schedule.Id, userLocalNow.Hour, user.Timezone);
 
                     if (!string.IsNullOrWhiteSpace(user.FcmToken))
                     {
@@ -112,20 +124,5 @@ namespace WorshipApplication.Workers
             }
         }
 
-        private static bool TryGetLocalHour(string timezoneId, out int localHour)
-        {
-            try
-            {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById(timezoneId);
-                var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-                localHour = localNow.Hour;
-                return true;
-            }
-            catch
-            {
-                localHour = 0;
-                return false;
-            }
-        }
     }
 }

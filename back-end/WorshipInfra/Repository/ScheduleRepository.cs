@@ -393,16 +393,23 @@ SELECT FOUND_ROWS() AS TotalRecords;");
 
         public IEnumerable<Schedule> GetSchedulesStartingIn(int daysFromNow)
         {
-            var targetDate = DateTime.Today.AddDays(daysFromNow);
+            // Busca escalas em daysFromNow ±1 dia em UTC para cobrir todos os fusos horários
+            // (ex: UTC-12 a UTC+14). A validação exata do fuso de cada usuário é feita no Worker.
+            var utcNow = DateTime.UtcNow;
+            var rangeStart = utcNow.AddDays(daysFromNow - 1).Date;
+            var rangeEnd   = utcNow.AddDays(daysFromNow + 1).Date;
+
             var sql = @"
                 SELECT id as Id, date as Date, event_type as EventType, status as Status 
                 FROM schedules 
                 WHERE status = @Status 
-                  AND DATE(date) = DATE(@TargetDate);";
-                  
-            return _dbConnection.Query<Schedule>(sql, new { 
-                Status = (int)ScheduleStatus.Completed, 
-                TargetDate = targetDate.ToString("yyyy-MM-dd") 
+                  AND DATE(date) >= @RangeStart
+                  AND DATE(date) <= @RangeEnd;";
+
+            return _dbConnection.Query<Schedule>(sql, new {
+                Status = (int)ScheduleStatus.Completed,
+                RangeStart = rangeStart.ToString("yyyy-MM-dd"),
+                RangeEnd   = rangeEnd.ToString("yyyy-MM-dd")
             });
         }
 
