@@ -57,11 +57,12 @@ namespace WorshipApplication.Workers
             var fcmService = scope.ServiceProvider.GetRequiredService<FcmNotificationService>();
 
             // Escalas concluídas com data daqui a 2 dias
+            _logger.LogInformation("EventReminderWorker verificando escalas em d+2...");
             var schedules = scheduleRepo.GetSchedulesStartingIn(2).ToList();
 
             if (schedules.Count == 0)
             {
-                _logger.LogDebug("Nenhuma escala encontrada para lembrete em d+2.");
+                _logger.LogInformation("Nenhuma escala encontrada para lembrete em d+2.");
                 return;
             }
 
